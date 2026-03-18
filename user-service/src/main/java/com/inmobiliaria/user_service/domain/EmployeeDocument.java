@@ -1,0 +1,26 @@
+package com.inmobiliaria.user_service.domain;
+
+import lombok.*;
+import org.springframework.data.annotation.TypeAlias;
+import java.time.Instant;
+
+@TypeAlias("employee")
+@Getter
+@Setter
+@NoArgsConstructor
+public class EmployeeDocument extends PersonDocument {
+    private String department;
+    private String position;
+    private Instant hireDate;
+
+    @Builder
+    public EmployeeDocument(String id, String authUserId, String firstName, String lastName, String fullName, 
+                            java.time.LocalDate birthDate, String phone, String email, 
+                            java.util.List<String> roleIds, boolean customRole,
+                            String department, String position, Instant hireDate) {
+        super(id, authUserId, firstName, lastName, fullName, birthDate, phone, email, PersonType.EMPLOYEE, roleIds, customRole);
+        this.department = department;
+        this.position = position;
+        this.hireDate = hireDate;
+    }
+}
