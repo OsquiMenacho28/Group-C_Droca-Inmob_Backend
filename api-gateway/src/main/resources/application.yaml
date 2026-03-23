@@ -29,18 +29,12 @@ spring:
             - Path=/notifications/**
           filters:
             - AuthenticationFilter
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins: "*"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - PATCH
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
+        - id: property-service
+          uri: lb://PROPERTY-SERVICE
+          predicates:
+            - Path=/properties/**,/properties
+          filters:
+            - AuthenticationFilter
 
 eureka:
   client:
@@ -50,3 +44,4 @@ eureka:
 logging:
   level:
     org.springframework.cloud.gateway: INFO
+    org.springframework.security: DEBUG

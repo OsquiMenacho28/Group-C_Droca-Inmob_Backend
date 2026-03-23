@@ -14,8 +14,18 @@ public class PropertyDocument extends BaseDocument {
     private String title;
     private String address;
     private Double price;
-    private String assignedAgentId;
     
+    // Nuevos campos para la historia de usuario
+    private String type;
+    private Double m2;
+    private Integer rooms;
+    private String status; 
+    
+    @Builder.Default
+    private List<String> imageUrls = new ArrayList<>();
+
+    private String assignedAgentId;
+
     @Builder.Default
     private List<AssignmentHistory> assignmentHistory = new ArrayList<>();
 }
