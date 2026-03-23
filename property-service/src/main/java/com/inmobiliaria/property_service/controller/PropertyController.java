@@ -2,6 +2,7 @@ package com.inmobiliaria.property_service.controller;
 
 import com.inmobiliaria.property_service.dto.request.AssignAgentRequest;
 import com.inmobiliaria.property_service.dto.request.PropertyRequest;
+import com.inmobiliaria.property_service.dto.request.UpdatePriceRequest;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.service.PropertyService;
 import jakarta.validation.Valid;
@@ -45,5 +46,27 @@ public class PropertyController {
     @GetMapping("/agent/{agentId}")
     public List<PropertyResponse> getByAgent(@PathVariable String agentId) {
         return propertyService.findByAgent(agentId);
+    }
+    @PatchMapping("/{id}/price")
+    
+    @PreAuthorize("hasRole('ADMIN')")
+    public PropertyResponse updatePrice(
+            @PathVariable String id,
+            @Valid @RequestBody UpdatePriceRequest request,
+            @RequestHeader("X-Auth-User-Id") String adminId) {
+        return propertyService.updatePrice(id, request.newPrice(), adminId);
+    }
+
+    @PostMapping("/{id}/images/confirm")
+    @PreAuthorize("hasRole('AGENT')")
+    public PropertyResponse confirmImages(
+            @PathVariable String id,
+            @RequestBody List<String> urls) {
+        return propertyService.addImages(id, urls);
+    }
+
+    @GetMapping
+    public List<PropertyResponse> findAll() {
+        return propertyService.findAll(); // Implementar en el service con propertyRepository.findAll()
     }
 }
