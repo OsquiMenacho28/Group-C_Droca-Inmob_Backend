@@ -3,11 +3,13 @@ package com.inmobiliaria.identity_service.controller;
 import com.inmobiliaria.identity_service.dto.request.ChangePasswordRequest;
 import com.inmobiliaria.identity_service.dto.request.LoginRequest;
 import com.inmobiliaria.identity_service.dto.request.RefreshTokenRequest;
+import com.inmobiliaria.identity_service.dto.request.ResendTempPasswordRequest;
 import com.inmobiliaria.identity_service.dto.response.AuthResponse;
 import com.inmobiliaria.identity_service.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -37,5 +39,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.refreshToken());
+    }
+
+    @PostMapping("/resend-temp-password")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void resendTemporaryPassword(@Valid @RequestBody ResendTempPasswordRequest request) {
+        authService.resendTemporaryPassword(request);
     }
 }

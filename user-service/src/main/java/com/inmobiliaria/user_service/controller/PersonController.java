@@ -69,6 +69,11 @@ public class PersonController {
         return personService.update(id, request);
     }
 
+    @PatchMapping("/by-auth/{authUserId}")
+    public PersonResponse updateByAuthUserId(@PathVariable String authUserId, @RequestBody UpdatePersonRequest request) {
+        return personService.updateByAuthUserId(authUserId, request);
+    }
+
     @PostMapping("/{id}/assign-role")
     public PersonResponse assignRoles(
             @PathVariable String id,

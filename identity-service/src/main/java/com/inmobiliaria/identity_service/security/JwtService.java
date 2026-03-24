@@ -27,6 +27,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .setSubject(principal.userId())
+                .claim("email", principal.email()) 
                 .claim("roles", principal.roleIds())
                 .claim("userType", principal.userType())
                 .claim("status", principal.status())

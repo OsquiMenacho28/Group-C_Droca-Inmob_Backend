@@ -50,6 +50,20 @@ public class UserController {
         return userService.update(id, request);
     }
 
+    @PatchMapping("/{id}/deactivate")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse deactivate(@PathVariable String id) {
+        return userService.deactivate(id);
+    }
+
+    @PatchMapping("/{id}/reactivate")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse reactivate(@PathVariable String id) {
+        return userService.reactivate(id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")

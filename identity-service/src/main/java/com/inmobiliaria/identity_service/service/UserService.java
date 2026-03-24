@@ -59,15 +59,10 @@ public class UserService {
                 .userType(request.userType())
                 .status(UserStatus.ACTIVE)
                 .temporaryPassword(true)
-                .temporaryPasswordExpiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
+                .temporaryPasswordExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS))
                 .mustChangePassword(true)
-                .passwordChangedAt(null)
-                .failedLoginAttempts(0)
-                .lockedUntil(null)
-                .lastLoginAt(null)
                 .primaryRoleIds(request.roleIds())
-                .activeEmploymentCycleId(null)
-                .metadata(Map.of("temporaryPasswordPlain", temporaryPassword))
+                .metadata(Map.of("createdVia", "admin_panel"))
                 .build();
 
         document.setCreatedAt(Instant.now());
@@ -88,23 +83,137 @@ public class UserService {
                     savedDocument.getPrimaryRoleIds(),
                     null, null, null, null, null, null
             ));
+            log.info("Profile created in user-service for authUserId: {}", savedDocument.getId());
         } catch (Exception e) {
-            log.error("Failed to create person profile in user-service for authUserId: {}", savedDocument.getId(), e);
+            log.error("Failed to propagate profile creation to user-service: {}", e.getMessage());
         }
 
         if (Boolean.TRUE.equals(request.sendTemporaryCredentials())) {
-            try {
-                notificationClient.sendCredentialsEmail(NotificationClient.CredentialsRequest.builder()
-                        .to(savedDocument.getEmailNormalized())
-                        .fullName(savedDocument.getFullName())
-                        .temporaryPassword(temporaryPassword)
-                        .build());
-            } catch (Exception e) {
-                log.error("Failed to send credentials email to: {}", savedDocument.getEmailNormalized(), e);
-            }
+            sendWelcomeEmail(savedDocument, temporaryPassword);
         }
 
         return toResponse(savedDocument);
+    }
+
+
+    public UserResponse update(String id, UpdateUserRequest request) {
+        UserDocument user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+
+        boolean identityUpdated = false;
+        boolean profileUpdated = false;
+
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName().trim());
+            identityUpdated = true;
+        }
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName().trim());
+            identityUpdated = true;
+        }
+        if (request.userType() != null) {
+            user.setUserType(request.userType());
+            identityUpdated = true;
+        }
+
+        if (identityUpdated) {
+            user.setFullName(user.getFirstName() + " " + user.getLastName());
+            user.setUpdatedAt(Instant.now());
+            userRepository.save(user);
+        }
+
+        UpdatePersonRequest profileUpdate = new UpdatePersonRequest(
+                request.firstName(),
+                request.lastName(),
+                request.birthDate(),
+                request.phone(),
+                request.department(),
+                request.position(),
+                request.hireDate(),
+                request.taxId(),
+                request.preferredContactMethod(),
+                request.budget()
+        );
+
+        if (profileUpdate.firstName() != null ||
+            profileUpdate.lastName() != null ||
+            profileUpdate.birthDate() != null ||
+            profileUpdate.phone() != null ||
+            profileUpdate.department() != null ||
+            profileUpdate.position() != null ||
+            profileUpdate.hireDate() != null ||
+            profileUpdate.taxId() != null ||
+            profileUpdate.preferredContactMethod() != null ||
+            profileUpdate.budget() != null) {
+
+            try {
+                userServiceClient.updatePerson(id, profileUpdate);
+                log.info("Profile updated in user-service for authUserId: {}", id);
+            } catch (Exception e) {
+                log.warn("Could not sync update with user-service: {}", e.getMessage());
+            }
+        }
+
+        return toResponse(user);
+    }
+    
+    public UserResponse deactivate(String id) {
+        UserDocument user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+
+        user.setStatus(UserStatus.INACTIVE);
+        user.setUpdatedAt(Instant.now());
+
+        log.info("User {} deactivated (logical delete)", id);
+        return toResponse(userRepository.save(user));
+    }
+
+    public UserResponse reactivate(String id) {
+        UserDocument user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+
+        user.setStatus(UserStatus.ACTIVE);
+        user.setUpdatedAt(Instant.now());
+
+        log.info("User {} reactivated", id);
+        return toResponse(userRepository.save(user));
+    }
+
+    public void delete(String id) {
+        if (!userRepository.existsById(id)) {
+            throw new ResourceNotFoundException("User not found: " + id);
+        }
+
+        try {
+            userServiceClient.deleteByAuthUserId(id);
+        } catch (Exception e) {
+            log.warn("Failed to delete profile in user-service, proceeding with auth deletion: {}", e.getMessage());
+        }
+
+        userRepository.deleteById(id);
+    }
+
+    public UserResponse assignRole(String userId, AssignRoleRequest request) {
+        UserDocument user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        roleClientService.validateRoleIdsExist(request.roleIds());
+        user.setPrimaryRoleIds(request.roleIds());
+        user.setUpdatedAt(Instant.now());
+
+        return toResponse(userRepository.save(user));
+    }
+
+    private void sendWelcomeEmail(UserDocument user, String password) {
+        try {
+            notificationClient.sendCredentialsEmail(NotificationClient.CredentialsRequest.builder()
+                    .to(user.getEmailNormalized())
+                    .fullName(user.getFullName())
+                    .temporaryPassword(password)
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to send credentials email: {}", e.getMessage());
+        }
     }
 
     public List<UserResponse> findAll() {
@@ -114,61 +223,9 @@ public class UserService {
     }
 
     public UserResponse findById(String id) {
-        UserDocument user = userRepository.findById(id)
+        return userRepository.findById(id)
+                .map(this::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
-        return toResponse(user);
-    }
-
-    public UserResponse update(String id, UpdateUserRequest request) {
-        UserDocument user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
-
-        if (request.firstName() != null) user.setFirstName(request.firstName().trim());
-        if (request.lastName() != null) user.setLastName(request.lastName().trim());
-        user.setFullName(user.getFirstName() + " " + user.getLastName());
-        if (request.userType() != null) user.setUserType(request.userType());
-
-        user.setUpdatedAt(Instant.now());
-        UserDocument saved = userRepository.save(user);
-
-        try {
-            userServiceClient.updatePerson(id, new UpdatePersonRequest(
-                    request.firstName(),
-                    request.lastName(),
-                    request.birthDate(),
-                    request.phone(),
-                    null, null, null, null, null, null
-            ));
-        } catch (Exception e) {
-            log.error("Failed to update person profile in user-service for authUserId: {}", id, e);
-        }
-
-        return toResponse(saved);
-    }
-
-    public void delete(String id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found: " + id);
-        }
-        userRepository.deleteById(id);
-
-        try {
-            userServiceClient.deleteByAuthUserId(id);
-        } catch (Exception e) {
-            log.warn("Failed to delete person profile in user-service for authUserId: {}", id, e);
-        }
-    }
-
-    public UserResponse assignRole(String userId, AssignRoleRequest request) {
-        UserDocument user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-
-        roleClientService.validateRoleIdsExist(request.roleIds());
-
-        user.setPrimaryRoleIds(request.roleIds());
-        user.setUpdatedAt(Instant.now());
-
-        return toResponse(userRepository.save(user));
     }
 
     public UserDocument findByEmailNormalized(String emailNormalized) {
@@ -177,8 +234,7 @@ public class UserService {
     }
 
     public UserDocument findByRefreshToken(String refreshToken) {
-        return userRepository.findByRefreshToken(refreshToken)
-                .orElse(null);
+        return userRepository.findByRefreshToken(refreshToken).orElse(null);
     }
 
     public UserDocument save(UserDocument userDocument) {
@@ -186,7 +242,7 @@ public class UserService {
         return userRepository.save(userDocument);
     }
 
-    private String generateTemporaryPassword() {
+    public String generateTemporaryPassword() {
         return "Tmp-" + UUID.randomUUID().toString().substring(0, 8);
     }
 

@@ -5,5 +5,5 @@ SERVICE = {
     "label": "User Service",
     "type":  "maven",
     "color": PINK,
-    "order": 7,
+    "order": 6,
 }

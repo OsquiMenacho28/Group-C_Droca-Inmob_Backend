@@ -158,6 +158,13 @@ public class PersonService {
         return mapToResponse(personRepository.save(person));
     }
 
+    public PersonResponse updateByAuthUserId(String authUserId, UpdatePersonRequest request) {
+        PersonDocument person = personRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found with authUserId: " + authUserId));
+        
+        return update(person.getId(), request);
+    }
+
     public PersonResponse assignRoles(String id, List<String> roleIds, boolean isCustom) {
         PersonDocument person = personRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + id));

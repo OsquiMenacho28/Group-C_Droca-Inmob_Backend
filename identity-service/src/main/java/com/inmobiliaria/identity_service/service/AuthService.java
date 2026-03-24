@@ -1,15 +1,19 @@
 package com.inmobiliaria.identity_service.service;
 
+import com.inmobiliaria.identity_service.client.NotificationClient;
 import com.inmobiliaria.identity_service.domain.UserDocument;
 import com.inmobiliaria.identity_service.domain.UserStatus;
 import com.inmobiliaria.identity_service.dto.request.ChangePasswordRequest;
 import com.inmobiliaria.identity_service.dto.request.LoginRequest;
+import com.inmobiliaria.identity_service.dto.request.ResendTempPasswordRequest;
 import com.inmobiliaria.identity_service.dto.response.AuthResponse;
+import com.inmobiliaria.identity_service.exception.EmailSendException;
 import com.inmobiliaria.identity_service.exception.TemporaryPasswordExpiredException;
 import com.inmobiliaria.identity_service.exception.UnauthorizedException;
 import com.inmobiliaria.identity_service.security.JwtService;
 import com.inmobiliaria.identity_service.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -26,6 +31,7 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RoleClientService roleClientService;
+    private final NotificationClient notificationClient;
 
     public AuthResponse login(LoginRequest request) {
         UserDocument user = userService.findByEmailNormalized(request.email().trim().toLowerCase());
@@ -50,8 +56,6 @@ public class AuthService {
         user.setLastLoginAt(Instant.now());
         userService.save(user);
 
-        // Resolve role IDs (e.g. "rol_admin") to their codes (e.g. "ADMIN")
-        // to ensure Spring Security authorities match @PreAuthorize("hasRole('ADMIN')")
         List<String> roleCodes = roleClientService.resolveRoleCodes(user.getPrimaryRoleIds());
 
         UserPrincipal principal = new UserPrincipal(
@@ -73,12 +77,11 @@ public class AuthService {
 
     public AuthResponse refresh(String refreshToken) {
         UserDocument user = userService.findByRefreshToken(refreshToken);
-        
+
         if (user == null || user.getRefreshTokenExpiresAt().isBefore(Instant.now())) {
             throw new UnauthorizedException("Invalid or expired refresh token");
         }
 
-        // Rotate Refresh Token
         String newRefreshToken = UUID.randomUUID().toString();
         user.setRefreshToken(newRefreshToken);
         user.setRefreshTokenExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
@@ -126,5 +129,33 @@ public class AuthService {
         user.setPasswordChangedAt(Instant.now());
 
         userService.save(user);
+    }
+
+    public void resendTemporaryPassword(ResendTempPasswordRequest request) {
+        UserDocument user = userService.findByEmailNormalized(request.email().trim().toLowerCase());
+        
+        if (!Boolean.TRUE.equals(user.getTemporaryPassword()) && !Boolean.TRUE.equals(user.getMustChangePassword())) {
+            throw new UnauthorizedException("User does not require temporary password reset");
+        }
+        
+        String newTemporaryPassword = userService.generateTemporaryPassword();
+        
+        user.setPasswordHash(passwordEncoder.encode(newTemporaryPassword));
+        user.setTemporaryPassword(true);
+        user.setTemporaryPasswordExpiresAt(Instant.now().plus(5, ChronoUnit.MINUTES));
+        user.setMustChangePassword(true);
+        user.setPasswordChangedAt(null);
+        userService.save(user);
+        
+        try {
+            notificationClient.sendCredentialsEmail(NotificationClient.CredentialsRequest.builder()
+                    .to(user.getEmailNormalized())
+                    .fullName(user.getFullName())
+                    .temporaryPassword(newTemporaryPassword)
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to resend credentials email to: {}", user.getEmailNormalized(), e);
+            throw new EmailSendException("Failed to send email", e);
+        }
     }
 }
