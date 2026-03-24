@@ -33,13 +33,6 @@ public class PersonService {
             throw new ResourceAlreadyExistsException("Profile already exists for authUserId: " + request.authUserId());
         }
 
-        try {
-            identityClient.findById(request.authUserId());
-        } catch (Exception e) {
-            log.error("Failed to verify authUserId: {}", request.authUserId(), e);
-            throw new ResourceNotFoundException("Identity user not found: " + request.authUserId());
-        }
-
         if (request.roleIds() != null && !request.roleIds().isEmpty()) {
             boolean validRoles = accessControlClient.validateRoleIds(request.roleIds());
             if (!validRoles) {

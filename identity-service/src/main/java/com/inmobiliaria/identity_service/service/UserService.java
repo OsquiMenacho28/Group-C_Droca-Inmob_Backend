@@ -81,7 +81,14 @@ public class UserService {
                     savedDocument.getEmail(),
                     mapToPersonType(savedDocument.getUserType()),
                     savedDocument.getPrimaryRoleIds(),
-                    null, null, null, null, null, null
+                    request.department(),
+                    request.position(),
+                    request.hireDate(),
+                    request.taxId(),
+                    null,
+                    null,
+                    request.preferredContactMethod(),
+                    request.budget()
             ));
             log.info("Profile created in user-service for authUserId: {}", savedDocument.getId());
         } catch (Exception e) {
@@ -101,7 +108,6 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
 
         boolean identityUpdated = false;
-        boolean profileUpdated = false;
 
         if (request.firstName() != null) {
             user.setFirstName(request.firstName().trim());

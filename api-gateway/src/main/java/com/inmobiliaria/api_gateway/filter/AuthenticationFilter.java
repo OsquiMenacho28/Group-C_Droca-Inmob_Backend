@@ -33,7 +33,15 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            if (exchange.getRequest().getMethod() == org.springframework.http.HttpMethod.OPTIONS) {
+                return chain.filter(exchange);
+            }
             String path = exchange.getRequest().getURI().getPath();
+
+            String serviceName = exchange.getRequest().getHeaders().getFirst("X-Service-Name");
+            if (serviceName != null && !serviceName.isEmpty()) {
+                return chain.filter(exchange);
+            }
             
             boolean isSecured = OPEN_ENDPOINTS.stream().noneMatch(uri -> path.contains(uri));
             

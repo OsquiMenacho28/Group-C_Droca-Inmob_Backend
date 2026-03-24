@@ -13,12 +13,18 @@ public record CreatePersonRequest(
         String email,
         PersonType personType,
         List<String> roleIds,
-        
-        // Optional type-specific fields
+
+        // Employee-specific
         String department,
         String position,
         Instant hireDate,
+
+        // Owner-specific
         String taxId,
+        String address,
+        List<String> propertyIds,
+
+        // InterestedClient-specific
         String preferredContactMethod,
         String budget
 ) {}

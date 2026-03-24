@@ -52,6 +52,13 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     }
 
+    @ExceptionHandler(feign.FeignException.class)
+    public ResponseEntity<ErrorResponse> handleFeignException(feign.FeignException ex) {
+        log.error("Downstream service error: Status {}, Body {}", ex.status(), ex.contentUTF8());
+        return buildResponse(HttpStatus.valueOf(ex.status() <= 0 ? 500 : ex.status()), 
+                            "Error calling downstream service: " + ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(ErrorResponse.builder()
                 .timestamp(Instant.now())
