@@ -30,7 +30,10 @@ public class EmployeeProfileService {
                 null,               // propertyIds
                 null,               // preferredContactMethod
                 null,                       
-                null                // assignedAgentId
+                null,                // assignedAgentId
+                null,                // preferredZone
+                null,                // preferredPropertyType
+                null                 // preferredRooms
         );
         return personService.create(genericRequest);
     }

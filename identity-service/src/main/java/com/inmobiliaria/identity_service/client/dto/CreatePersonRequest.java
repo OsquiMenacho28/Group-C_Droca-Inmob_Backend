@@ -1,3 +1,4 @@
+// REEMPLAZAR el archivo completo:
 package com.inmobiliaria.identity_service.client.dto;
 
 import java.time.LocalDate;
@@ -27,6 +28,11 @@ public record CreatePersonRequest(
         String preferredContactMethod,
         String budget,
 
-        // ID del agente que crea este cliente (solo para INTERESTED_CLIENT)
-        String assignedAgentId
+        // ID del agente que crea este cliente
+        String assignedAgentId,
+
+        // Preferencias nuevas de cliente
+        String preferredZone,
+        String preferredPropertyType,
+        Integer preferredRooms
 ) {}

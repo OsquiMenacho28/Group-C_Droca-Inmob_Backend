@@ -113,7 +113,10 @@ public class UserService {
                     null,
                     request.preferredContactMethod(),
                     request.budget(),
-                    request.assignedAgentId()
+                    request.assignedAgentId(),
+                    request.preferredZone(),
+                    request.preferredPropertyType(),
+                    request.preferredRooms()  
             ));
             log.info("Profile created in user-service for authUserId: {}", savedDocument.getId());
         } catch (Exception e) {

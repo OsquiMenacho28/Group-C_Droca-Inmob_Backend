@@ -64,7 +64,10 @@ public class OwnerProfileService {
                 request.propertyIds(),
                 null,               // preferredContactMethod
                 null,                       //budget
-                null                // assignedAgentId
+                null,                // assignedAgentId
+                null,                // preferredZone
+                null,                // preferredPropertyType
+                null                 // preferredRooms
         );
 
         return personService.create(genericRequest);

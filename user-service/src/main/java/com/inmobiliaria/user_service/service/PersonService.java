@@ -93,6 +93,9 @@ public class PersonService {
                     .roleIds(request.roleIds())
                     .preferredContactMethod(request.preferredContactMethod())
                     .budget(request.budget())
+                    .preferredZone(request.preferredZone())
+                    .preferredPropertyType(request.preferredPropertyType())
+                    .preferredRooms(request.preferredRooms())
                     .build();
             default -> throw new IllegalArgumentException("Unsupported person type: " + request.personType());
         }
@@ -203,18 +206,16 @@ public class PersonService {
                 owner.setTaxId(request.taxId());
             }
         } else if (person instanceof InterestedClientDocument client) {
-            if (request.preferredContactMethod() != null && !request.preferredContactMethod().equals(client.getPreferredContactMethod())) {
-                changes.add(AuditEntry.FieldChange.builder()
-                        .field("preferredContactMethod")
-                        .oldValue(client.getPreferredContactMethod())
-                        .newValue(request.preferredContactMethod()).build());
+            if (request.preferredContactMethod() != null)
                 client.setPreferredContactMethod(request.preferredContactMethod());
-            }
-            if (request.budget() != null && !request.budget().equals(client.getBudget())) {
-                changes.add(AuditEntry.FieldChange.builder()
-                        .field("budget").oldValue(client.getBudget()).newValue(request.budget()).build());
+            if (request.budget() != null)
                 client.setBudget(request.budget());
-            }
+            if (request.preferredZone() != null)
+                client.setPreferredZone(request.preferredZone());
+            if (request.preferredPropertyType() != null)
+                client.setPreferredPropertyType(request.preferredPropertyType());
+            if (request.preferredRooms() != null)
+                client.setPreferredRooms(request.preferredRooms());
         }
 
         if (!changes.isEmpty()) {
@@ -378,21 +379,26 @@ public class PersonService {
 
     private PersonResponse mapToResponse(PersonDocument document) {
         String dept = null, pos = null, tax = null, address = null,
-            contact = null, budget = null;
+            contact = null, budget = null, preferredZone = null,
+            preferredPropertyType = null;
         List<String> propertyIds = null;
         LocalDate hire = null;
+        Integer preferredRooms = null;
 
         if (document instanceof EmployeeDocument emp) {
             dept = emp.getDepartment();
             pos  = emp.getPosition();
             hire = emp.getHireDate();
         } else if (document instanceof OwnerDocument owner) {
-            tax        = owner.getTaxId();
-            address    = owner.getAddress();        // NUEVO
-            propertyIds = owner.getPropertyIds();   // NUEVO
+            tax         = owner.getTaxId();
+            address     = owner.getAddress();
+            propertyIds = owner.getPropertyIds();
         } else if (document instanceof InterestedClientDocument client) {
-            contact = client.getPreferredContactMethod();
-            budget  = client.getBudget();
+            contact              = client.getPreferredContactMethod();
+            budget               = client.getBudget();
+            preferredZone        = client.getPreferredZone();
+            preferredPropertyType = client.getPreferredPropertyType();
+            preferredRooms       = client.getPreferredRooms();
         }
 
         return new PersonResponse(
@@ -408,8 +414,9 @@ public class PersonService {
                 document.getRoleIds(),
                 document.isCustomRole(),
                 dept, pos, hire,
-                tax, address, propertyIds,  // NUEVO
-                contact, budget
+                tax, address, propertyIds,
+                contact, budget,
+                preferredZone, preferredPropertyType, preferredRooms
         );
     }
 }

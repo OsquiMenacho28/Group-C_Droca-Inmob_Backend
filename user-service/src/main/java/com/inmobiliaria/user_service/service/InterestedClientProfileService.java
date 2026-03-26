@@ -30,7 +30,10 @@ public class InterestedClientProfileService {
                 null,               // propertyIds
                 request.preferredContactMethod(),
                 request.budget(),
-                null                // assignedAgentId
+                null,                // assignedAgentId
+                null,                // preferredZone
+                null,                // preferredPropertyType
+                null                 // preferredRoomss
         );
         return personService.create(genericRequest);
     }

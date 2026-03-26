@@ -159,6 +159,10 @@ def make_person(
     elif person_type == "INTERESTED_CLIENT":
         person_doc["preferredContactMethod"] = kwargs.get("preferredContactMethod", "EMAIL")
         person_doc["budget"] = kwargs.get("budget", "0")
+        # Campos nuevos
+        person_doc["preferredZone"] = kwargs.get("preferredZone", None)
+        person_doc["preferredPropertyType"] = kwargs.get("preferredPropertyType", None)
+        person_doc["preferredRooms"] = kwargs.get("preferredRooms", None)
     
     return person_doc
 
@@ -576,10 +580,17 @@ def build_testing_users_and_persons(current_time: datetime, role_id_map: dict) -
     add_user_person("usr_test_owner_02", "Testing Owner", "Two", "owner2@user", "OWNER", "OWNER",
                    taxId="NIT-987654321")
     
-    add_user_person("usr_test_client_01", "Testing Client", "One", "client1@user", "INTERESTED_CLIENT", "INTERESTED_CLIENT",
-                   preferredContactMethod="EMAIL", budget="500000")
-    add_user_person("usr_test_client_02", "Testing Client", "Two", "client2@user", "INTERESTED_CLIENT", "INTERESTED_CLIENT",
-                   preferredContactMethod="WHATSAPP", budget="750000")
+    add_user_person("usr_test_client_01", "Testing Client", "One", "client1@user",
+                    "INTERESTED_CLIENT", "INTERESTED_CLIENT",
+                    preferredContactMethod="EMAIL", budget="500000",
+                    preferredZone="Zona Sur", preferredPropertyType="APARTAMENTO",
+                    preferredRooms=2)
+
+    add_user_person("usr_test_client_02", "Testing Client", "Two", "client2@user",
+                    "INTERESTED_CLIENT", "INTERESTED_CLIENT",
+                    preferredContactMethod="WHATSAPP", budget="750000",
+                    preferredZone="Zona Norte", preferredPropertyType="CASA",
+                    preferredRooms=3)
     
     add_user_person("usr_test_supervisor_01", "Testing Supervisor", "One", "supervisor1@user", "EMPLOYEE", "SUPERVISOR",
                    department="Operaciones", position="Supervisor", hireDate=current_time)

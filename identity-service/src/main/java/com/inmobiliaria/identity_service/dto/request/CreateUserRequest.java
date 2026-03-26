@@ -1,3 +1,4 @@
+// REEMPLAZAR el archivo completo:
 package com.inmobiliaria.identity_service.dto.request;
 
 import com.inmobiliaria.identity_service.domain.UserType;
@@ -31,6 +32,11 @@ public record CreateUserRequest(
         String preferredContactMethod,
         String budget,
 
-        // ID del agente que crea este cliente (solo para INTERESTED_CLIENT)
-        String assignedAgentId
+        // ID del agente que crea este cliente
+        String assignedAgentId,
+
+        // Preferencias nuevas de cliente
+        String preferredZone,
+        String preferredPropertyType,
+        Integer preferredRooms
 ) {}

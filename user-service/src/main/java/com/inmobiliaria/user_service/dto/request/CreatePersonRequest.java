@@ -1,3 +1,4 @@
+// REEMPLAZAR el archivo completo:
 package com.inmobiliaria.user_service.dto.request;
 
 import com.inmobiliaria.user_service.domain.PersonType;
@@ -33,5 +34,10 @@ public record CreatePersonRequest(
         String budget,
 
         // ID del agente que asigna este cliente
-        String assignedAgentId
+        String assignedAgentId,
+
+        // Preferencias nuevas de cliente
+        String preferredZone,
+        String preferredPropertyType,
+        Integer preferredRooms
 ) {}
