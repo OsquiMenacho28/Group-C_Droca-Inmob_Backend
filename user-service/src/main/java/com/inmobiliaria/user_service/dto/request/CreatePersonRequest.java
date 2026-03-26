@@ -30,5 +30,8 @@ public record CreatePersonRequest(
 
         // InterestedClient-specific
         String preferredContactMethod,
-        String budget
+        String budget,
+
+        // ID del agente que asigna este cliente
+        String assignedAgentId
 ) {}

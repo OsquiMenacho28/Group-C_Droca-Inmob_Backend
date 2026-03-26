@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -100,7 +101,25 @@ public class PersonService {
         document.setUpdatedAt(Instant.now());
         document.setCreatedBy("system");
 
-        return mapToResponse(personRepository.save(document));
+        PersonDocument saved = personRepository.save(document);
+
+        // --- ASIGNAR CLIENTE AL AGENTE SI SE PROPORCIONÓ assignedAgentId ---
+        if (request.assignedAgentId() != null && request.personType() == PersonType.INTERESTED_CLIENT) {
+            Optional<EmployeeDocument> agentOpt = personRepository.findEmployeeByAuthUserId(request.assignedAgentId());
+            if (agentOpt.isEmpty()) {
+                log.warn("Agent EmployeeDocument not found for authUserId: {}. Client created without assignment.", request.assignedAgentId());
+            } else {
+                EmployeeDocument agent = agentOpt.get();
+                if (agent.getAssignedClientIds() == null) {
+                    agent.setAssignedClientIds(new ArrayList<>());
+                }
+                agent.getAssignedClientIds().add(saved.getId());
+                personRepository.save(agent);
+                log.info("Client {} assigned to agent {}", saved.getId(), agent.getId());
+            }
+        }
+
+        return mapToResponse(saved);
     }
 
     public List<PersonResponse> findAll(String type) {

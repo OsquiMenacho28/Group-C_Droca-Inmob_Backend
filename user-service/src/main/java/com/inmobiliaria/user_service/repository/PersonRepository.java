@@ -24,6 +24,6 @@ public interface PersonRepository extends MongoRepository<PersonDocument, String
     // Verifica email duplicado entre todas las personas
     boolean existsByEmail(String email);
 
-    @Query("{ 'authUserId': ?0, '_class': 'employee' }")
+    @Query("{ 'authUserId': ?0, '_class': { $in: ['employee', 'com.inmobiliaria.user_service.domain.EmployeeDocument'] } }")
     Optional<EmployeeDocument> findEmployeeByAuthUserId(String authUserId);
 }
