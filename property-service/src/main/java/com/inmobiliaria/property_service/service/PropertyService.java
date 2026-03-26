@@ -1,17 +1,27 @@
 package com.inmobiliaria.property_service.service;
 
-import com.inmobiliaria.property_service.client.IdentityClient;
-import com.inmobiliaria.property_service.domain.*;
-import com.inmobiliaria.property_service.dto.request.*;
-import com.inmobiliaria.property_service.dto.response.PropertyResponse;
-import com.inmobiliaria.property_service.repository.PropertyRepository;
-import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
-import lombok.RequiredArgsConstructor;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.inmobiliaria.property_service.client.IdentityClient;
+import com.inmobiliaria.property_service.domain.AssignmentHistory;
+import com.inmobiliaria.property_service.domain.PriceHistory;
+import com.inmobiliaria.property_service.domain.PropertyDocument;
+import com.inmobiliaria.property_service.dto.request.AssignAgentRequest;
+import com.inmobiliaria.property_service.dto.request.PropertyRequest;
+import com.inmobiliaria.property_service.dto.response.PropertyResponse;
+import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
+import com.inmobiliaria.property_service.repository.PropertyRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -57,6 +67,11 @@ public class PropertyService {
 
     // HU 1: Generar URL prefirmada (Mock de lógica S3/Cloud)
     public Map<String, String> generatePresignedUrl(String id) {
+        // Verificación adicional de permisos para seguridad en servicio
+        if (!hasAccessToProperty(id)) {
+            throw new RuntimeException("Acceso denegado para generar URL prefirmada");
+        }
+
         // Validar que la propiedad existe
         propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
@@ -73,6 +88,33 @@ public class PropertyService {
             "uploadUrl", uploadUrl,
             "publicUrl", publicUrl
         );
+    }
+
+    private boolean hasAccessToProperty(String propertyId) {
+        var property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
+
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+
+        String userId = String.valueOf(auth.getPrincipal());
+        Set<String> roles = auth.getAuthorities().stream()
+                .map(grantedAuthority -> grantedAuthority.getAuthority())
+                .collect(Collectors.toSet());
+
+        boolean isAdmin = roles.contains("ROLE_ADMIN");
+        boolean isAssignedAgent = userId.equalsIgnoreCase(property.getAssignedAgentId());
+        boolean isPolicyAllowed = property.getAccessPolicy().stream().anyMatch(policy -> {
+            String normalized = policy.trim();
+            if (normalized.startsWith("ROLE_")) {
+                return roles.contains(normalized.toUpperCase());
+            }
+            return normalized.equalsIgnoreCase(userId);
+        });
+
+        return isAdmin || isAssignedAgent || isPolicyAllowed;
     }
 
     // HU 1: Confirmar carga de imágenes
