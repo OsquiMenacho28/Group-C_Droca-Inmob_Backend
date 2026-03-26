@@ -1,5 +1,6 @@
 package com.inmobiliaria.property_service.controller;
 
+import com.inmobiliaria.property_service.dto.request.AccessPolicyRequest;
 import com.inmobiliaria.property_service.dto.request.AssignAgentRequest;
 import com.inmobiliaria.property_service.dto.request.PropertyRequest;
 import com.inmobiliaria.property_service.dto.request.UpdatePriceRequest;
@@ -55,6 +56,15 @@ public class PropertyController {
             @Valid @RequestBody UpdatePriceRequest request,
             @RequestHeader("X-Auth-User-Id") String adminId) {
         return propertyService.updatePrice(id, request.newPrice(), adminId);
+    }
+
+    @PatchMapping("/{id}/access-policy")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    public PropertyResponse updateAccessPolicy(
+            @PathVariable String id,
+            @Valid @RequestBody AccessPolicyRequest request,
+            @RequestHeader("X-Auth-User-Id") String userId) {
+        return propertyService.updateAccessPolicy(id, request.accessPolicy(), userId);
     }
 
     @PostMapping("/{id}/images/confirm")

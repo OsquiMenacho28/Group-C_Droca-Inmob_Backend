@@ -46,6 +46,7 @@ public class PropertyService {
                 .imageUrls(new ArrayList<>())
                 .assignmentHistory(new ArrayList<>())
                 .priceHistory(new ArrayList<>())
+                .accessPolicy(request.accessPolicy() != null ? request.accessPolicy() : new HashSet<>())
                 .build();
 
         property.setCreatedAt(Instant.now());
@@ -135,12 +136,24 @@ public class PropertyService {
                 .collect(Collectors.toList());
     }
 
+    // HU: Definir política de acceso por roles/usuarios a la propiedad
+    public PropertyResponse updateAccessPolicy(String id, Set<String> accessPolicy, String userId) {
+        PropertyDocument prop = propertyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
+
+        prop.setAccessPolicy(accessPolicy);
+        prop.setUpdatedAt(Instant.now());
+
+        return mapToResponse(propertyRepository.save(prop));
+    }
+
     private PropertyResponse mapToResponse(PropertyDocument doc) {
         return new PropertyResponse(
                 doc.getId(), doc.getTitle(), doc.getAddress(), doc.getPrice(),
                 doc.getType(), doc.getM2(), doc.getRooms(), doc.getStatus(),
                 doc.getAssignedAgentId(), doc.getImageUrls(),
-                doc.getAssignmentHistory(), doc.getPriceHistory()
+                doc.getAssignmentHistory(), doc.getPriceHistory(),
+                doc.getAccessPolicy()
         );
     }
 }
