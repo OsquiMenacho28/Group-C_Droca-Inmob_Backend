@@ -14,9 +14,14 @@ import com.inmobiliaria.identity_service.dto.request.UpdateUserRequest;
 import com.inmobiliaria.identity_service.dto.response.UserResponse;
 import com.inmobiliaria.identity_service.exception.ResourceAlreadyExistsException;
 import com.inmobiliaria.identity_service.exception.ResourceNotFoundException;
+import com.inmobiliaria.identity_service.exception.UnauthorizedException;
 import com.inmobiliaria.identity_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +44,25 @@ public class UserService {
     private final UserServiceClient userServiceClient;
 
     public UserResponse create(CreateUserRequest request) {
+        // Obtener el usuario autenticado desde el contexto de seguridad
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserId = auth.getName();
+        List<String> currentRoles = auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(role -> role.replace("ROLE_", ""))
+                .toList();
+
+        // Si es un agente (tiene rol AGENT)
+        if (currentRoles.contains("AGENT")) {
+            // Solo puede crear clientes interesados
+            if (request.userType() != UserType.INTERESTED_CLIENT) {
+                throw new UnauthorizedException("Agents can only create INTERESTED_CLIENT users");
+            }
+            // El assignedAgentId debe coincidir con el ID del agente autenticado
+            if (request.assignedAgentId() == null || !request.assignedAgentId().equals(currentUserId)) {
+                throw new UnauthorizedException("You can only assign clients to yourself");
+            }
+        }
         String normalizedEmail = request.email().trim().toLowerCase();
 
         if (userRepository.existsByEmailNormalized(normalizedEmail)) {
@@ -88,7 +112,8 @@ public class UserService {
                     null,
                     null,
                     request.preferredContactMethod(),
-                    request.budget()
+                    request.budget(),
+                    request.assignedAgentId()
             ));
             log.info("Profile created in user-service for authUserId: {}", savedDocument.getId());
         } catch (Exception e) {

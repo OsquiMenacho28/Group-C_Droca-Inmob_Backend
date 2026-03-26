@@ -3,6 +3,7 @@ package com.inmobiliaria.user_service.service;
 import com.inmobiliaria.user_service.client.AccessControlClient;
 import com.inmobiliaria.user_service.client.IdentityClient;
 import com.inmobiliaria.user_service.domain.*;
+import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
 import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -189,6 +191,89 @@ public class PersonService {
             throw new ResourceNotFoundException("Person not found with authUserId: " + authUserId);
         }
         personRepository.deleteByAuthUserId(authUserId);
+    }
+
+    // Obtener clientes asignados al agente
+    public List<PersonResponse> getClientsForAgent(String agentId) {
+        EmployeeDocument agent = personRepository.findEmployeeByAuthUserId(agentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + agentId));
+
+        List<String> clientIds = agent.getAssignedClientIds();
+        if (clientIds == null || clientIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<PersonDocument> clients = personRepository.findAllById(clientIds);
+        return clients.stream()
+            .filter(c -> c instanceof InterestedClientDocument)
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    // Crear un cliente y asignarlo al agente
+    public PersonResponse createClientForAgent(String agentId, CreateInterestedClientRequest request) {
+        // Validar que el agente exista
+        EmployeeDocument agent = personRepository.findEmployeeByAuthUserId(agentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + agentId));
+
+        // Construir el documento del cliente
+        InterestedClientDocument client = InterestedClientDocument.builder()
+            .authUserId(request.authUserId())
+            .firstName(request.firstName())
+            .lastName(request.lastName())
+            .fullName(request.firstName() + " " + request.lastName())
+            .birthDate(request.birthDate())
+            .phone(request.phone())
+            .email(request.email())
+            .roleIds(List.of("rol_interested_client"))
+            .preferredContactMethod(request.preferredContactMethod())
+            .budget(request.budget())
+            .build();
+
+        client.setCreatedAt(Instant.now());
+        client.setUpdatedAt(Instant.now());
+        client.setCreatedBy(agentId);
+
+        client = personRepository.save(client);
+
+        // Asignar al agente
+        if (agent.getAssignedClientIds() == null) {
+            agent.setAssignedClientIds(new ArrayList<>());
+        }
+        agent.getAssignedClientIds().add(client.getId());
+        personRepository.save(agent);
+
+        return mapToResponse(client);
+    }
+
+    // Actualizar un cliente solo si está asignado al agente
+    public PersonResponse updateClientForAgent(String agentId, String clientId, UpdatePersonRequest request) {
+        EmployeeDocument agent = personRepository.findEmployeeByAuthUserId(agentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + agentId));
+
+        if (agent.getAssignedClientIds() == null || !agent.getAssignedClientIds().contains(clientId)) {
+            throw new ResourceNotFoundException("Client not found or not assigned to you");
+        }
+
+        PersonDocument client = personRepository.findById(clientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+
+        // Actualizar campos permitidos
+        if (request.firstName() != null) client.setFirstName(request.firstName());
+        if (request.lastName() != null) client.setLastName(request.lastName());
+        if (client.getFirstName() != null && client.getLastName() != null) {
+            client.setFullName(client.getFirstName() + " " + client.getLastName());
+        }
+        if (request.birthDate() != null) client.setBirthDate(request.birthDate());
+        if (request.phone() != null) client.setPhone(request.phone());
+
+        if (client instanceof InterestedClientDocument interested) {
+            if (request.preferredContactMethod() != null) interested.setPreferredContactMethod(request.preferredContactMethod());
+            if (request.budget() != null) interested.setBudget(request.budget());
+        }
+
+        client.setUpdatedAt(Instant.now());
+        return mapToResponse(personRepository.save(client));
     }
 
     private PersonResponse mapToResponse(PersonDocument document) {

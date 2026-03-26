@@ -21,7 +21,7 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
         return userService.create(request);
     }

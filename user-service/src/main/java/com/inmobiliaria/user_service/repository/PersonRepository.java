@@ -1,5 +1,6 @@
 package com.inmobiliaria.user_service.repository;
 
+import com.inmobiliaria.user_service.domain.EmployeeDocument;
 import com.inmobiliaria.user_service.domain.PersonDocument;
 import com.inmobiliaria.user_service.domain.PersonType;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -16,10 +17,13 @@ public interface PersonRepository extends MongoRepository<PersonDocument, String
     boolean existsByAuthUserId(String authUserId);
     void deleteByAuthUserId(String authUserId);
 
-    // NUEVO — verifica CI duplicado entre owners
+    // Verifica CI duplicado entre owners
     @Query("{ 'taxId': ?0, '_class': 'owner' }")
     Optional<PersonDocument> findOwnerByTaxId(String taxId);
 
-    // NUEVO — verifica email duplicado entre todas las personas
+    // Verifica email duplicado entre todas las personas
     boolean existsByEmail(String email);
+
+    @Query("{ 'authUserId': ?0, '_class': 'employee' }")
+    Optional<EmployeeDocument> findEmployeeByAuthUserId(String authUserId);
 }
