@@ -22,7 +22,9 @@ import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PropertyService {
@@ -53,6 +55,7 @@ public class PropertyService {
                 .rooms(request.rooms())
                 .status("DISPONIBLE") // Requerimiento HU1
                 .assignedAgentId(agentId)
+                .ownerId(request.ownerId())
                 .imageUrls(new ArrayList<>())
                 .assignmentHistory(new ArrayList<>())
                 .priceHistory(new ArrayList<>())
@@ -220,6 +223,24 @@ public class PropertyService {
         return mapToResponse(propertyRepository.save(prop));
     }
 
+    public List<PropertyResponse> findByOwner(String ownerId) {
+        return propertyRepository.findByOwnerId(ownerId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PropertyResponse assignOwner(String id, String ownerId, String adminId) {
+        PropertyDocument prop = propertyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado: " + id));
+        
+        validateOwnerExists(ownerId);
+        
+        prop.setOwnerId(ownerId);
+        prop.setUpdatedAt(Instant.now());
+        
+        return mapToResponse(propertyRepository.save(prop));
+    }
+
     private PropertyResponse mapToResponse(PropertyDocument doc) {
         return new PropertyResponse(
                 doc.getId(), doc.getTitle(), doc.getAddress(), doc.getPrice(),
@@ -228,5 +249,19 @@ public class PropertyService {
                 doc.getAssignmentHistory(), doc.getPriceHistory(),
                 doc.getAccessPolicy()
         );
+    }
+    private void validateOwnerExists(String ownerId) {
+        if (ownerId == null || ownerId.isBlank()) {
+            return;
+        }
+        
+        try {
+            var owner = identityClient.findById(ownerId);
+            if (owner == null) {
+                throw new IllegalArgumentException("El propietario especificado no existe");
+            }
+        } catch (Exception e) {
+            log.warn("Could not validate owner existence: {}", e.getMessage());
+        }
     }
 }

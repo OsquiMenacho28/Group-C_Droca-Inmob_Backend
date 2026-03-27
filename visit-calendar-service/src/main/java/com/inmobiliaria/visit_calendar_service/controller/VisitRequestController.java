@@ -86,6 +86,17 @@ public class VisitRequestController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Solicitudes del cliente obtenidas", requests));
     }
+    
+    @GetMapping("/count/property/{propertyId}")
+        public ResponseEntity<ApiResponse<Integer>> getVisitCountForProperty(
+                @PathVariable String propertyId) {
+        
+        // Security: Verify the authenticated user owns this property
+        // We'll need to call property-service to check ownership
+        
+        int count = visitRequestService.getVisitCountForProperty(propertyId);
+        return ResponseEntity.ok(ApiResponse.ok("Visit count retrieved", count));
+    }
 
     /**
      * PATCH /api/visit-requests/{id}/accept

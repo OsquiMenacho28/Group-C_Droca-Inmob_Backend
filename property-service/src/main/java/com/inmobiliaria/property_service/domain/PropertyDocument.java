@@ -21,6 +21,7 @@ public class PropertyDocument extends BaseDocument {
     private Integer rooms;
     private String status;
     private String assignedAgentId;
+    private String ownerId;
 
     @Builder.Default
     private List<String> imageUrls = new ArrayList<>();

@@ -153,6 +153,11 @@ public class VisitRequestService {
                 .collect(Collectors.toList());
     }
 
+    public int getVisitCountForProperty(String propertyId) {
+        return calendarEventRepository.findByPropertyId(propertyId).size();
+        //return visitRequestRepository.findByPropertyId(propertyId).size();
+    }
+
     // =====================================================================
     //  Helper
     // =====================================================================

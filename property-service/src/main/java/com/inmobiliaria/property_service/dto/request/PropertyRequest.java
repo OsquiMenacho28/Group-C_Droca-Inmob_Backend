@@ -32,5 +32,7 @@ public record PropertyRequest(
         @Min(value = 0, message = "El número de habitaciones no puede ser negativo")
         Integer rooms,
 
-        Set<String> accessPolicy
+        Set<String> accessPolicy,
+
+        String ownerId
 ) {}
