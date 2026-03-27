@@ -9,6 +9,7 @@ import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
 import com.inmobiliaria.user_service.exception.ResourceNotFoundException;
+import com.inmobiliaria.user_service.repository.AuditLogRepository;
 import com.inmobiliaria.user_service.repository.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class PersonService {
     private final PersonRepository personRepository;
     private final IdentityClient identityClient;
     private final AccessControlClient accessControlClient;
+    private final AuditLogRepository auditLogRepository;
 
     public PersonResponse create(CreatePersonRequest request) {
         log.info("Creating person profile for authUserId: {}", request.authUserId());
@@ -105,6 +107,16 @@ public class PersonService {
         document.setCreatedBy("system");
 
         PersonDocument saved = personRepository.save(document);
+
+        auditLogRepository.save(AuditLogDocument.builder()
+                .timestamp(Instant.now())
+                .changedBy(getCurrentUserId())
+                .action("CREATED")
+                .personId(saved.getId())
+                .personName(saved.getFullName())
+                .personType(saved.getPersonType().name())
+                .changes(null)
+                .build());
 
         // --- ASIGNAR CLIENTE AL AGENTE SI SE PROPORCIONÓ assignedAgentId ---
         if (request.assignedAgentId() != null && request.personType() == PersonType.INTERESTED_CLIENT) {
@@ -219,23 +231,27 @@ public class PersonService {
         }
 
         if (!changes.isEmpty()) {
-            // Obtener el editor desde el header X-Auth-User-Id
             String changedBy = getCurrentUserId();
 
+            // Guardar en MongoDB
+            auditLogRepository.save(AuditLogDocument.builder()
+                    .timestamp(Instant.now())
+                    .changedBy(changedBy)
+                    .action("UPDATED")
+                    .personId(person.getId())
+                    .personName(person.getFullName())
+                    .personType(person.getPersonType().name())
+                    .changes(changes)
+                    .build());
+
+            // Mantener el auditLog embebido en el documento
             AuditEntry entry = AuditEntry.builder()
                     .changedAt(Instant.now())
                     .changedBy(changedBy)
                     .changes(changes)
                     .build();
-
-            if (person.getAuditLog() == null) {
-                person.setAuditLog(new ArrayList<>());
-            }
+            if (person.getAuditLog() == null) person.setAuditLog(new ArrayList<>());
             person.getAuditLog().add(entry);
-
-            // Persistencia en archivo via Slf4j (va a logs/user-service-audit.log)
-            changes.forEach(c -> log.info("AUDIT | person={} | changedBy={} | field={} | old={} | new={}",
-                    person.getId(), changedBy, c.getField(), c.getOldValue(), c.getNewValue()));
         }
 
         person.setUpdatedAt(Instant.now());

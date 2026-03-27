@@ -25,7 +25,10 @@ eureka:
     prefer-ip-address: true
 
 logging:
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} | %msg%n"
   level:
+    root: WARN
     com.inmobiliaria.user_service.service.PersonService: INFO
   file:
     name: logs/user-service-audit.log
