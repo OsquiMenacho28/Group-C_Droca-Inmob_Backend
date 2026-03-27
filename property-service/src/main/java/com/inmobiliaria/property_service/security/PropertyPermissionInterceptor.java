@@ -59,7 +59,29 @@ public class PropertyPermissionInterceptor implements HandlerInterceptor {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toSet());
 
-        // Valida políticas de acceso explícitas en la propiedad
+        // Lógica de permisos por rol
+        boolean isAdmin = roles.contains("ROLE_ADMIN");
+        boolean isAgent = roles.contains("ROLE_AGENT");
+        boolean isAssignedAgent = userId.equalsIgnoreCase(property.getAssignedAgentId());
+
+        // Admin siempre tiene acceso
+        if (isAdmin) {
+            return true;
+        }
+
+        // Agente asignado tiene acceso
+        if (isAssignedAgent) {
+            return true;
+        }
+
+        // Agente general tiene acceso si está en la política de acceso
+        boolean isGeneralAgentAllowed = isAgent && property.getAccessPolicy().contains("ROLE_AGENT");
+
+        if (isGeneralAgentAllowed) {
+            return true;
+        }
+
+        // Verificar políticas específicas de usuario o rol
         boolean isAllowedByPolicy = property.getAccessPolicy().stream().anyMatch(policy -> {
             String normalized = policy.trim();
             if (normalized.startsWith("ROLE_")) {
@@ -68,10 +90,7 @@ public class PropertyPermissionInterceptor implements HandlerInterceptor {
             return normalized.equalsIgnoreCase(userId);
         });
 
-        boolean isOwnerOrAssignedAgent = userId.equalsIgnoreCase(property.getAssignedAgentId());
-        boolean isAdmin = roles.contains("ROLE_ADMIN");
-
-        if (isAdmin || isOwnerOrAssignedAgent || isAllowedByPolicy) {
+        if (isAllowedByPolicy) {
             return true;
         }
 
