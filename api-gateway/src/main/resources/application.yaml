@@ -41,6 +41,12 @@ spring:
             - Path=/persons/**,/persons
           filters:
             - AuthenticationFilter
+        - id: visit-calendar-service
+          uri: lb://visit-calendar-service
+          predicates:
+            - Path=/api/calendar/**, /api/visits/**, /api/visit-requests/**
+          filters:
+            - StripPrefix=0
 
 eureka:
   client:
