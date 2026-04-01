@@ -2,6 +2,7 @@ package com.inmobiliaria.identity_service.controller;
 
 import com.inmobiliaria.identity_service.dto.request.AssignRoleRequest;
 import com.inmobiliaria.identity_service.dto.request.CreateUserRequest;
+import com.inmobiliaria.identity_service.dto.request.UpdateUserRequest;
 import com.inmobiliaria.identity_service.dto.response.UserResponse;
 import com.inmobiliaria.identity_service.service.UserService;
 import jakarta.validation.Valid;
@@ -27,13 +28,14 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    // MODIFICADO: Ahora el AGENT también puede listar para llenar el dropdown de filtros
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     public List<UserResponse> findAll() {
         return userService.findAll();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     public UserResponse findById(@PathVariable String id) {
         return userService.findById(id);
     }
@@ -46,22 +48,14 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponse update(@PathVariable String id, @Valid @RequestBody com.inmobiliaria.identity_service.dto.request.UpdateUserRequest request) {
+    public UserResponse update(@PathVariable String id, @Valid @RequestBody UpdateUserRequest request) {
         return userService.update(id, request);
     }
 
     @PutMapping("/{id}/deactivate")
-    @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse deactivate(@PathVariable String id) {
         return userService.deactivate(id);
-    }
-
-    @PutMapping("/{id}/reactivate")
-    @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasRole('ADMIN')")
-    public UserResponse reactivate(@PathVariable String id) {
-        return userService.reactivate(id);
     }
 
     @DeleteMapping("/{id}")

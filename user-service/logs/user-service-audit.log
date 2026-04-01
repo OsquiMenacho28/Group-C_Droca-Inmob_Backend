@@ -1,1 +1,6 @@
-2026-03-27 13:53:34 | Unable to start LiveReload server
+2026-03-30 22:17:00 | Unable to start LiveReload server
+2026-03-30 22:17:01 | Spring Cloud LoadBalancer is currently working with the default cache. While this cache implementation is useful for development and tests, it's recommended to use Caffeine cache in production.You can switch to using Caffeine cache, by adding it and org.springframework.cache.caffeine.CaffeineCacheManager to the classpath.
+2026-03-30 22:17:43 | Unable to start LiveReload server
+2026-03-30 22:17:43 | Spring Cloud LoadBalancer is currently working with the default cache. While this cache implementation is useful for development and tests, it's recommended to use Caffeine cache in production.You can switch to using Caffeine cache, by adding it and org.springframework.cache.caffeine.CaffeineCacheManager to the classpath.
+2026-03-30 22:17:48 | Unable to start LiveReload server
+2026-03-30 22:17:48 | Spring Cloud LoadBalancer is currently working with the default cache. While this cache implementation is useful for development and tests, it's recommended to use Caffeine cache in production.You can switch to using Caffeine cache, by adding it and org.springframework.cache.caffeine.CaffeineCacheManager to the classpath.

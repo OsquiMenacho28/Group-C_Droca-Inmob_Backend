@@ -1,20 +1,17 @@
 package com.inmobiliaria.property_service.controller;
 
-import com.inmobiliaria.property_service.dto.request.AccessPolicyRequest;
-import com.inmobiliaria.property_service.dto.request.AssignAgentRequest;
-import com.inmobiliaria.property_service.dto.request.PropertyRequest;
-import com.inmobiliaria.property_service.dto.request.UpdatePriceRequest;
+import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.service.PropertyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/properties")
@@ -22,6 +19,25 @@ import java.util.Map;
 public class PropertyController {
 
     private final PropertyService propertyService;
+
+    @GetMapping
+    public List<PropertyResponse> findAll(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) String agentId) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserId = (String) auth.getPrincipal();
+        List<String> roles = auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        // LLamada unificada: El servicio filtra por seguridad automáticamente
+        return propertyService.findWithFilters(title, type, status, minPrice, maxPrice, agentId, currentUserId, roles);
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
@@ -31,10 +47,18 @@ public class PropertyController {
         return propertyService.create(request, agentId);
     }
 
-    @PostMapping("/{id}/images/upload")
-    @PreAuthorize("hasRole('AGENT')")
-    public Map<String, String> getUploadUrl(@PathVariable String id) {
-        return propertyService.generatePresignedUrl(id);
+    @GetMapping("/{id}")
+    public PropertyResponse findById(@PathVariable String id) {
+        return propertyService.findById(id);
+    }
+
+    @PatchMapping("/{id}/price")
+    @PreAuthorize("hasRole('ADMIN')")
+    public PropertyResponse updatePrice(
+            @PathVariable String id,
+            @Valid @RequestBody UpdatePriceRequest request,
+            @RequestHeader("X-Auth-User-Id") String adminId) {
+        return propertyService.updatePrice(id, request.newPrice(), adminId);
     }
 
     @PatchMapping("/{id}/assign-agent")
@@ -46,73 +70,9 @@ public class PropertyController {
         return propertyService.assignAgent(id, request, adminId);
     }
 
-    @GetMapping("/agent/{agentId}")
-    public List<PropertyResponse> getByAgent(@PathVariable String agentId) {
-        return propertyService.findByAgent(agentId);
-    }
-    @PatchMapping("/{id}/price")
-    
-    @PreAuthorize("hasRole('ADMIN')")
-    public PropertyResponse updatePrice(
-            @PathVariable String id,
-            @Valid @RequestBody UpdatePriceRequest request,
-            @RequestHeader("X-Auth-User-Id") String adminId) {
-        return propertyService.updatePrice(id, request.newPrice(), adminId);
-    }
-
-    @PatchMapping("/{id}/access-policy")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
-    public PropertyResponse updateAccessPolicy(
-            @PathVariable String id,
-            @Valid @RequestBody AccessPolicyRequest request,
-            @RequestHeader("X-Auth-User-Id") String userId) {
-        return propertyService.updateAccessPolicy(id, request.accessPolicy(), userId);
-    }
-
-    @PostMapping("/{id}/images/confirm")
-    @PreAuthorize("hasRole('AGENT')")
-    public PropertyResponse confirmImages(
-            @PathVariable String id,
-            @RequestBody List<String> urls) {
-        return propertyService.addImages(id, urls);
-    }
-
-    @GetMapping
-    public List<PropertyResponse> findAll() {
-        return propertyService.findAll(); // Implementar en el service con propertyRepository.findAll()
-    }
-
-    @GetMapping("/search")
-    public List<PropertyResponse> searchProperties(@RequestParam String term) {
-        return propertyService.searchByTerm(term);
-    }
-
-    @GetMapping("/{id}")
-    public PropertyResponse findById(@PathVariable String id) {
-        return propertyService.findById(id);
-    }
-
-    @GetMapping("/owner/{ownerId}")
-    @PreAuthorize("hasRole('OWNER')")
-    public List<PropertyResponse> getByOwner(@PathVariable String ownerId) {
-        // Validate the authenticated user is the owner
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String authenticatedUserId = (String) auth.getPrincipal();
-        
-        if (!authenticatedUserId.equals(ownerId)) {
-            throw new SecurityException("You can only view your own properties");
-        }
-        
-        return propertyService.findByOwner(ownerId);
-    }
-
-    @PatchMapping("/{id}/assign-owner")
-    @PreAuthorize("hasRole('ADMIN')")
-    public PropertyResponse assignOwner(
-            @PathVariable String id,
-            @RequestBody Map<String, String> request,
-            @RequestHeader("X-Auth-User-Id") String adminId) {
-        String ownerId = request.get("ownerId");
-        return propertyService.assignOwner(id, ownerId, adminId);
+    @PostMapping("/{id}/images/upload")
+    @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+    public Map<String, String> getUploadUrl(@PathVariable String id) {
+        return propertyService.generatePresignedUrl(id);
     }
 }
