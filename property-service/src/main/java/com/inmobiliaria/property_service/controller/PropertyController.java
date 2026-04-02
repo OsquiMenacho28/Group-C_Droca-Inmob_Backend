@@ -20,6 +20,13 @@ public class PropertyController {
 
     private final PropertyService propertyService;
 
+    // --- AGREGA ESTE MÉTODO ---
+    @GetMapping("/agent/{agentId}")
+    public List<PropertyResponse> findByAgent(@PathVariable String agentId) {
+        // Usamos el método que ya tienes creado en tu PropertyService
+        return propertyService.findByAgent(agentId);
+    }
+
     @GetMapping
     public List<PropertyResponse> findAll(
             @RequestParam(required = false) String title,
@@ -30,6 +37,12 @@ public class PropertyController {
             @RequestParam(required = false) String agentId) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        
+        // SEGURIDAD: Validar que auth no sea nulo antes de usarlo
+        if (auth == null || !auth.isAuthenticated()) {
+             return Collections.emptyList(); 
+        }
+        
         String currentUserId = (String) auth.getPrincipal();
         List<String> roles = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
