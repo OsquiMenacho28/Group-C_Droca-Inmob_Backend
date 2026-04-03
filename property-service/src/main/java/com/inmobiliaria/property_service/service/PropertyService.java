@@ -29,7 +29,8 @@ public class PropertyService {
     private final MongoTemplate mongoTemplate; // Inyectado para búsquedas dinámicas
 
     public List<PropertyResponse> findWithFilters(
-            String title, String type, String status, 
+            String title, String type, String status,
+            OperationType operationType,
             Double minPrice, Double maxPrice, String agentId,
             String currentUserId, List<String> roles) {
         
@@ -45,6 +46,9 @@ public class PropertyService {
         }
         if (status != null && !status.isBlank()) {
             filters.add(Criteria.where("status").is(status));
+        }
+                if (operationType != null) {
+        filters.add(Criteria.where("operationType").is(operationType));
         }
         if (minPrice != null) {
             filters.add(Criteria.where("price").gte(minPrice));
@@ -92,6 +96,7 @@ public class PropertyService {
                 .address(request.address())
                 .price(request.price())
                 .type(request.type())
+                .operationType(request.operationType())
                 .m2(request.m2())
                 .rooms(request.rooms())
                 .status("DISPONIBLE")
@@ -155,10 +160,20 @@ public class PropertyService {
         return mapToResponse(propertyRepository.save(prop));
     }
 
+    public PropertyResponse updateOperationType(String id, OperationType newType) {
+    PropertyDocument prop = propertyRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
+    
+    prop.setOperationType(newType);
+    prop.setUpdatedAt(Instant.now());
+    
+    return mapToResponse(propertyRepository.save(prop));
+    }
+
     private PropertyResponse mapToResponse(PropertyDocument doc) {
         return new PropertyResponse(
                 doc.getId(), doc.getTitle(), doc.getAddress(), doc.getPrice(),
-                doc.getType(), doc.getM2(), doc.getRooms(), doc.getStatus(),
+                doc.getType(), null, doc.getM2(), doc.getRooms(), doc.getStatus(),
                 doc.getAssignedAgentId(), doc.getImageUrls(),
                 doc.getAssignmentHistory(), doc.getPriceHistory(),
                 doc.getAccessPolicy()
