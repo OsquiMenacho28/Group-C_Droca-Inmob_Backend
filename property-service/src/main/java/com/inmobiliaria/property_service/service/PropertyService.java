@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.property_service.client.IdentityClient;
@@ -28,11 +29,12 @@ public class PropertyService {
     private final IdentityClient identityClient;
     private final MongoTemplate mongoTemplate; // Inyectado para búsquedas dinámicas
 
-    public List<PropertyResponse> findWithFilters(
-            String title, String type, String status, 
+    public Map<String, Object> findWithFilters(
+            String title, String type, String status,
             Double minPrice, Double maxPrice, String agentId,
-            String currentUserId, List<String> roles) {
-        
+            String currentUserId, List<String> roles,
+            String sortBy, String sortOrder, int page, int pageSize) {
+
         Query query = new Query();
         List<Criteria> filters = new ArrayList<>();
 
@@ -60,9 +62,8 @@ public class PropertyService {
         // Si NO es ADMIN, aplicamos restricción de visibilidad
         if (!roles.contains("ROLE_ADMIN")) {
             Criteria securityCriteria = new Criteria().orOperator(
-                Criteria.where("assignedAgentId").is(currentUserId),
-                Criteria.where("accessPolicy").in(currentUserId, "ROLE_AGENT")
-            );
+                    Criteria.where("assignedAgentId").is(currentUserId),
+                    Criteria.where("accessPolicy").in(currentUserId, "ROLE_AGENT"));
             filters.add(securityCriteria);
         }
 
@@ -70,9 +71,38 @@ public class PropertyService {
             query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
         }
 
-        return mongoTemplate.find(query, PropertyDocument.class).stream()
+        // Ordenación
+        Sort.Direction direction = "DESC".equalsIgnoreCase(sortOrder)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        String sortField = switch (sortBy) {
+            case "title" -> "title";
+            case "m2" -> "m2";
+            case "rooms" -> "rooms";
+            case "status" -> "status";
+            default -> "price";
+        };
+
+        // Contar total sin paginar
+        long total = mongoTemplate.count(query, PropertyDocument.class);
+
+        // Aplicar ordenación y paginación
+        query.with(Sort.by(direction, sortField))
+                .skip((long) page * pageSize)
+                .limit(pageSize);
+
+        List<PropertyResponse> data = mongoTemplate.find(query, PropertyDocument.class).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("data", data);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("totalElements", total);
+        result.put("totalPages", (int) Math.ceil((double) total / pageSize));
+        return result;
     }
 
     // Métodos existentes simplificados para usar la misma lógica
@@ -108,9 +138,8 @@ public class PropertyService {
         String fileName = UUID.randomUUID() + ".jpg";
         String objectKey = "properties/" + id + "/images/" + fileName;
         return Map.of(
-            "uploadUrl", "http://localhost:9000/bucket/" + objectKey + "?sig=mock",
-            "publicUrl", "http://localhost:9000/bucket/" + objectKey
-        );
+                "uploadUrl", "http://localhost:9000/bucket/" + objectKey + "?sig=mock",
+                "publicUrl", "http://localhost:9000/bucket/" + objectKey);
     }
 
     public PropertyResponse addImages(String id, List<String> urls) {
@@ -129,7 +158,8 @@ public class PropertyService {
     public PropertyResponse assignAgent(String id, AssignAgentRequest request, String adminId) {
         PropertyDocument prop = propertyRepository.findById(id).orElseThrow();
         var agent = identityClient.findById(request.agentId());
-        if (!"ACTIVE".equals(agent.status())) throw new RuntimeException("Agente inactivo");
+        if (!"ACTIVE".equals(agent.status()))
+            throw new RuntimeException("Agente inactivo");
         prop.getAssignmentHistory().add(new AssignmentHistory(prop.getAssignedAgentId(), Instant.now(), adminId));
         prop.setAssignedAgentId(request.agentId());
         return mapToResponse(propertyRepository.save(prop));
@@ -161,7 +191,6 @@ public class PropertyService {
                 doc.getType(), doc.getM2(), doc.getRooms(), doc.getStatus(),
                 doc.getAssignedAgentId(), doc.getImageUrls(),
                 doc.getAssignmentHistory(), doc.getPriceHistory(),
-                doc.getAccessPolicy()
-        );
+                doc.getAccessPolicy());
     }
 }

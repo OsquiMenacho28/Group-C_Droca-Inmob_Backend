@@ -28,28 +28,33 @@ public class PropertyController {
     }
 
     @GetMapping
-    public List<PropertyResponse> findAll(
+    public Map<String, Object> findAll(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) String agentId) {
+            @RequestParam(required = false) String agentId,
+            @RequestParam(required = false, defaultValue = "price") String sortBy,
+            @RequestParam(required = false, defaultValue = "ASC") String sortOrder,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "9") int pageSize) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        
+
         // SEGURIDAD: Validar que auth no sea nulo antes de usarlo
         if (auth == null || !auth.isAuthenticated()) {
-             return Collections.emptyList(); 
+            return Collections.emptyMap(); // O lanzar una excepción de acceso denegado
         }
-        
+
         String currentUserId = (String) auth.getPrincipal();
         List<String> roles = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
         // LLamada unificada: El servicio filtra por seguridad automáticamente
-        return propertyService.findWithFilters(title, type, status, minPrice, maxPrice, agentId, currentUserId, roles);
+        return propertyService.findWithFilters(title, type, status, minPrice, maxPrice, agentId, currentUserId, roles,
+                sortBy, sortOrder, page, pageSize);
     }
 
     @PostMapping
