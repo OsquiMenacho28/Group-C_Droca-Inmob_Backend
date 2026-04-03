@@ -1,5 +1,6 @@
 package com.inmobiliaria.property_service.controller;
 
+import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.service.PropertyService;
@@ -32,6 +33,7 @@ public class PropertyController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) OperationType operationType,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) String agentId,
@@ -52,9 +54,9 @@ public class PropertyController {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        // LLamada unificada: El servicio filtra por seguridad automáticamente
-        return propertyService.findWithFilters(title, type, status, null, minPrice, maxPrice, agentId, currentUserId,
-                roles, sortBy, sortOrder, page, pageSize);
+        // Llamada unificada: El servicio filtra por seguridad automáticamente
+        return propertyService.findWithFilters(title, type, status, operationType, minPrice, maxPrice, agentId,
+                currentUserId, roles, sortBy, sortOrder, page, pageSize);
     }
 
     @PostMapping
