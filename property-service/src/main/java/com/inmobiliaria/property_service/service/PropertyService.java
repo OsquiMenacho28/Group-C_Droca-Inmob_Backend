@@ -230,6 +230,7 @@ public class PropertyService {
                 urls, 
                 doc.getAssignmentHistory() != null ? doc.getAssignmentHistory() : new ArrayList<>(),
                 doc.getPriceHistory() != null ? doc.getPriceHistory() : new ArrayList<>(),
+                doc.getStatusHistory() != null ? doc.getStatusHistory() : new ArrayList<>(),
                 doc.getAccessPolicy() != null ? doc.getAccessPolicy() : new HashSet<>()
         );
     }
@@ -277,29 +278,45 @@ public class PropertyService {
         PropertyDocument prop = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
 
-        // --- Backend Task 1: Validation (PA1) ---
+        String oldStatus = prop.getStatus().toUpperCase();
+        String targetStatus = newStatus.toUpperCase();
         boolean isAdmin = roles.contains("ROLE_ADMIN");
         boolean isAssignedAgent = currentUserId.equals(prop.getAssignedAgentId());
 
+        // --- PA3: Validación de permisos y transiciones críticas ---
         if (!isAdmin && !isAssignedAgent) {
-            throw new AccessDeniedException("No tiene autorización para cambiar el estado de este inmueble. Solo el responsable o un administrador pueden hacerlo.");
+            throw new AccessDeniedException("No autorizado para modificar esta propiedad.");
         }
 
-        // --- Backend Task 2: Register History ---
+        // Bloquear que un agente revierta un estado "VENDIDO" (PA:3)
+        if (oldStatus.equals("VENDIDO") && !isAdmin) {
+            throw new AccessDeniedException("Operación no permitida: Solo un Administrador puede revertir el estado de una propiedad ya vendida.");
+        }
+
+        // --- Registro de Historial (PA:2) ---
         if (prop.getStatusHistory() == null) {
             prop.setStatusHistory(new ArrayList<>());
         }
 
         prop.getStatusHistory().add(StatusHistory.builder()
-                .oldStatus(prop.getStatus())
-                .newStatus(newStatus.toUpperCase())
+                .oldStatus(oldStatus)
+                .newStatus(targetStatus)
                 .changedAt(Instant.now())
                 .changedBy(currentUserId)
                 .build());
 
-        prop.setStatus(newStatus.toUpperCase());
+        prop.setStatus(targetStatus);
         prop.setUpdatedAt(Instant.now());
 
         return mapToResponse(propertyRepository.save(prop));
+    }
+
+    public void validateAvailabilityForAction(String id) {
+        PropertyDocument prop = propertyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
+        
+        if (prop.getStatus().equalsIgnoreCase("VENDIDO") || prop.getStatus().equalsIgnoreCase("RESERVADO")) {
+            throw new ValidationException("El sistema no permite realizar esta acción: La propiedad ya está " + prop.getStatus());
+        }
     }
 }

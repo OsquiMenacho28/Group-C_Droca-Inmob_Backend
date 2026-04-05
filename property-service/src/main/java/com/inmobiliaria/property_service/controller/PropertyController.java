@@ -1,6 +1,7 @@
 package com.inmobiliaria.property_service.controller;
 
 import com.inmobiliaria.property_service.domain.OperationType;
+import com.inmobiliaria.property_service.domain.StatusHistory;
 import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.service.PropertyService;
@@ -125,5 +126,11 @@ public class PropertyController {
                 .toList();
 
         return propertyService.updateStatus(id, request.status(), userId, roles);
+    }
+
+    @GetMapping("/{id}/status-history")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    public List<StatusHistory> getStatusHistory(@PathVariable String id) {
+        return propertyService.findById(id).statusHistory();
     }
 }
