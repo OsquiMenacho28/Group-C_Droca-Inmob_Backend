@@ -4,11 +4,9 @@ server:
 spring:
   application:
     name: access-control-service
-
   data:
     mongodb:
       uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
-
   cache:
     type: caffeine
 
@@ -20,13 +18,13 @@ management:
 
 logging:
   level:
-    org.springframework.data.mongodb.core.MongoTemplate: INFO
+    root: ERROR
+    '[com.inmobiliaria.access_control_service]': DEBUG
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    prefer-ip-address: true
   instance:
     hostname: localhost
     prefer-ip-address: true

@@ -7,15 +7,16 @@ spring:
   data:
     mongodb:
       uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
-  cloud:
-    config:
-      enabled: false  # Desactiva la búsqueda del Config Server
+
+logging:
+  level:
+    root: ERROR
+    '[com.inmobiliaria.visit_calendar_service]': DEBUG
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    prefer-ip-address: true
   instance:
     hostname: localhost
     prefer-ip-address: true

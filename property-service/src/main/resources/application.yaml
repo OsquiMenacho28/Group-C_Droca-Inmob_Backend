@@ -9,13 +9,17 @@ spring:
       uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
   cloud:
     config:
-      enabled: false  # Desactiva la búsqueda del Config Server
+      enabled: false
+
+logging:
+  level:
+    root: ERROR
+    '[com.inmobiliaria.property_service]': DEBUG
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    prefer-ip-address: true
   instance:
     hostname: localhost
     prefer-ip-address: true

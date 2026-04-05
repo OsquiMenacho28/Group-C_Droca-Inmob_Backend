@@ -52,12 +52,11 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    prefer-ip-address: true
   instance:
     hostname: localhost
     prefer-ip-address: true
 
 logging:
   level:
-    org.springframework.cloud.gateway: INFO
-    org.springframework.security: DEBUG
+    root: ERROR
+    '[com.inmobiliaria.api_gateway]': DEBUG
