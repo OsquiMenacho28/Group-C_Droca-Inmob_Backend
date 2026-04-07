@@ -100,7 +100,7 @@ public class PropertyController {
     }
 
     @PatchMapping("/{id}/operation-type")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or gasRole('AGENT')")
     public PropertyResponse updateOperationType(
             @PathVariable String id,
             @Valid @RequestBody UpdateOperationTypeRequest request) {
