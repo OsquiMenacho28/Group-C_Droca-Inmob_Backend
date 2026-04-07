@@ -1,8 +1,10 @@
 package com.inmobiliaria.identity_service.service;
 
 import com.inmobiliaria.identity_service.client.NotificationClient;
+import com.inmobiliaria.identity_service.client.UserServiceClient;
 import com.inmobiliaria.identity_service.domain.UserDocument;
 import com.inmobiliaria.identity_service.domain.UserStatus;
+import com.inmobiliaria.identity_service.domain.UserType;
 import com.inmobiliaria.identity_service.dto.request.ChangePasswordRequest;
 import com.inmobiliaria.identity_service.dto.request.LoginRequest;
 import com.inmobiliaria.identity_service.dto.request.ResendTempPasswordRequest;
@@ -32,6 +34,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final RoleClientService roleClientService;
     private final NotificationClient notificationClient;
+    private final UserServiceClient userServiceClient;
 
     public AuthResponse login(LoginRequest request) {
         UserDocument user = userService.findByEmailNormalized(request.email().trim().toLowerCase());
@@ -48,6 +51,15 @@ public class AuthService {
                 && user.getTemporaryPasswordExpiresAt() != null
                 && Instant.now().isAfter(user.getTemporaryPasswordExpiresAt())) {
             throw new TemporaryPasswordExpiredException("Temporary password has expired");
+        }
+
+        if (user.getUserType() == UserType.INTERESTED_CLIENT) {
+            try {
+                userServiceClient.updateLastActivity(user.getId());
+                log.info("Updated lastActivityDate for client: {}", user.getId());
+            } catch (Exception e) {
+                log.warn("Could not update lastActivityDate for client {}: {}", user.getId(), e.getMessage());
+            }
         }
 
         String refreshToken = UUID.randomUUID().toString();

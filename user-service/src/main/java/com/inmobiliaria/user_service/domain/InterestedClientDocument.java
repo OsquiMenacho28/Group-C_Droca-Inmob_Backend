@@ -19,6 +19,12 @@ public class InterestedClientDocument extends PersonDocument {
     private String preferredPropertyType;
     private Integer preferredRooms;
 
+    //Campos para baja lógica
+    private boolean activo = true;
+    private java.time.LocalDate lastActivityDate;
+    private java.time.LocalDate fechaBaja;
+    private String motivoBaja;
+
     @Builder
     public InterestedClientDocument(String id, String authUserId, String firstName, String lastName,
                                      String fullName, java.time.LocalDate birthDate, String phone,
@@ -26,7 +32,7 @@ public class InterestedClientDocument extends PersonDocument {
                                      String preferredContactMethod, String budget,
                                      List<String> interestedPropertyIds,
                                      String preferredZone, String preferredPropertyType,
-                                     Integer preferredRooms) {
+                                     Integer preferredRooms, java.time.LocalDate lastActivityDate) {
         super(id, authUserId, firstName, lastName, fullName, birthDate, phone, email,
               PersonType.INTERESTED_CLIENT, roleIds, customRole);
         this.preferredContactMethod = preferredContactMethod;
@@ -35,5 +41,6 @@ public class InterestedClientDocument extends PersonDocument {
         this.preferredZone = preferredZone;
         this.preferredPropertyType = preferredPropertyType;
         this.preferredRooms = preferredRooms;
+        this.lastActivityDate = lastActivityDate;
     }
 }

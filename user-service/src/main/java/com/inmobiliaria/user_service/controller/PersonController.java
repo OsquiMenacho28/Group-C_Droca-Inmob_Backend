@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -128,5 +129,30 @@ public class PersonController {
             throw new IllegalArgumentException("Missing X-Auth-User-Id header");
         }
         return personService.updateClientForAgent(agentId, clientId, updateRequest);
+    }
+
+    // Listar dados de baja
+    @GetMapping
+    public ResponseEntity<List<PersonResponse>> findAll(
+            @RequestParam(required = false) Boolean activo,
+            @RequestHeader("X-Auth-User-Id") String requesterId) {
+        return ResponseEntity.ok(personService.findAll(activo));
+    }
+
+    // Dar de baja (lógico, no físico)
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<PersonResponse> darDeBaja(
+            @PathVariable String id,
+            @RequestParam String motivo,
+            @RequestHeader("X-Auth-User-Id") String requesterId) {
+        return ResponseEntity.ok(personService.darDeBaja(id, motivo, requesterId));
+    }
+
+    // Clientes inactivos por N días
+    @GetMapping("/inactivos")
+    public ResponseEntity<List<PersonResponse>> findInactivos(
+            @RequestParam(defaultValue = "90") int diasSinActividad) {
+        java.time.LocalDate fechaLimite = java.time.LocalDate.now().minusDays(diasSinActividad);
+        return ResponseEntity.ok(personService.findClientesInactivos(fechaLimite));
     }
 }

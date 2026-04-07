@@ -20,9 +20,12 @@ public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
     private final FavoriteHistoryRepository favoriteHistoryRepository;
+    private final PersonService personService;
 
 
     public void addFavorite(String authUserId, String propertyId) {
+        personService.validarClienteActivo(authUserId);
+        personService.updateLastActivityDate(authUserId);
 
         if (propertyId == null || propertyId.isBlank()) {
             throw new IllegalArgumentException("propertyId is required");
@@ -63,6 +66,9 @@ public class FavoriteService {
     }
 
     public void removeFavorite(String authUserId, String propertyId) {
+        personService.validarClienteActivo(authUserId);
+        personService.updateLastActivityDate(authUserId);
+        
         FavoriteDocument fav = favoriteRepository.findByAuthUserIdAndPropertyId(authUserId, propertyId)
                 .orElse(null);
 

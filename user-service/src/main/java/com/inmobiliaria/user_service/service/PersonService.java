@@ -295,6 +295,52 @@ public class PersonService {
         personRepository.deleteByAuthUserId(authUserId);
     }
 
+    public PersonResponse darDeBaja(String personId, String motivo, String changedBy) {
+        PersonDocument person = personRepository.findById(personId)
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found: " + personId));
+
+        if (!(person instanceof InterestedClientDocument client)) {
+            throw new IllegalArgumentException("Solo se puede dar de baja a clientes interesados");
+        }
+        if (!client.isActivo()) {
+            throw new IllegalStateException("El cliente ya está dado de baja");
+        }
+
+        client.setActivo(false);
+        client.setFechaBaja(java.time.LocalDate.now());
+        client.setMotivoBaja(motivo);
+
+        PersonDocument saved = personRepository.save(client);
+
+        // Auditoría
+        auditLogRepository.save(AuditLogDocument.builder()
+                .timestamp(java.time.Instant.now())
+                .changedBy(changedBy)
+                .action("BAJA")
+                .personId(saved.getId())
+                .personName(saved.getFullName())
+                .personType("INTERESTED_CLIENT")
+                .changes(List.of(new AuditEntry.FieldChange("activo", "true", "false"),
+                                new AuditEntry.FieldChange("motivoBaja", null, motivo)))
+                .build());
+
+        return mapToResponse(saved);
+    }
+
+    public List<PersonResponse> findAll(Boolean activo) {
+        List<PersonDocument> all = personRepository.findAll();
+        return all.stream()
+                .filter(p -> activo == null || (p instanceof InterestedClientDocument c && c.isActivo() == activo))
+                .map(this::mapToResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<PersonResponse> findClientesInactivos(java.time.LocalDate fechaLimite) {
+        return personRepository.findClientesInactivosDespuesDe(fechaLimite)
+                .stream().map(this::mapToResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     // Obtener clientes asignados al agente
     public List<PersonResponse> getClientsForAgent(String agentId) {
         EmployeeDocument agent = personRepository.findEmployeeByAuthUserId(agentId)
@@ -310,6 +356,27 @@ public class PersonService {
             .filter(c -> c instanceof InterestedClientDocument)
             .map(this::mapToResponse)
             .collect(Collectors.toList());
+    }
+
+    public void updateLastActivityDate(String personId) {
+        PersonDocument person = personRepository.findById(personId)
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found: " + personId));
+        
+        if (person instanceof InterestedClientDocument client) {
+            client.setLastActivityDate(java.time.LocalDate.now());
+            personRepository.save(client);
+            log.debug("Updated lastActivityDate for client: {}", personId);
+        } else {
+            log.warn("Attempted to update lastActivityDate for non-client person: {}", personId);
+        }
+    }
+
+    public void validarClienteActivo(String personId) {
+        PersonDocument person = personRepository.findById(personId)
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found: " + personId));
+        if (person instanceof InterestedClientDocument client && !client.isActivo()) {
+            throw new IllegalStateException("El cliente con id " + personId + " está dado de baja y no puede operar.");
+        }
     }
 
     // Crear un cliente y asignarlo al agente

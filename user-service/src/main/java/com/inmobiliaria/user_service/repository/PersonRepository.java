@@ -1,6 +1,7 @@
 package com.inmobiliaria.user_service.repository;
 
 import com.inmobiliaria.user_service.domain.EmployeeDocument;
+import com.inmobiliaria.user_service.domain.InterestedClientDocument;
 import com.inmobiliaria.user_service.domain.PersonDocument;
 import com.inmobiliaria.user_service.domain.PersonType;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -26,4 +27,10 @@ public interface PersonRepository extends MongoRepository<PersonDocument, String
 
     @Query("{ 'authUserId': ?0, '_class': { $in: ['employee', 'com.inmobiliaria.user_service.domain.EmployeeDocument'] } }")
     Optional<EmployeeDocument> findEmployeeByAuthUserId(String authUserId);
+
+    // Obtiene clientes inactivos después de una fecha límite
+    @Query("{ '_class': { $in: ['interested_client', 'com.inmobiliaria.user_service.domain.InterestedClientDocument'] }, " +
+        "'activo': true, " +
+        "'$or': [ {'lastActivityDate': {$lt: ?0}}, {'lastActivityDate': null} ] }")
+    List<InterestedClientDocument> findClientesInactivosDespuesDe(java.time.LocalDate fechaLimite);
 }

@@ -13,6 +13,9 @@ public interface UserServiceClient {
     @PostMapping("/persons")
     Map<String, Object> createPerson(@RequestBody CreatePersonRequest request);
 
+    @PostMapping("/persons/{id}/activity")
+    void updateLastActivity(@PathVariable("id") String id);
+
     @PutMapping("/persons/by-auth/{authUserId}")
     Map<String, Object> updatePersonByAuth(@PathVariable("authUserId") String authUserId, @RequestBody UpdatePersonRequest request);
 
