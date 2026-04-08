@@ -11,5 +11,13 @@ public interface IdentityClient {
     @GetMapping("/users/{id}")
     UserResponse findById(@PathVariable("id") String id);
 
-    record UserResponse(String id, String status) {}
+    record UserResponse(
+            String id,
+            String status,
+            String firstName,
+            String lastName,
+            String fullName,
+            String email,
+            String phone
+    ) {}
 }

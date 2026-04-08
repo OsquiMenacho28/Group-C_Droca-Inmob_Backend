@@ -14,6 +14,7 @@ import com.inmobiliaria.property_service.client.IdentityClient;
 import com.inmobiliaria.property_service.domain.*;
 import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
+import com.inmobiliaria.property_service.dto.response.ResponsableResponse;
 import com.inmobiliaria.property_service.exception.AccessDeniedException;
 import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.exception.ValidationException;
@@ -117,6 +118,30 @@ public class PropertyService {
         return propertyRepository.findById(id)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado: " + id));
+    }
+
+    public ResponsableResponse getResponsable(String propertyId) {
+        PropertyDocument property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado: " + propertyId));
+
+        String agentId = property.getAssignedAgentId();
+        if (agentId == null || agentId.isBlank()) {
+            throw new ResourceNotFoundException("Este inmueble no tiene agente responsable asignado");
+        }
+
+        try {
+            IdentityClient.UserResponse agent = identityClient.findById(agentId);
+            return new ResponsableResponse(
+                    agent.id(),
+                    agent.fullName() != null ? agent.fullName()
+                            : (agent.firstName() + " " + agent.lastName()).trim(),
+                    agent.email(),
+                    agent.phone()
+            );
+        } catch (Exception e) {
+            log.warn("No se pudo obtener datos del responsable {}: {}", agentId, e.getMessage());
+            throw new ResourceNotFoundException("No se pudo obtener información del responsable");
+        }
     }
 
     public PropertyResponse create(PropertyRequest request, String agentId) {
