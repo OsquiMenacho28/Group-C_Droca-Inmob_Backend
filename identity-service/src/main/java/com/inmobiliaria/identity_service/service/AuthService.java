@@ -12,6 +12,7 @@ import com.inmobiliaria.identity_service.dto.response.AuthResponse;
 import com.inmobiliaria.identity_service.exception.EmailSendException;
 import com.inmobiliaria.identity_service.exception.TemporaryPasswordExpiredException;
 import com.inmobiliaria.identity_service.exception.UnauthorizedException;
+import com.inmobiliaria.identity_service.security.Auditable;
 import com.inmobiliaria.identity_service.security.JwtService;
 import com.inmobiliaria.identity_service.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class AuthService {
     private final NotificationClient notificationClient;
     private final UserServiceClient userServiceClient;
 
+    @Auditable(action = "USER_LOGIN", description = "User logged in")
     public AuthResponse login(LoginRequest request) {
         UserDocument user = userService.findByEmailNormalized(request.email().trim().toLowerCase());
 
@@ -118,6 +120,7 @@ public class AuthService {
         );
     }
 
+    @Auditable(action = "USER_LOGOUT", description = "User logged out")
     public void logout(String refreshToken) {
         UserDocument user = userService.findByRefreshToken(refreshToken);
         if (user != null) {
@@ -127,6 +130,7 @@ public class AuthService {
         }
     }
 
+    @Auditable(action = "PASSWORD_CHANGE", description = "User changed password")
     public void changePassword(ChangePasswordRequest request) {
         UserDocument user = userService.findByEmailNormalized(request.email().trim().toLowerCase());
 

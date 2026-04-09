@@ -14,7 +14,7 @@ spring:
         - id: identity-service
           uri: lb://IDENTITY-SERVICE
           predicates:
-            - Path=/auth/**,/users/**,/users
+            - Path=/auth/**,/users/**,/users,/audit/**
           filters:
             - AuthenticationFilter
         - id: access-control-service

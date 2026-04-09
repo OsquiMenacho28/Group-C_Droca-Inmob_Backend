@@ -16,6 +16,8 @@ import com.inmobiliaria.identity_service.exception.ResourceAlreadyExistsExceptio
 import com.inmobiliaria.identity_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.identity_service.exception.UnauthorizedException;
 import com.inmobiliaria.identity_service.repository.UserRepository;
+import com.inmobiliaria.identity_service.security.Auditable;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,6 +45,7 @@ public class UserService {
     private final NotificationClient notificationClient;
     private final UserServiceClient userServiceClient;
 
+    @Auditable(action = "USER_CREATE", description = "New user created")
     public UserResponse create(CreateUserRequest request) {
         // Obtener el usuario autenticado desde el contexto de seguridad
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -131,6 +134,7 @@ public class UserService {
     }
 
 
+    @Auditable(action = "USER_UPDATE", description = "User information updated")
     public UserResponse update(String id, UpdateUserRequest request) {
         UserDocument user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
@@ -191,6 +195,7 @@ public class UserService {
         return toResponse(user);
     }
     
+    @Auditable(action = "USER_DEACTIVATE", description = "User deactivated")
     public UserResponse deactivate(String id) {
         UserDocument user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
@@ -202,6 +207,7 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
+    @Auditable(action = "USER_REACTIVATE", description = "User reactivated")
     public UserResponse reactivate(String id) {
         UserDocument user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
@@ -213,6 +219,7 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
+    @Auditable(action = "USER_DELETE", description = "User permanently deleted")
     public void delete(String id) {
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("User not found: " + id);
@@ -227,6 +234,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
+    @Auditable(action = "USER_ROLE_ASSIGN", description = "User roles assigned/updated")
     public UserResponse assignRole(String userId, AssignRoleRequest request) {
         UserDocument user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));

@@ -18,10 +18,6 @@ logging:
   level:
     root: ERROR
     '[com.inmobiliaria.user_service]': DEBUG
-  file:
-    name: logs/user-service-audit.log
-  pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss} | %msg%n"
 
 eureka:
   client:
