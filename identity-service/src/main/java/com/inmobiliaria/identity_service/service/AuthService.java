@@ -81,6 +81,7 @@ public class AuthService {
         );
 
         return new AuthResponse(
+                user.getId(),
                 jwtService.generateAccessToken(principal),
                 refreshToken,
                 "Bearer",

@@ -1,3 +1,5 @@
+// Archivo: backend/identity-service/src/main/java/com/inmobiliaria/identity_service/security/AuditAspect.java
+
 package com.inmobiliaria.identity_service.security;
 
 import com.inmobiliaria.identity_service.domain.AuditLog;
@@ -32,13 +34,19 @@ public class AuditAspect {
     public void auditAction(JoinPoint joinPoint, Auditable auditable, Object result) {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String performedById = (auth != null) ? (String) auth.getPrincipal() : "SYSTEM";
+            String principal = (auth != null) ? auth.getPrincipal().toString() : "SYSTEM";
             
-            // Obtener información del usuario que ejecuta la acción
+            String performedById = principal;
+
+            if (("USER_LOGIN".equals(auditable.action()) || "anonymousUser".equals(principal)) 
+                && result instanceof com.inmobiliaria.identity_service.dto.response.AuthResponse authResp) {
+                performedById = authResp.userId();
+            }
+
             String performedByEmail = "SYSTEM";
             String performedByName = "SYSTEM";
             
-            if (!"SYSTEM".equals(performedById)) {
+            if (!"SYSTEM".equals(performedById) && !"anonymousUser".equals(performedById)) {
                 Optional<UserDocument> performer = userRepository.findById(performedById);
                 if (performer.isPresent()) {
                     performedByEmail = performer.get().getEmailNormalized();
@@ -46,16 +54,17 @@ public class AuditAspect {
                 }
             }
             
-            // Extraer el ID del usuario afectado (primer argumento del método o del resultado)
             String affectedUserId = extractAffectedUserId(joinPoint, result);
+            if ("UNKNOWN".equals(affectedUserId) && "USER_LOGIN".equals(auditable.action())) {
+                affectedUserId = performedById;
+            }
+
             String affectedUserEmail = null;
-            String affectedUserName = null;
             
             if (affectedUserId != null && !"UNKNOWN".equals(affectedUserId)) {
                 Optional<UserDocument> affected = userRepository.findById(affectedUserId);
                 if (affected.isPresent()) {
                     affectedUserEmail = affected.get().getEmailNormalized();
-                    affectedUserName = affected.get().getFullName();
                 }
             }
             
@@ -87,15 +96,17 @@ public class AuditAspect {
     }
     
     private String extractAffectedUserId(JoinPoint joinPoint, Object result) {
-        // Intentar extraer del primer argumento (normalmente el ID)
+        if (result instanceof com.inmobiliaria.identity_service.dto.response.AuthResponse res) {
+            return res.userId();
+        }
+        
+        if (result instanceof com.inmobiliaria.identity_service.dto.response.UserResponse res) {
+            return res.id();
+        }
+
         Object[] args = joinPoint.getArgs();
         if (args.length > 0 && args[0] instanceof String) {
             return (String) args[0];
-        }
-        
-        // Si el resultado es UserResponse, extraer el ID
-        if (result != null && result instanceof com.inmobiliaria.identity_service.dto.response.UserResponse) {
-            return ((com.inmobiliaria.identity_service.dto.response.UserResponse) result).id();
         }
         
         return "UNKNOWN";
