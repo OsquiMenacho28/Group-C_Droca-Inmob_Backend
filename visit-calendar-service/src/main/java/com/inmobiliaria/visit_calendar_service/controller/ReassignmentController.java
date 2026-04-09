@@ -128,6 +128,6 @@ public class ReassignmentController {
     public ResponseEntity<Map<String, Long>> countPendingRequests(
             @RequestHeader("X-User-Id") String destinationAgentId) {
         long count = reassignmentService.countPendingRequests(destinationAgentId);
-        return ResponseEntity.ok(Map.of("pendientes", count));
+        return ResponseEntity.ok(Map.of("pending", count));
     }
 }
