@@ -297,4 +297,27 @@ public class ReassignmentService {
                 destinationAgentId,
                 ReassignmentRequest.RequestStatus.PENDING);
     }
+
+    public List<ReassignmentRequestResponseDTO> getSentRequests(String requestingAgentId) {
+        return reassignmentRequestRepository.findByRequestingAgentId(requestingAgentId)
+                .stream()
+                .map(ReassignmentRequestResponseDTO::from)
+                .collect(Collectors.toList());
+    }
+
+    public void cancelRequest(String requestId, String requestingAgentId) {
+        ReassignmentRequest request = reassignmentRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+        
+        if (!request.getRequestingAgentId().equals(requestingAgentId)) {
+            throw new RuntimeException("No tienes permiso para cancelar esta solicitud");
+        }
+        
+        if (request.getStatus() != ReassignmentRequest.RequestStatus.PENDING) {
+            throw new RuntimeException("Solo se pueden cancelar solicitudes pendientes");
+        }
+        
+        reassignmentRequestRepository.deleteById(requestId);
+        log.info("Solicitud de reasignación cancelada: {}", requestId);
+    }
 }

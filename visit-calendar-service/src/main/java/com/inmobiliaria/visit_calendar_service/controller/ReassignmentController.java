@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -129,5 +130,26 @@ public class ReassignmentController {
             @RequestHeader("X-Auth-User-Id") String destinationAgentId) {  // ← CORREGIDO
         long count = reassignmentService.countPendingRequests(destinationAgentId);
         return ResponseEntity.ok(Map.of("pending", count));
+    }
+
+    // GET /api/reassignments/sent → Solicitudes enviadas por el agente autenticado
+    @GetMapping("/reassignments/sent")
+    public ResponseEntity<List<ReassignmentRequestResponseDTO>> getSentRequests(
+            @RequestHeader("X-Auth-User-Id") String requestingAgentId) {
+        List<ReassignmentRequestResponseDTO> requests = reassignmentService.getSentRequests(requestingAgentId);
+        return ResponseEntity.ok(requests);
+    }
+
+    // DELETE /api/reassignments/{id} → Cancelar solicitud pendiente
+    @DeleteMapping("/reassignments/{id}")
+    public ResponseEntity<?> cancelRequest(
+            @PathVariable("id") String requestId,
+            @RequestHeader("X-Auth-User-Id") String requestingAgentId) {
+        try {
+            reassignmentService.cancelRequest(requestId, requestingAgentId);
+            return ResponseEntity.ok(Map.of("message", "Solicitud cancelada exitosamente"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

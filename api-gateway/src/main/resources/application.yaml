@@ -47,6 +47,13 @@ spring:
             - Path=/api/calendar/**, /api/visits/**, /api/visit-requests/**
           filters:
             - AuthenticationFilter
+        # NUEVA REGLA CONSOLIDADA: Cubre received, sent, pending/count y delete
+        - id: reassignment-service-all
+          uri: lb://visit-calendar-service
+          predicates:
+            - Path=/api/reassignments/**
+          filters:
+            - AuthenticationFilter
         # POST /api/visits/{id}/reassignment → Solicitar reasignación
         - id: request-reassignment
           uri: lb://visit-calendar-service
