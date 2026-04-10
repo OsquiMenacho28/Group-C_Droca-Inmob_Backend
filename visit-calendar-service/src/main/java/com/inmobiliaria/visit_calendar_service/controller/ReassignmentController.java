@@ -30,7 +30,7 @@ import jakarta.validation.Valid;
  * GET /api/reassignments/received → Solicitudes pendientes del agente
  * GET /api/reassignments/pending/count → Cantidad (para badge de menú)
  *
- * Nota: El agente autenticado se extrae del header X-User-Id que el API Gateway
+ * Nota: El agente autenticado se extrae del header X-Auth-User-Id que el API Gateway
  * inyecta tras validar el JWT, siguiendo el patrón del proyecto.
  */
 @RestController
@@ -58,7 +58,7 @@ public class ReassignmentController {
     @PostMapping("/visits/{id}/reassignment")
     public ResponseEntity<?> requestReassignment(
             @PathVariable("id") String visitId,
-            @RequestHeader("X-User-Id") String requestingAgentId,
+            @RequestHeader("X-Auth-User-Id") String requestingAgentId,  // ← CORREGIDO
             @Valid @RequestBody ReassignmentRequestRequestDTO dto) {
         try {
             ReassignmentRequestResponseDTO response = reassignmentService.requestReassignment(visitId,
@@ -84,7 +84,7 @@ public class ReassignmentController {
     @PutMapping("/reassignments/{id}/reply")
     public ResponseEntity<?> replyRequest(
             @PathVariable("id") String requestId,
-            @RequestHeader("X-User-Id") String destinationAgentId,
+            @RequestHeader("X-Auth-User-Id") String destinationAgentId,  // ← CORREGIDO
             @Valid @RequestBody RequestResponseDTO dto) {
         try {
             ReassignmentRequestResponseDTO response = reassignmentService.replyRequest(requestId, destinationAgentId,
@@ -108,7 +108,7 @@ public class ReassignmentController {
      */
     @GetMapping("/reassignments/received")
     public ResponseEntity<List<ReassignmentRequestResponseDTO>> getReceivedRequests(
-            @RequestHeader("X-User-Id") String destinationAgentId) {
+            @RequestHeader("X-Auth-User-Id") String destinationAgentId) {  // ← CORREGIDO
         List<ReassignmentRequestResponseDTO> requests = reassignmentService.getReceivedRequests(destinationAgentId);
         return ResponseEntity.ok(requests);
     }
@@ -126,7 +126,7 @@ public class ReassignmentController {
      */
     @GetMapping("/reassignments/pending/count")
     public ResponseEntity<Map<String, Long>> countPendingRequests(
-            @RequestHeader("X-User-Id") String destinationAgentId) {
+            @RequestHeader("X-Auth-User-Id") String destinationAgentId) {  // ← CORREGIDO
         long count = reassignmentService.countPendingRequests(destinationAgentId);
         return ResponseEntity.ok(Map.of("pending", count));
     }

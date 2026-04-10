@@ -20,3 +20,15 @@ eureka:
   instance:
     hostname: localhost
     prefer-ip-address: true
+
+user:
+  service:
+    url: http://localhost:8081  # Ajusta según el puerto real de user-service
+
+person:
+  service:
+    url: http://localhost:8084  # Ajusta según el puerto real de person-service
+
+notification:
+  service:
+    url: http://localhost:8083  # Puerto del notification-service

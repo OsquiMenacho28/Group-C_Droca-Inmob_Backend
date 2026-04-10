@@ -85,6 +85,24 @@ spring:
             - Path=/api/favoritos/**
           filters:
             - AuthenticationFilter
+            
+        # Operation Service - rutas base
+        - id: operation-service-list
+          uri: lb://operation-service
+          predicates:
+            - Path=/api/operations
+            - Method=GET
+          filters:
+            - AuthenticationFilter
+
+        - id: operation-service-detail
+          uri: lb://operation-service
+          predicates:
+            - Path=/api/operations/{id}
+            - Method=GET
+          filters:
+            - AuthenticationFilter
+
         # POST /api/operations/{id}/receipts → Attach receipt (multipart)
         - id: operation-receipt-attach
           uri: lb://operation-service
@@ -93,6 +111,7 @@ spring:
             - Method=POST
           filters:
             - AuthenticationFilter
+
         # GET /api/operations/{id}/receipts → List receipts
         - id: operation-receipt-list
           uri: lb://operation-service
@@ -101,6 +120,7 @@ spring:
             - Method=GET
           filters:
             - AuthenticationFilter
+
         # DELETE /api/operations/{id}/receipts/{receiptId} → Delete receipt
         - id: operation-receipt-delete
           uri: lb://operation-service

@@ -10,8 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent; // ← CAMBIADO: de Visit a CalendarEvent
 import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
-import com.inmobiliaria.visit_calendar_service.model.Visit;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,10 +52,10 @@ public class ReassignmentNotificationService {
      * Called right after the requesting agent submits the solicitation.
      *
      * @param request The newly created reassignment request
-     * @param visit   The appointment being reassigned
+     * @param event   The appointment being reassigned (CalendarEvent)
      * @return true if the notification-service responded with 2xx, false otherwise
      */
-    public boolean notifyReassignmentRequest(ReassignmentRequest request, Visit visit) {
+    public boolean notifyReassignmentRequest(ReassignmentRequest request, CalendarEvent event) { // ← CAMBIADO: segundo parámetro ahora es CalendarEvent
         try {
             String endpoint = notificationServiceUrl + "/notifications/reassignment-request";
 
@@ -63,7 +63,7 @@ public class ReassignmentNotificationService {
                     "type", "REASSIGNMENT_REQUEST",
                     "recipientId", request.getDestinationAgentId(),
                     "subject", "New reassignment request — Appointment ID: " + request.getVisitId(),
-                    "message", buildRequestMessage(request, visit),
+                    "message", buildRequestMessage(request, event),
                     "metadata", Map.of(
                             "reassignmentRequestId", request.getId(),
                             "visitId", request.getVisitId(),
@@ -174,18 +174,20 @@ public class ReassignmentNotificationService {
 
     /**
      * Builds the human-readable message body for a new reassignment request,
-     * sent to the target agent.
+     * sent to the target agent. Ahora usa CalendarEvent.
      */
-    private String buildRequestMessage(ReassignmentRequest request, Visit visit) {
+    private String buildRequestMessage(ReassignmentRequest request, CalendarEvent event) {
         return String.format(
                 "Agent '%s' has requested that you take over the following appointment:\n\n" +
-                        "  • Appointment ID : %s\n" +
-                        "  • Scheduled date : %s\n" +
-                        "  • Reason         : %s\n\n" +
-                        "Please log in to the system to accept or reject this request.",
+                "  • Appointment ID : %s\n" +
+                "  • Property       : %s\n" +
+                "  • Scheduled date : %s\n" +
+                "  • Reason         : %s\n\n" +
+                "Please log in to the system to accept or reject this request.",
                 request.getRequestingAgentId(),
                 request.getVisitId(),
-                visit.getDateTime() != null ? visit.getDateTime().toString() : "N/A",
+                event.getPropertyName(),
+                event.getStartTime() != null ? event.getStartTime().toString() : "N/A",
                 request.getReason());
     }
 

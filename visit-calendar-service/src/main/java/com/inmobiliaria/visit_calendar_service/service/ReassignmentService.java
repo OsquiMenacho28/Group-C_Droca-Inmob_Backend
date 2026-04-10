@@ -2,18 +2,24 @@ package com.inmobiliaria.visit_calendar_service.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.inmobiliaria.visit_calendar_service.dto.ReassignmentRequestRequestDTO;
 import com.inmobiliaria.visit_calendar_service.dto.ReassignmentRequestResponseDTO;
 import com.inmobiliaria.visit_calendar_service.dto.RequestResponseDTO;
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.ReassignmentHistory;
 import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
-import com.inmobiliaria.visit_calendar_service.model.Visit;
+import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.ReassignmentRequestRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Servicio que contiene toda la lógica de negocio para la reasignación de
@@ -23,25 +29,36 @@ import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
  * 1. Agente original solicita reasignación → se crea SolicitudReasignacion en
  * estado PENDIENTE.
  * 2. Agente destino acepta o rechaza → se actualiza el estado de la solicitud.
- * - Si ACEPTADA: se actualiza Visita.agenteId al nuevo agente y se guarda el
+ * - Si ACEPTADA: se actualiza CalendarEvent.agentId al nuevo agente y se guarda el
  * historial.
  * - Si RECHAZADA: la cita permanece sin cambios.
  * 3. Se dispara notificación al agente solicitante con la decisión.
  */
+@Slf4j
 @Service
 public class ReassignmentService {
 
     private final ReassignmentRequestRepository reassignmentRequestRepository;
+    private final CalendarEventRepository calendarEventRepository;
     private final VisitRepository visitRepository;
-    private final ReassignmentNotificationService reassignmentNotificationService; // servicio existente de
-                                                                                   // notificaciones
+    private final ReassignmentNotificationService reassignmentNotificationService;
+    private final RestTemplate restTemplate;
+
+    @Value("${user.service.url:http://localhost:8081}")
+    private String userServiceUrl;
+
+    @Value("${person.service.url:http://localhost:8084}")
+    private String personServiceUrl;
 
     public ReassignmentService(ReassignmentRequestRepository reassignmentRequestRepository,
-            VisitRepository visitRepository,
-            ReassignmentNotificationService reassignmentNotificationService) {
+                               CalendarEventRepository calendarEventRepository,
+                               VisitRepository visitRepository,
+                               ReassignmentNotificationService reassignmentNotificationService) {
         this.reassignmentRequestRepository = reassignmentRequestRepository;
+        this.calendarEventRepository = calendarEventRepository;
         this.visitRepository = visitRepository;
         this.reassignmentNotificationService = reassignmentNotificationService;
+        this.restTemplate = new RestTemplate();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -60,11 +77,11 @@ public class ReassignmentService {
     public ReassignmentRequestResponseDTO requestReassignment(String visitId,
             String requestingAgentId,
             ReassignmentRequestRequestDTO dto) {
-        // 1. Verificar que la cita existe y pertenece al agente solicitante
-        Visit visit = visitRepository.findById(visitId)
+        // 1. Buscar en calendar_events (NO en visits)
+        CalendarEvent event = calendarEventRepository.findById(visitId)
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada: " + visitId));
 
-        if (!visit.getAgentId().equals(requestingAgentId)) {
+        if (!event.getAgentId().equals(requestingAgentId)) {
             throw new RuntimeException("No tienes permiso para reasignar esta cita: no te pertenece.");
         }
 
@@ -89,7 +106,7 @@ public class ReassignmentService {
         request = reassignmentRequestRepository.save(request);
 
         // 5. Notificar al agente destino sobre la solicitud recibida
-        reassignmentNotificationService.notifyReassignmentRequest(request, visit);
+        reassignmentNotificationService.notifyReassignmentRequest(request, event);
 
         return ReassignmentRequestResponseDTO.from(request);
     }
@@ -148,32 +165,104 @@ public class ReassignmentService {
     }
 
     /**
-     * Aplica la reasignación en la entidad Visita:
-     * - Cambia agenteId al agente destino
-     * - Agrega entrada en historialReasignaciones
+     * Aplica la reasignación en CalendarEvent:
+     * - Cambia agentId al agente destino
+     * - Actualiza agentName con el nombre completo del nuevo agente
      */
     private void applyReassignment(ReassignmentRequest request) {
-        Visit visit = visitRepository.findById(request.getVisitId())
+        CalendarEvent event = calendarEventRepository.findById(request.getVisitId())
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada al aplicar reasignación."));
 
-        String previousAgent = visit.getAgentId();
+        // Obtener el nombre completo del agente destino
+        String destinationAgentName = getAgentFullName(request.getDestinationAgentId());
+        
+        // Actualizar el evento en el calendario
+        event.setAgentId(request.getDestinationAgentId());
+        event.setAgentName(destinationAgentName);
+        
+        calendarEventRepository.save(event);
+        log.info("Reasignación aplicada: evento '{}' (propiedad '{}') ahora asignado a agente '{}' ('{}')", 
+                 event.getId(), event.getPropertyName(), request.getDestinationAgentId(), destinationAgentName);
+        
+        // También actualizar la entidad Visit si existe para mantener consistencia y el historial
+        visitRepository.findById(request.getVisitId()).ifPresent(visit -> {
+            String previousAgent = visit.getAgentId();
+            
+            ReassignmentHistory reassignmentHistory = new ReassignmentHistory(
+                    request.getId(),
+                    previousAgent,
+                    request.getDestinationAgentId(),
+                    request.getReason());
+    
+            if (visit.getReassignmentHistory() == null) {
+                visit.setReassignmentHistory(new java.util.ArrayList<>());
+            }
+            visit.getReassignmentHistory().add(reassignmentHistory);
+            visit.setAgentId(request.getDestinationAgentId());
+            visitRepository.save(visit);
+            log.debug("Historial de reasignación actualizado en la entidad Visit: {}", visit.getId());
+        });
+    }
 
-        // Agregar al historial antes de cambiar
-        ReassignmentHistory reassignmentHistory = new ReassignmentHistory(
-                request.getId(),
-                previousAgent,
-                request.getDestinationAgentId(),
-                request.getReason());
-
-        if (visit.getReassignmentHistory() == null) {
-            visit.setReassignmentHistory(new java.util.ArrayList<>());
+    /**
+     * Obtiene el nombre completo del agente consultando el microservicio de usuarios.
+     * Intenta primero con user-service, luego con person-service como fallback.
+     *
+     * @param agentId ID del agente (authUserId)
+     * @return nombre completo (firstName + lastName) o el ID si falla la consulta
+     */
+    private String getAgentFullName(String agentId) {
+        // Primero intentar con user-service
+        try {
+            String url = userServiceUrl + "/users/" + agentId;
+            log.debug("Consultando user-service para obtener nombre del agente: {}", url);
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            
+            if (response != null) {
+                String firstName = (String) response.get("firstName");
+                String lastName = (String) response.get("lastName");
+                
+                if (firstName != null && lastName != null) {
+                    return firstName + " " + lastName;
+                } else if (firstName != null) {
+                    return firstName;
+                } else if (lastName != null) {
+                    return lastName;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo obtener el nombre del agente desde user-service para ID: {}. Intentando con person-service...", agentId, e);
         }
-        visit.getReassignmentHistory().add(reassignmentHistory);
-
-        // Reasignar agente
-        visit.setAgentId(request.getDestinationAgentId());
-
-        visitRepository.save(visit);
+        
+        // Fallback: intentar con person-service
+        try {
+            String url = personServiceUrl + "/persons/by-auth/" + agentId;
+            log.debug("Consultando person-service como fallback: {}", url);
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            
+            if (response != null) {
+                String firstName = (String) response.get("firstName");
+                String lastName = (String) response.get("lastName");
+                
+                if (firstName != null && lastName != null) {
+                    return firstName + " " + lastName;
+                } else if (firstName != null) {
+                    return firstName;
+                } else if (lastName != null) {
+                    return lastName;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo obtener el nombre del agente desde person-service para ID: {}", agentId, e);
+        }
+        
+        // Fallback final: devolver el ID como nombre
+        log.warn("Usando ID como fallback para el nombre del agente: {}", agentId);
+        return agentId;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
