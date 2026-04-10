@@ -13,8 +13,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-
-// ... existing imports
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 @Aspect
 @Component
@@ -29,63 +30,79 @@ public class AuditAspect {
         Object[] args = joinPoint.getArgs();
         String action = auditable.action();
         String propertyId = null;
-        String previousValue = "N/A";
+        
+        PropertyDocument beforeState = null;
 
-        // 1. Capture previous state
+        // 1. Capture state BEFORE
         if (!action.equals("PROPERTY_CREATE") && args.length > 0 && args[0] instanceof String) {
             propertyId = (String) args[0];
-            PropertyDocument prop = propertyRepository.findById(propertyId).orElse(null);
-            if (prop != null) {
-                previousValue = switch (action) {
-                    case "STATUS_CHANGE" -> prop.getStatus();
-                    case "PRICE_UPDATE" -> String.valueOf(prop.getPrice());
-                    case "AGENT_ASSIGN" -> prop.getAssignedAgentId();
-                    case "OWNER_ASSIGN" -> prop.getOwnerId();
-                    // IMPROVEMENT: Capture Title and Type instead of hardcoded string
-                    case "PROPERTY_UPDATE" -> String.format("%s (%s)", prop.getTitle(), prop.getType());
-                    default -> prop.getStatus();
-                };
-            }
+            beforeState = propertyRepository.findById(propertyId).orElse(null);
         }
 
-        // 2. Execute method
+        // 2. Execute the actual update
         Object result = joinPoint.proceed();
 
-        // 3. Capture new state
-        String newValue = "N/A";
+        // 3. Capture state AFTER and compare
+        List<AuditLog.FieldChange> changes = new ArrayList<>();
+        String previousSummary = "N/A";
+        String newSummary = "N/A";
+
         if (action.equals("PROPERTY_CREATE") && result instanceof PropertyResponse res) {
             propertyId = res.id();
-            newValue = res.title(); 
-            previousValue = "NEW_PROPERTY";
-        } else if (propertyId != null) {
-            PropertyDocument updated = propertyRepository.findById(propertyId).orElse(null);
-            if (updated != null) {
-                newValue = switch (action) {
-                    case "STATUS_CHANGE" -> updated.getStatus();
-                    case "PRICE_UPDATE" -> String.valueOf(updated.getPrice());
-                    case "AGENT_ASSIGN" -> updated.getAssignedAgentId();
-                    case "OWNER_ASSIGN" -> updated.getOwnerId();
-                    case "PROPERTY_DELETE" -> "DELETED";
-                    // IMPROVEMENT: Capture Title and Type
-                    case "PROPERTY_UPDATE" -> String.format("%s (%s)", updated.getTitle(), updated.getType());
-                    default -> "Modified";
-                };
+            previousSummary = "NEW_PROPERTY";
+            newSummary = res.title();
+        } else if (beforeState != null) {
+            PropertyDocument afterState = propertyRepository.findById(propertyId).orElse(null);
+            if (afterState != null) {
+                changes = calculateChanges(beforeState, afterState);
+                
+                // Summaries for the main table view
+                previousSummary = beforeState.getStatus();
+                newSummary = afterState.getStatus();
+                
+                if (action.equals("PROPERTY_UPDATE")) {
+                    previousSummary = beforeState.getTitle();
+                    newSummary = afterState.getTitle();
+                }
             }
         }
 
-        // 4. Save audit log
+        // 4. Save the log with details
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        
         AuditLog log = AuditLog.builder()
                 .userId(userId)
                 .action(action)
                 .propertyId(propertyId)
-                .previousValue(previousValue)
-                .newValue(newValue)
+                .previousValue(previousSummary)
+                .newValue(newSummary)
+                .changes(changes) // Detailed list
                 .timestamp(Instant.now())
                 .build();
 
         auditLogRepository.save(log);
         return result;
+    }
+
+    private List<AuditLog.FieldChange> calculateChanges(PropertyDocument oldDoc, PropertyDocument newDoc) {
+        List<AuditLog.FieldChange> changes = new ArrayList<>();
+        
+        compare(changes, "title", oldDoc.getTitle(), newDoc.getTitle());
+        compare(changes, "address", oldDoc.getAddress(), newDoc.getAddress());
+        compare(changes, "price", oldDoc.getPrice(), newDoc.getPrice());
+        compare(changes, "type", oldDoc.getType(), newDoc.getType());
+        compare(changes, "m2", oldDoc.getM2(), newDoc.getM2());
+        compare(changes, "rooms", oldDoc.getRooms(), newDoc.getRooms());
+        compare(changes, "status", oldDoc.getStatus(), newDoc.getStatus());
+        compare(changes, "operationType", oldDoc.getOperationType(), newDoc.getOperationType());
+        compare(changes, "ownerId", oldDoc.getOwnerId(), newDoc.getOwnerId());
+        compare(changes, "agentId", oldDoc.getAssignedAgentId(), newDoc.getAssignedAgentId());
+
+        return changes;
+    }
+
+    private void compare(List<AuditLog.FieldChange> list, String field, Object oldVal, Object newVal) {
+        if (!Objects.equals(oldVal, newVal)) {
+            list.add(new AuditLog.FieldChange(field, String.valueOf(oldVal), String.valueOf(newVal)));
+        }
     }
 }
