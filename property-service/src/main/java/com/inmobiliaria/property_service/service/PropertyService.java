@@ -111,6 +111,7 @@ public class PropertyService {
         return result;
     }
 
+    @Auditable(action = "PROPERTY_UPDATE") // Los agentes también auditan su update
     public PropertyResponse updatePropertyAsAgent(String id, AgentPropertyUpdateRequest request, String agentId) {
         PropertyDocument property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));
@@ -179,6 +180,7 @@ public class PropertyService {
         }
     }
 
+    @Auditable(action = "PROPERTY_CREATE")
     public PropertyResponse create(PropertyRequest request, String agentId) {
         PropertyDocument property = PropertyDocument.builder()
                 .title(request.title())
@@ -198,6 +200,7 @@ public class PropertyService {
         return mapToResponse(propertyRepository.save(property));
     }
 
+    @Auditable(action = "PRICE_UPDATE")
     public PropertyResponse updatePrice(String id, Double newPrice, String adminId) {
         PropertyDocument prop = propertyRepository.findById(id).orElseThrow();
         prop.getPriceHistory().add(new PriceHistory(prop.getPrice(), newPrice, Instant.now(), adminId));
@@ -205,6 +208,7 @@ public class PropertyService {
         return mapToResponse(propertyRepository.save(prop));
     }
 
+    @Auditable(action = "AGENT_ASSIGN")
     public PropertyResponse assignAgent(String id, AssignAgentRequest request, String adminId) {
         PropertyDocument prop = propertyRepository.findById(id).orElseThrow();
         var agent = identityClient.findById(request.agentId());
@@ -223,6 +227,7 @@ public class PropertyService {
         return propertyRepository.findByOwnerId(ownerId).stream().map(this::mapToResponse).toList();
     }
 
+    @Auditable(action = "OWNER_ASSIGN")
     public PropertyResponse assignOwner(String id, String ownerId, String adminId) {
         PropertyDocument prop = propertyRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));
@@ -335,6 +340,7 @@ public class PropertyService {
         log.info("Propiedad {} marcada como eliminada (lógico) por admin: {}", id, adminId);
     }
 
+    @Auditable(action = "STATUS_CHANGE")
     public PropertyResponse updateStatus(String id, String newStatus, String currentUserId, List<String> roles) {
         PropertyDocument prop = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
@@ -372,6 +378,7 @@ public class PropertyService {
         return mapToResponse(propertyRepository.save(prop));
     }
 
+    @Auditable(action = "PROPERTY_UPDATE")
     public PropertyResponse updateProperty(String id, PropertyRequest request, String adminId) {
         PropertyDocument property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));

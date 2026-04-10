@@ -9,5 +9,5 @@ import com.inmobiliaria.property_service.domain.AuditLog;
 
 @Repository
 public interface AuditLogRepository extends MongoRepository<AuditLog, String> {
-    List<AuditLog> findByResourceIdOrderByTimestampDesc(String resourceId);
+    List<AuditLog> findByPropertyIdOrderByTimestampDesc(String propertyId);
 }

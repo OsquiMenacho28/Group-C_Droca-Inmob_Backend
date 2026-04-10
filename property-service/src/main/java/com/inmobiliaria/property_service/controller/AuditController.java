@@ -23,6 +23,6 @@ public class AuditController {
     @GetMapping("/{resourceId}")
     @PreAuthorize("hasRole('ADMIN')")
     public List<AuditLog> getAuditLogs(@PathVariable String resourceId) {
-        return auditLogRepository.findByResourceIdOrderByTimestampDesc(resourceId);
+        return auditLogRepository.findByPropertyIdOrderByTimestampDesc(resourceId);
     }
 }
