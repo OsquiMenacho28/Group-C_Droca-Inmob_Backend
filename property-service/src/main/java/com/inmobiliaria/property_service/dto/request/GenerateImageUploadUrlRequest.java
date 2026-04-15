@@ -7,15 +7,15 @@ import lombok.Data;
 
 @Data
 public class GenerateImageUploadUrlRequest {
-    
-    private String propertyId;
-    
-    @NotBlank(message = "File name is required")
-    private String fileName;
-    
-    @NotNull(message = "File size is required")
-    @Positive(message = "File size must be positive")
-    private Long fileSize;
-    
-    private String mimeType;
+
+  private String propertyId;
+
+  @NotBlank(message = "File name is required")
+  private String fileName;
+
+  @NotNull(message = "File size is required")
+  @Positive(message = "File size must be positive")
+  private Long fileSize;
+
+  private String mimeType;
 }

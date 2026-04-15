@@ -1,13 +1,14 @@
 package com.inmobiliaria.identity_service.domain;
 
-import lombok.*;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
+import lombok.*;
 
 @Document(collection = "users")
 @Getter
@@ -17,38 +18,36 @@ import java.util.Map;
 @Builder
 public class UserDocument extends BaseDocument {
 
-    @Id
-    private String id;
+  @Id private String id;
 
-    private String firstName;
-    private String lastName;
-    private String fullName;
+  private String firstName;
+  private String lastName;
+  private String fullName;
 
-    private String email;
+  private String email;
 
-    @Indexed(unique = true)
-    private String emailNormalized;
+  @Indexed(unique = true)
+  private String emailNormalized;
 
-    private String passwordHash;
-    private UserType userType;
-    private UserStatus status;
+  private String passwordHash;
+  private UserType userType;
+  private UserStatus status;
 
-    private Boolean temporaryPassword;
-    private Instant temporaryPasswordExpiresAt;
-    private Boolean mustChangePassword;
+  private Boolean temporaryPassword;
+  private Instant temporaryPasswordExpiresAt;
+  private Boolean mustChangePassword;
 
-    private Instant passwordChangedAt;
-    private Integer failedLoginAttempts;
-    private Instant lockedUntil;
-    private Instant lastLoginAt;
+  private Instant passwordChangedAt;
+  private Integer failedLoginAttempts;
+  private Instant lockedUntil;
+  private Instant lastLoginAt;
 
-    private List<String> primaryRoleIds;
+  private List<String> primaryRoleIds;
 
-    @Indexed
-    private String activeEmploymentCycleId;
+  @Indexed private String activeEmploymentCycleId;
 
-    private Map<String, Object> metadata;
+  private Map<String, Object> metadata;
 
-    private String refreshToken;
-    private Instant refreshTokenExpiresAt;
+  private String refreshToken;
+  private Instant refreshTokenExpiresAt;
 }

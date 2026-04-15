@@ -1,10 +1,7 @@
 package com.inmobiliaria.identity_service.dto.request;
 
-import jakarta.validation.constraints.NotEmpty;
-
 import java.util.List;
 
-public record AssignRoleRequest(
-        @NotEmpty List<String> roleIds
-) {
-}
+import jakarta.validation.constraints.NotEmpty;
+
+public record AssignRoleRequest(@NotEmpty List<String> roleIds) {}

@@ -1,5 +1,6 @@
 package com.inmobiliaria.property_service.dto.request;
 
+import java.util.Set;
 
 import com.inmobiliaria.property_service.domain.OperationType;
 
@@ -7,38 +8,26 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import java.util.Set;
 
 /**
- * DTO para la creación de un nuevo inmueble.
- * Contiene las validaciones necesarias para las pruebas de aceptación.
+ * DTO para la creación de un nuevo inmueble. Contiene las validaciones necesarias para las pruebas
+ * de aceptación.
  */
 public record PropertyRequest(
-        @NotBlank(message = "El título es obligatorio para el inventario")
-        String title,
-
-        @NotBlank(message = "La dirección es requerida para el registro")
-        String address,
-
-        @NotNull(message = "El precio no puede estar vacío")
+    @NotBlank(message = "El título es obligatorio para el inventario") String title,
+    @NotBlank(message = "La dirección es requerida para el registro") String address,
+    @NotBlank(message = "La zona es requerida") String zone,
+    @NotNull(message = "El precio no puede estar vacío")
         @Positive(message = "El precio debe ser un valor mayor a cero")
         Double price,
-
-        @NotBlank(message = "Debe especificar el tipo de inmueble (Apartamento, Casa, etc.)")
+    @NotBlank(message = "Debe especificar el tipo de inmueble (Apartamento, Casa, etc.)")
         String type,
-
-        @NotNull(message = "El tipo de operación es obligatorio") 
-        OperationType operationType,
-
-        @NotNull(message = "Los metros cuadrados (m2) son obligatorios")
+    @NotNull(message = "El tipo de operación es obligatorio") OperationType operationType,
+    @NotNull(message = "Los metros cuadrados (m2) son obligatorios")
         @Positive(message = "El área debe ser un número positivo")
         Double m2,
-
-        @NotNull(message = "El número de habitaciones es obligatorio")
+    @NotNull(message = "El número de habitaciones es obligatorio")
         @Min(value = 0, message = "El número de habitaciones no puede ser negativo")
         Integer rooms,
-
-        Set<String> accessPolicy,
-
-        String ownerId
-) {}
+    Set<String> accessPolicy,
+    String ownerId) {}

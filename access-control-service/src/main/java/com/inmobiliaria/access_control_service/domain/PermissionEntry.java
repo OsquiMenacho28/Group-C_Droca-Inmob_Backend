@@ -11,12 +11,9 @@ import lombok.*;
 @Builder
 public class PermissionEntry {
 
-    @NotBlank
-    private String resource;
+  @NotBlank private String resource;
 
-    @NotBlank
-    private String action;
+  @NotBlank private String action;
 
-    @NotNull
-    private ScopeType scope;
+  @NotNull private ScopeType scope;
 }

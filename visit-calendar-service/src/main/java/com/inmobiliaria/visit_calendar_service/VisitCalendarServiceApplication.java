@@ -8,8 +8,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @EnableDiscoveryClient
 public class VisitCalendarServiceApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(VisitCalendarServiceApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    SpringApplication.run(VisitCalendarServiceApplication.class, args);
+  }
 }

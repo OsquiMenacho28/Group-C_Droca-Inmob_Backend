@@ -1,54 +1,66 @@
 package com.inmobiliaria.access_control_service.exception;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.inmobiliaria.access_control_service.dto.response.ApiResponse;
+import com.inmobiliaria.access_control_service.dto.response.ResponseFactory;
+
+import lombok.RequiredArgsConstructor;
+
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-        problem.setTitle("Resource not found");
-        return problem;
-    }
+  private final ResponseFactory responseFactory;
 
-    @ExceptionHandler(ResourceAlreadyExistsException.class)
-    public ProblemDetail handleAlreadyExists(ResourceAlreadyExistsException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        problem.setTitle("Resource already exists");
-        return problem;
-    }
+  @ExceptionHandler(ResourceNotFoundException.class)
+  public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(responseFactory.notFound(ex.getMessage()));
+  }
 
-    @ExceptionHandler(ValidationException.class)
-    public ProblemDetail handleValidation(ValidationException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        problem.setTitle("Validation error");
-        return problem;
-    }
+  @ExceptionHandler(ResourceAlreadyExistsException.class)
+  public ResponseEntity<ApiResponse<Void>> handleAlreadyExists(ResourceAlreadyExistsException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(responseFactory.conflict(ex.getMessage(), null, "RESOURCE_CONFLICT"));
+  }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        problem.setTitle("Validation error");
-        problem.setDetail(ex.getBindingResult().getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .findFirst()
-                .orElse("Invalid request"));
-        return problem;
-    }
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleValidation(ValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error(ex.getMessage()));
+  }
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGeneric(Exception ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                ex.getMessage()
-        );
-        problem.setTitle("Internal server error");
-        return problem;
-    }
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException ex) {
+    List<ApiResponse.ApiError> errors =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(
+                fieldError ->
+                    ApiResponse.ApiError.builder()
+                        .field(fieldError.getField())
+                        .message(
+                            fieldError.getDefaultMessage() != null
+                                ? fieldError.getDefaultMessage()
+                                : "Invalid value")
+                        .code("VALIDATION_ERROR")
+                        .build())
+            .collect(Collectors.toList());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error("Validation failed", errors));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(responseFactory.error("An unexpected error occurred"));
+  }
 }

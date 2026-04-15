@@ -15,11 +15,11 @@ import lombok.NoArgsConstructor;
 /**
  * Represents a payment receipt (comprobante de pago) attached to an operation.
  *
- * The actual file is stored in MinIO; this document holds metadata only.
- * The {@code fileUrl} field contains the MinIO presigned URL or the
- * internal object key, depending on your download strategy.
+ * <p>The actual file is stored in MinIO; this document holds metadata only. The {@code fileUrl}
+ * field contains the MinIO presigned URL or the internal object key, depending on your download
+ * strategy.
  *
- * Collection: receipts
+ * <p>Collection: receipts
  */
 @Data
 @Builder
@@ -28,55 +28,40 @@ import lombok.NoArgsConstructor;
 @Document(collection = "receipts")
 public class Receipt {
 
-    @Id
-    private String id;
+  @Id private String id;
 
-    /** ID of the operation this receipt belongs to */
-    @Indexed
-    private String operationId;
+  /** ID of the operation this receipt belongs to */
+  @Indexed private String operationId;
 
-    /** Payment amount registered on the receipt */
-    private BigDecimal amount;
+  /** Payment amount registered on the receipt */
+  private BigDecimal amount;
 
-    /**
-     * ISO 4217 currency code.
-     * E.g.: "BOB" (Boliviano), "USD", "EUR"
-     */
-    private String currency;
+  /** ISO 4217 currency code. E.g.: "BOB" (Boliviano), "USD", "EUR" */
+  private String currency;
 
-    /** Date the payment was made (as declared by the agent) */
-    private LocalDateTime paymentDate;
+  /** Date the payment was made (as declared by the agent) */
+  private LocalDateTime paymentDate;
 
-    /**
-     * MinIO object key for the stored file.
-     * Format: receipts/{operationId}/{uuid}.{ext}
-     */
-    private String fileKey;
+  /** MinIO object key for the stored file. Format: receipts/{operationId}/{uuid}.{ext} */
+  private String fileKey;
 
-    /**
-     * Original file name as uploaded by the agent.
-     * Stored for display purposes in the UI.
-     */
-    private String originalFileName;
+  /** Original file name as uploaded by the agent. Stored for display purposes in the UI. */
+  private String originalFileName;
 
-    /**
-     * MIME type of the uploaded file.
-     * Allowed: application/pdf, image/jpeg, image/png, image/webp
-     */
-    private String contentType;
+  /** MIME type of the uploaded file. Allowed: application/pdf, image/jpeg, image/png, image/webp */
+  private String contentType;
 
-    /** File size in bytes */
-    private Long fileSizeBytes;
+  /** File size in bytes */
+  private Long fileSizeBytes;
 
-    /**
-     * Human-readable concept / description of the receipt.
-     * E.g.: "Reserva inicial", "Pago cuota 1"
-     */
-    private String concept;
+  /**
+   * Human-readable concept / description of the receipt. E.g.: "Reserva inicial", "Pago cuota 1"
+   */
+  private String concept;
 
-    /** ID of the agent who uploaded this receipt */
-    private String uploadedByAgentId;
+  /** ID of the agent who uploaded this receipt */
+  private String uploadedByAgentId;
 
-    /** Timestamp when the receipt was attached to the operation */
-    private LocalDateTime uploadedAt;
+  /** Timestamp when the receipt was attached to the operation */
+  private LocalDateTime uploadedAt;
 }

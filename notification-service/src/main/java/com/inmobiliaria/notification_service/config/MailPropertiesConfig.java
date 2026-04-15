@@ -7,13 +7,13 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "app.mail")
 public class MailPropertiesConfig {
 
-    private String from;
+  private String from;
 
-    public String getFrom() {
-        return from;
-    }
+  public String getFrom() {
+    return from;
+  }
 
-    public void setFrom(String from) {
-        this.from = from;
-    }
+  public void setFrom(String from) {
+    this.from = from;
+  }
 }

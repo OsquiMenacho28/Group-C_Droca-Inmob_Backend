@@ -1,43 +1,53 @@
 package com.inmobiliaria.notification_service.exception;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.inmobiliaria.notification_service.dto.response.ApiResponse;
+import com.inmobiliaria.notification_service.dto.response.ResponseFactory;
+
+import lombok.RequiredArgsConstructor;
+
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EmailSendException.class)
-    public ProblemDetail handleEmailSend(EmailSendException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                ex.getMessage()
-        );
-        problem.setTitle("Email send error");
-        return problem;
-    }
+  private final ResponseFactory responseFactory;
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
-        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        problem.setTitle("Validation error");
-        problem.setDetail(ex.getBindingResult().getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .findFirst()
-                .orElse("Invalid request"));
-        return problem;
-    }
+  @ExceptionHandler(EmailSendException.class)
+  public ResponseEntity<ApiResponse<Void>> handleEmailSend(EmailSendException ex) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(responseFactory.error(ex.getMessage()));
+  }
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGeneric(Exception ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                ex.getMessage()
-        );
-        problem.setTitle("Internal server error");
-        return problem;
-    }
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
+    List<ApiResponse.ApiError> errors =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(
+                fieldError ->
+                    ApiResponse.ApiError.builder()
+                        .field(fieldError.getField())
+                        .message(
+                            fieldError.getDefaultMessage() != null
+                                ? fieldError.getDefaultMessage()
+                                : "Invalid value")
+                        .code("VALIDATION_ERROR")
+                        .build())
+            .collect(Collectors.toList());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error("Validation failed", errors));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(responseFactory.error("An unexpected error occurred"));
+  }
 }

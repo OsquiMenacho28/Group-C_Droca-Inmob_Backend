@@ -14,128 +14,52 @@ spring:
         - id: identity-service
           uri: lb://IDENTITY-SERVICE
           predicates:
-            - Path=/auth/**,/users/**,/users,/audit/**
+            - Path=/api/v1/auth/**, /api/v1/auth, /api/v1/users/**, /api/v1/users
           filters:
             - AuthenticationFilter
+            - StripPrefix=2
         - id: access-control-service
           uri: lb://ACCESS-CONTROL-SERVICE
           predicates:
-            - Path=/roles/**,/permissions/**,/roles,/permissions
+            - Path=/api/v1/roles/**, /api/v1/roles, /api/v1/permissions/**, /api/v1/permissions
           filters:
             - AuthenticationFilter
+            - StripPrefix=2
         - id: notification-service
           uri: lb://NOTIFICATION-SERVICE
           predicates:
-            - Path=/notifications/**
+            - Path=/api/v1/notifications/**, /api/v1/notifications
           filters:
             - AuthenticationFilter
+            - StripPrefix=2
         - id: property-service
           uri: lb://PROPERTY-SERVICE
           predicates:
-            - Path=/properties/**,/properties,/documents/**,/documents
+            - Path=/api/v1/properties/**, /api/v1/properties, /api/v1/documents/**, /api/v1/documents
           filters:
             - AuthenticationFilter
+            - StripPrefix=2
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/persons/**,/persons,/audit-logs/**,/audit-logs
+            - Path=/api/v1/persons/**, /api/v1/persons, /api/v1/favoritos/**, /api/v1/favoritos
           filters:
             - AuthenticationFilter
+            - StripPrefix=2
         - id: visit-calendar-service
           uri: lb://visit-calendar-service
           predicates:
-            - Path=/api/calendar/**, /api/visits/**, /api/visit-requests/**
+            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments
           filters:
             - AuthenticationFilter
-        # NUEVA REGLA CONSOLIDADA: Cubre received, sent, pending/count y delete
-        - id: reassignment-service-all
-          uri: lb://visit-calendar-service
-          predicates:
-            - Path=/api/reassignments/**
-          filters:
-            - AuthenticationFilter
-        # POST /api/visits/{id}/reassignment → Solicitar reasignación
-        - id: request-reassignment
-          uri: lb://visit-calendar-service
-          predicates:
-            - Path=/api/visits/*/reassignment
-            - Method=POST
-          filters:
-            - AuthenticationFilter # Valida JWT y agrega X-User-Id al header
-        # PUT /api/reassignments/{id}/reply → Aceptar / Rechazar
-        - id: reply-reassignment
-          uri: lb://visit-calendar-service
-          predicates:
-            - Path=/api/reassignments/*/reply
-            - Method=PUT
-          filters:
-            - AuthenticationFilter
-        # GET /api/reassignments/received → Bandeja de solicitudes
-        - id: received-reassignments
-          uri: lb://visit-calendar-service
-          predicates:
-            - Path=/api/reassignments/received
-            - Method=GET
-          filters:
-            - AuthenticationFilter
-        # GET /api/reassignments/pending/count → Badge de notificación
-        - id: count-pending-reassignments
-          uri: lb://visit-calendar-service
-          predicates:
-            - Path=/api/reassignments/pending/count
-            - Method=GET
-          filters:
-            - AuthenticationFilter
-        - id: favorites-route
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/favoritos/**
-          filters:
-            - AuthenticationFilter
-            
-        # Operation Service - rutas base
-        - id: operation-service-list
+            - StripPrefix=2
+        - id: operation-service
           uri: lb://operation-service
           predicates:
-            - Path=/api/operations
-            - Method=GET
+            - Path=/api/v1/operations/**, /api/v1/operations
           filters:
             - AuthenticationFilter
-
-        - id: operation-service-detail
-          uri: lb://operation-service
-          predicates:
-            - Path=/api/operations/{id}
-            - Method=GET
-          filters:
-            - AuthenticationFilter
-
-        # POST /api/operations/{id}/receipts → Attach receipt (multipart)
-        - id: operation-receipt-attach
-          uri: lb://operation-service
-          predicates:
-            - Path=/api/operations/*/receipts
-            - Method=POST
-          filters:
-            - AuthenticationFilter
-
-        # GET /api/operations/{id}/receipts → List receipts
-        - id: operation-receipt-list
-          uri: lb://operation-service
-          predicates:
-            - Path=/api/operations/*/receipts
-            - Method=GET
-          filters:
-            - AuthenticationFilter
-
-        # DELETE /api/operations/{id}/receipts/{receiptId} → Delete receipt
-        - id: operation-receipt-delete
-          uri: lb://operation-service
-          predicates:
-            - Path=/api/operations/*/receipts/*
-            - Method=DELETE
-          filters:
-            - AuthenticationFilter
+            - StripPrefix=2
 
 eureka:
   client:

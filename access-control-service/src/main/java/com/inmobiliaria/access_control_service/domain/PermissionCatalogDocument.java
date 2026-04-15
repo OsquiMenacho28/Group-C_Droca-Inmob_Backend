@@ -1,16 +1,16 @@
 package com.inmobiliaria.access_control_service.domain;
 
-import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.*;
+
 @Document(collection = "permissions_catalog")
 @CompoundIndex(
-        name = "uk_permission_catalog_resource_action_scope",
-        def = "{'resource': 1, 'action': 1, 'scope': 1}",
-        unique = true
-)
+    name = "uk_permission_catalog_resource_action_scope",
+    def = "{'resource': 1, 'action': 1, 'scope': 1}",
+    unique = true)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,12 +18,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 public class PermissionCatalogDocument extends BaseDocument {
 
-    @Id
-    private String id;
+  @Id private String id;
 
-    private String resource;
-    private String action;
-    private ScopeType scope;
-    private String description;
-    private Boolean active;
+  private String resource;
+  private String action;
+  private ScopeType scope;
+  private String description;
+  private Boolean active;
 }

@@ -1,40 +1,63 @@
 package com.inmobiliaria.property_service.exception;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import java.time.Instant;
+
+import com.inmobiliaria.property_service.dto.response.ApiResponse;
+import com.inmobiliaria.property_service.dto.response.ResponseFactory;
+
+import lombok.RequiredArgsConstructor;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-        problem.setTitle("Recurso no encontrado");
-        problem.setProperty("timestamp", Instant.now());
-        return problem;
-    }
+  private final ResponseFactory responseFactory;
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGeneric(Exception ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Error inesperado en el servidor");
-        problem.setTitle("Internal Server Error");
-        return problem;
-    }
+  @ExceptionHandler(ResourceNotFoundException.class)
+  public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(responseFactory.notFound(ex.getMessage()));
+  }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
-        problem.setTitle("Access Denied");
-        return problem;
-    }
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(responseFactory.forbidden(ex.getMessage()));
+  }
 
-    @ExceptionHandler(ValidationException.class)
-    public ProblemDetail handleValidation(ValidationException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        problem.setTitle("Validation Error");
-        return problem;
-    }
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleValidation(ValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error(ex.getMessage()));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException ex) {
+    List<ApiResponse.ApiError> errors =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(
+                fieldError ->
+                    ApiResponse.ApiError.builder()
+                        .field(fieldError.getField())
+                        .message(fieldError.getDefaultMessage())
+                        .code("VALIDATION_ERROR")
+                        .build())
+            .collect(Collectors.toList());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error("Validation failed", errors));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(responseFactory.error("An unexpected error occurred: " + ex.getMessage()));
+  }
 }

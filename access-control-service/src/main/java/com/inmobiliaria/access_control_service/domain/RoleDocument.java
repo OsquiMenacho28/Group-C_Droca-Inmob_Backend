@@ -1,11 +1,12 @@
 package com.inmobiliaria.access_control_service.domain;
 
-import lombok.*;
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
+import lombok.*;
 
 @Document(collection = "roles")
 @Getter
@@ -15,18 +16,17 @@ import java.util.List;
 @Builder
 public class RoleDocument extends BaseDocument {
 
-    @Id
-    private String id;
+  @Id private String id;
 
-    @Indexed(unique = true)
-    private String code;
+  @Indexed(unique = true)
+  private String code;
 
-    @Indexed(unique = true)
-    private String name;
+  @Indexed(unique = true)
+  private String name;
 
-    private String description;
-    private RoleType type;
-    private Boolean active;
-    private List<PermissionEntry> permissions;
-    private Integer version;
+  private String description;
+  private RoleType type;
+  private Boolean active;
+  private List<PermissionEntry> permissions;
+  private Integer version;
 }
