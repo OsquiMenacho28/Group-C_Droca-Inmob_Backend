@@ -36,8 +36,8 @@ public class Visit {
   /** Fecha y hora programada para la visita */
   private LocalDateTime dateTime;
 
-  /** Estado de la visita: PENDIENTE, CONFIRMADA, CANCELADA, COMPLETADA */
-  private String status;
+  /** Estado de la visita: PROGRAMADA, CANCELADA, COMPLETADA */
+  private VisitStatus status;
 
   /** Notas adicionales sobre la visita */
   private String notes;
@@ -50,6 +50,18 @@ public class Visit {
    * anterior, agente nuevo, motivo y fecha. Se inicializa como lista vacía para evitar NPE.
    */
   private List<ReassignmentHistory> reassignmentHistory = new ArrayList<>();
+
+  /**
+   * Defines all valid lifecycle states for a Visit (Visita).
+   *
+   * <p>TD: Verify that the Visit model includes the 'status' field with the correct values:
+   * Programada, Cancelada, Completada.
+   */
+  public enum VisitStatus {
+    SCHEDULED, // Programada
+    CANCELLED, // Cancelada
+    COMPLETED // Completada
+  }
 
   // ── Constructors ──────────────────────────────────────────────────────────
 
@@ -100,11 +112,11 @@ public class Visit {
     this.dateTime = dateTime;
   }
 
-  public String getStatus() {
+  public VisitStatus getStatus() {
     return status;
   }
 
-  public void setStatus(String status) {
+  public void setStatus(VisitStatus status) {
     this.status = status;
   }
 
