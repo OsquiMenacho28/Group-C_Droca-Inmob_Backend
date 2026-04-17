@@ -52,6 +52,19 @@ public class Visit {
   private List<ReassignmentHistory> reassignmentHistory = new ArrayList<>();
 
   /**
+   * If this visit was created by rescheduling a cancelled visit, this field holds the ID of that
+   * original (cancelled) visit. Null for visits that were not created via rescheduling. TD: campo
+   * visita_origen_id
+   */
+  private String originVisitId;
+
+  /**
+   * Full history of rescheduling actions performed on this visit. Each entry records when a
+   * rescheduling happened and what visit was created. Initialized as empty list to avoid NPE.
+   */
+  private List<ReschedulingHistory> reschedulingHistory = new ArrayList<>();
+
+  /**
    * Defines all valid lifecycle states for a Visit (Visita).
    *
    * <p>TD: Verify that the Visit model includes the 'status' field with the correct values:
@@ -142,5 +155,21 @@ public class Visit {
 
   public void setReassignmentHistory(List<ReassignmentHistory> reassignmentHistory) {
     this.reassignmentHistory = reassignmentHistory;
+  }
+
+  public String getOriginVisitId() {
+    return originVisitId;
+  }
+
+  public void setOriginVisitId(String originVisitId) {
+    this.originVisitId = originVisitId;
+  }
+
+  public List<ReschedulingHistory> getReschedulingHistory() {
+    return reschedulingHistory;
+  }
+
+  public void setReschedulingHistory(List<ReschedulingHistory> reschedulingHistory) {
+    this.reschedulingHistory = reschedulingHistory;
   }
 }
