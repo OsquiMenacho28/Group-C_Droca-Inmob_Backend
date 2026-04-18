@@ -17,6 +17,7 @@ public record UpdatePersonRequest(
     List<String> propertyIds,
     String preferredContactMethod,
     String budget,
+    String assignedAgentId,
     // Campos nuevos
     String preferredZone,
     String preferredPropertyType,

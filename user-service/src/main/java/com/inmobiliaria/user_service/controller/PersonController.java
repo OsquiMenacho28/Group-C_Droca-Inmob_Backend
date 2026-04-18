@@ -141,6 +141,18 @@ public class PersonController {
     return ResponseEntity.ok(responseFactory.success("Clients retrieved successfully", data));
   }
 
+  // Obtener propietarios asignados al agente autenticado
+  @GetMapping("/agents/owners")
+  public ResponseEntity<ApiResponse<List<PersonResponse>>> getOwnersForAgent(
+      HttpServletRequest request) {
+    String agentId = request.getHeader("X-Auth-User-Id");
+    if (agentId == null) {
+      throw new IllegalArgumentException("Missing X-Auth-User-Id header");
+    }
+    List<PersonResponse> data = personService.getOwnersForAgent(agentId);
+    return ResponseEntity.ok(responseFactory.success("Owners retrieved successfully", data));
+  }
+
   // Crear un cliente y asignarlo al agente autenticado
   @PostMapping("/agents/clients")
   public ResponseEntity<ApiResponse<PersonResponse>> createClientForAgent(

@@ -78,28 +78,31 @@ public class UserService {
 
         // Si no se lanza una excepción, significa que la persona existe.
         // Ahora, necesitamos verificar el estado del usuario en el identity-service.
-        String authUserId = (String) personData.get("authUserId");
-        if (authUserId != null) {
-          UserDocument existingUser = userRepository.findById(authUserId).orElse(null);
-          if (existingUser != null) {
-            if (existingUser.getStatus() == UserStatus.INACTIVE) {
-              throw new ResourceAlreadyExistsException("User inactive.");
-            } else {
-              throw new ResourceAlreadyExistsException(
-                  "A user with CI/NIT " + request.taxId() + " already exists.");
+        if (personData != null) {
+          String authUserId = (String) personData.get("authUserId");
+          if (authUserId != null) {
+            UserDocument existingUser = userRepository.findById(authUserId).orElse(null);
+            if (existingUser != null) {
+              if (existingUser.getStatus() == UserStatus.INACTIVE) {
+                throw new ResourceAlreadyExistsException("User inactive.");
+              } else {
+                throw new ResourceAlreadyExistsException(
+                    "A user with CI/NIT " + request.taxId() + " already exists.");
+              }
             }
+          } else {
+            // Si no hay authUserId, podría ser un registro inconsistente, pero aun así,
+            // el taxId está en uso.
+            throw new ResourceAlreadyExistsException(
+                "A user with CI/NIT " + request.taxId() + " already exists.");
           }
-        } else {
-          // Si no hay authUserId, podría ser un registro inconsistente, pero aun así,
-          // el taxId está en uso.
-          throw new ResourceAlreadyExistsException(
-              "A user with CI/NIT " + request.taxId() + " already exists.");
         }
 
       } catch (Exception e) {
         // Si la excepción es porque el recurso no fue encontrado (404),
         // entonces podemos proceder con la creación.
-        if (e.getMessage() == null || !e.getMessage().contains("Not Found")) {
+        String msg = e.getMessage() != null ? e.getMessage() : "";
+        if (!(msg.contains("404") || msg.toLowerCase().contains("not found"))) {
           // Si es cualquier otra excepción, la relanzamos porque es un error inesperado.
           throw new RuntimeException("Error while verifying user by CI/NIT: " + e.getMessage(), e);
         }
@@ -124,6 +127,7 @@ public class UserService {
             .temporaryPasswordExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS))
             .mustChangePassword(true)
             .primaryRoleIds(request.roleIds())
+            .assignedAgentId(request.assignedAgentId())
             .metadata(Map.of("createdVia", "admin_panel"))
             .build();
 
@@ -189,6 +193,10 @@ public class UserService {
       user.setUserType(request.userType());
       identityUpdated = true;
     }
+    if (request.assignedAgentId() != null) {
+      user.setAssignedAgentId(request.assignedAgentId());
+      identityUpdated = true;
+    }
 
     if (identityUpdated) {
       user.setFullName(user.getFirstName() + " " + user.getLastName());
@@ -207,7 +215,8 @@ public class UserService {
             request.hireDate(),
             request.taxId(),
             request.preferredContactMethod(),
-            request.budget());
+            request.budget(),
+            request.assignedAgentId());
 
     if (profileUpdate.firstName() != null
         || profileUpdate.lastName() != null
@@ -218,7 +227,8 @@ public class UserService {
         || profileUpdate.hireDate() != null
         || profileUpdate.taxId() != null
         || profileUpdate.preferredContactMethod() != null
-        || profileUpdate.budget() != null) {
+        || profileUpdate.budget() != null
+        || profileUpdate.assignedAgentId() != null) {
 
       try {
         userServiceClient.updatePersonByAuth(id, profileUpdate);
@@ -356,6 +366,7 @@ public class UserService {
         document.getTemporaryPassword(),
         document.getTemporaryPasswordExpiresAt(),
         document.getMustChangePassword(),
-        document.getPrimaryRoleIds());
+        document.getPrimaryRoleIds(),
+        document.getAssignedAgentId());
   }
 }

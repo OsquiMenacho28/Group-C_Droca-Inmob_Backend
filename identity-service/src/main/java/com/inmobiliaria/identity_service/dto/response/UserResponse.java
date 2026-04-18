@@ -17,4 +17,5 @@ public record UserResponse(
     Boolean temporaryPassword,
     Instant temporaryPasswordExpiresAt,
     Boolean mustChangePassword,
-    List<String> primaryRoleIds) {}
+    List<String> primaryRoleIds,
+    String assignedAgentId) {}

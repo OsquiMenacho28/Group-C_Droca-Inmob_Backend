@@ -1,19 +1,19 @@
 server:
-  port: 8081
+  port: ${IDENTITY_SERVICE_PORT:8081}
 
 spring:
   application:
     name: identity-service
   data:
     mongodb:
-      uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
+      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASS:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${IDENTITY_DB:identity_db}?authSource=${MONGO_AUTH_SOURCE:admin}
 
 app:
   mongo:
-    database: inmobiliaria_db
+    database: ${ACCESS_CONTROL_DB:access_control_db}
   jwt:
-    secret: 12345678901234567890123456789012
-    access-token-expiration-seconds: 3600
+    secret: ${JWT_SECRET:12345678901234567890123456789012}
+    access-token-expiration-seconds: ${JWT_EXPIRATION:3600}
 
 management:
   endpoints:
@@ -29,7 +29,7 @@ logging:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_HOST:localhost}
     prefer-ip-address: true

@@ -18,6 +18,11 @@ public interface PersonRepository extends MongoRepository<PersonDocument, String
 
   List<PersonDocument> findByPersonType(PersonType personType);
 
+  List<PersonDocument> findByAssignedAgentId(String assignedAgentId);
+
+  List<PersonDocument> findByAssignedAgentIdAndPersonType(
+      String assignedAgentId, PersonType personType);
+
   boolean existsByAuthUserId(String authUserId);
 
   void deleteByAuthUserId(String authUserId);
