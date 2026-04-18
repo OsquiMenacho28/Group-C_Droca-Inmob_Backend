@@ -1,5 +1,5 @@
 server:
-  port: 8761
+  port: ${EUREKA_PORT:8761}
 
 spring:
   application:
@@ -17,5 +17,5 @@ eureka:
   server:
     wait-time-in-ms-when-sync-empty: 0
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_HOST:localhost}
     prefer-ip-address: true

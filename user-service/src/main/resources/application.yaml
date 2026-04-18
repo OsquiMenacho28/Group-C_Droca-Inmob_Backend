@@ -1,12 +1,12 @@
 server:
-  port: 8084
+  port: ${USER_SERVICE_PORT:8084}
 
 spring:
   application:
     name: user-service
   data:
     mongodb:
-      uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
+      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASS:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${USER_DB:user_db}?authSource=${MONGO_AUTH_SOURCE:admin}
 
 management:
   endpoints:
@@ -22,7 +22,7 @@ logging:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_HOST:localhost}
     prefer-ip-address: true

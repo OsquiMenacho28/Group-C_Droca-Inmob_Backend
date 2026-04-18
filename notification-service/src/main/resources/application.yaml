@@ -1,17 +1,17 @@
 server:
-  port: 8083
+  port: ${NOTIFICATION_SERVICE_PORT:8083}
 
 spring:
   application:
     name: notification-service
   data:
     mongodb:
-      uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
+      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASS:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${NOTIFICATION_DB:notification_db}?authSource=${MONGO_AUTH_SOURCE:admin}
   mail:
-    host: localhost
-    port: 1025
-    username: 
-    password: 
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASS:}
     properties:
       mail:
         smtp:
@@ -37,7 +37,7 @@ logging:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_HOST:localhost}
     prefer-ip-address: true
