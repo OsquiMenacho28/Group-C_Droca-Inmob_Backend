@@ -35,9 +35,11 @@ public abstract class PersonDocument extends BaseDocument {
   private List<String> roleIds;
   private boolean customRole;
 
+  @Indexed private String assignedAgentId;
+
   private List<AuditEntry> auditLog = new ArrayList<>();
 
-  // Constructor explícito con los 11 campos que usan las subclases en super(...)
+  // Constructor explícito con los 12 campos que usan las subclases en super(...)
   // auditLog queda fuera — se inicializa solo con new ArrayList<>()
   public PersonDocument(
       String id,
@@ -50,7 +52,8 @@ public abstract class PersonDocument extends BaseDocument {
       String email,
       PersonType personType,
       List<String> roleIds,
-      boolean customRole) {
+      boolean customRole,
+      String assignedAgentId) {
     this.id = id;
     this.authUserId = authUserId;
     this.firstName = firstName;
@@ -62,6 +65,7 @@ public abstract class PersonDocument extends BaseDocument {
     this.personType = personType;
     this.roleIds = roleIds;
     this.customRole = customRole;
+    this.assignedAgentId = assignedAgentId;
     this.auditLog = new ArrayList<>();
   }
 }

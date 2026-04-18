@@ -44,6 +44,8 @@ public class UserDocument extends BaseDocument {
 
   private List<String> primaryRoleIds;
 
+  @Indexed private String assignedAgentId;
+
   @Indexed private String activeEmploymentCycleId;
 
   private Map<String, Object> metadata;

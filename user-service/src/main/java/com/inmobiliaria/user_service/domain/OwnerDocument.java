@@ -28,6 +28,7 @@ public class OwnerDocument extends PersonDocument {
       String email,
       java.util.List<String> roleIds,
       boolean customRole,
+      String assignedAgentId,
       String taxId,
       String address,
       List<String> propertyIds) {
@@ -42,7 +43,8 @@ public class OwnerDocument extends PersonDocument {
         email,
         PersonType.OWNER,
         roleIds,
-        customRole);
+        customRole,
+        assignedAgentId);
     this.taxId = taxId;
     this.address = address;
     this.propertyIds = propertyIds;

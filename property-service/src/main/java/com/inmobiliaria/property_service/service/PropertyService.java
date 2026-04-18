@@ -188,6 +188,9 @@ public class PropertyService {
 
     try {
       IdentityClient.UserResponse agent = identityClient.findById(agentId);
+      if (agent == null) {
+        throw new ResourceNotFoundException("No se pudo obtener información del responsable");
+      }
       return new ResponsableResponse(
           agent.id(),
           agent.fullName() != null
@@ -235,10 +238,25 @@ public class PropertyService {
   public PropertyResponse assignAgent(String id, AssignAgentRequest request, String adminId) {
     PropertyDocument prop = propertyRepository.findById(id).orElseThrow();
     var agent = identityClient.findById(request.agentId());
-    if (!"ACTIVE".equals(agent.status())) throw new RuntimeException("Agente inactivo");
+    if (agent == null || !"ACTIVE".equals(agent.status()))
+      throw new RuntimeException("Agente inactivo");
     prop.getAssignmentHistory()
         .add(new AssignmentHistory(prop.getAssignedAgentId(), Instant.now(), adminId));
     prop.setAssignedAgentId(request.agentId());
+
+    // --- NUEVO: Asignar el agente al dueño de la propiedad ---
+    if (prop.getOwnerId() != null) {
+      try {
+        identityClient.updateUser(
+            prop.getOwnerId(),
+            new IdentityClient.UpdateUserRequest(
+                null, null, null, null, null, null, null, null, null, null, request.agentId()));
+        log.info("Agent {} assigned to owner {}", request.agentId(), prop.getOwnerId());
+      } catch (Exception e) {
+        log.warn("Failed to assign agent to owner {}: {}", prop.getOwnerId(), e.getMessage());
+      }
+    }
+
     return mapToResponse(propertyRepository.save(prop));
   }
 
@@ -262,7 +280,7 @@ public class PropertyService {
     // Optional: Validate owner exists in identity service
     try {
       var owner = identityClient.findById(ownerId);
-      if (!"ACTIVE".equals(owner.status())) {
+      if (owner == null || !"ACTIVE".equals(owner.status())) {
         throw new ValidationException("Owner is not active");
       }
     } catch (Exception e) {

@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,6 +63,7 @@ public class PersonService {
                   .phone(request.phone())
                   .email(request.email())
                   .roleIds(request.roleIds())
+                  .assignedAgentId(request.assignedAgentId())
                   .build();
       case EMPLOYEE ->
           document =
@@ -76,6 +76,7 @@ public class PersonService {
                   .phone(request.phone())
                   .email(request.email())
                   .roleIds(request.roleIds())
+                  .assignedAgentId(request.assignedAgentId())
                   .department(request.department())
                   .position(request.position())
                   .hireDate(request.hireDate())
@@ -91,6 +92,7 @@ public class PersonService {
                   .phone(request.phone())
                   .email(request.email())
                   .roleIds(request.roleIds())
+                  .assignedAgentId(request.assignedAgentId())
                   .taxId(request.taxId())
                   .address(request.address())
                   .propertyIds(request.propertyIds())
@@ -106,6 +108,7 @@ public class PersonService {
                   .phone(request.phone())
                   .email(request.email())
                   .roleIds(request.roleIds())
+                  .assignedAgentId(request.assignedAgentId())
                   .preferredContactMethod(request.preferredContactMethod())
                   .budget(request.budget())
                   .preferredZone(request.preferredZone())
@@ -132,25 +135,6 @@ public class PersonService {
             .personType(saved.getPersonType().name())
             .changes(null)
             .build());
-
-    // --- ASIGNAR CLIENTE AL AGENTE SI SE PROPORCIONÓ assignedAgentId ---
-    if (request.assignedAgentId() != null && request.personType() == PersonType.INTERESTED_CLIENT) {
-      Optional<EmployeeDocument> agentOpt =
-          personRepository.findEmployeeByAuthUserId(request.assignedAgentId());
-      if (agentOpt.isEmpty()) {
-        log.warn(
-            "Agent EmployeeDocument not found for authUserId: {}. Client created without assignment.",
-            request.assignedAgentId());
-      } else {
-        EmployeeDocument agent = agentOpt.get();
-        if (agent.getAssignedClientIds() == null) {
-          agent.setAssignedClientIds(new ArrayList<>());
-        }
-        agent.getAssignedClientIds().add(saved.getId());
-        personRepository.save(agent);
-        log.info("Client {} assigned to agent {}", saved.getId(), agent.getId());
-      }
-    }
 
     return mapToResponse(saved);
   }
@@ -255,6 +239,7 @@ public class PersonService {
               .build());
       person.setBirthDate(request.birthDate());
     }
+
     if (request.phone() != null && !request.phone().equals(person.getPhone())) {
       changes.add(
           AuditEntry.FieldChange.builder()
@@ -263,6 +248,17 @@ public class PersonService {
               .newValue(request.phone())
               .build());
       person.setPhone(request.phone());
+    }
+
+    if (request.assignedAgentId() != null
+        && !request.assignedAgentId().equals(person.getAssignedAgentId())) {
+      changes.add(
+          AuditEntry.FieldChange.builder()
+              .field("assignedAgentId")
+              .oldValue(person.getAssignedAgentId())
+              .newValue(request.assignedAgentId())
+              .build());
+      person.setAssignedAgentId(request.assignedAgentId());
     }
 
     if (person instanceof EmployeeDocument emp) {
@@ -428,20 +424,25 @@ public class PersonService {
   }
 
   public List<PersonResponse> getClientsForAgent(String agentId) {
-    EmployeeDocument agent =
-        personRepository
-            .findEmployeeByAuthUserId(agentId)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Agent not found with id: " + agentId));
-
-    List<String> clientIds = agent.getAssignedClientIds();
-    if (clientIds == null || clientIds.isEmpty()) {
-      return List.of();
+    // Check if agent exists
+    if (!personRepository.existsByAuthUserId(agentId)) {
+      throw new ResourceNotFoundException("Agent not found with id: " + agentId);
     }
 
-    List<PersonDocument> clients = personRepository.findAllById(clientIds);
-    return clients.stream()
-        .filter(c -> c instanceof InterestedClientDocument)
+    return personRepository
+        .findByAssignedAgentIdAndPersonType(agentId, PersonType.INTERESTED_CLIENT)
+        .stream()
+        .map(this::mapToResponse)
+        .collect(Collectors.toList());
+  }
+
+  public List<PersonResponse> getOwnersForAgent(String agentId) {
+    // Check if agent exists
+    if (!personRepository.existsByAuthUserId(agentId)) {
+      throw new ResourceNotFoundException("Agent not found with id: " + agentId);
+    }
+
+    return personRepository.findByAssignedAgentIdAndPersonType(agentId, PersonType.OWNER).stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
@@ -483,11 +484,10 @@ public class PersonService {
 
   public PersonResponse createClientForAgent(
       String agentId, CreateInterestedClientRequest request) {
-    EmployeeDocument agent =
-        personRepository
-            .findEmployeeByAuthUserId(agentId)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Agent not found with id: " + agentId));
+    // Check if agent exists
+    if (!personRepository.existsByAuthUserId(agentId)) {
+      throw new ResourceNotFoundException("Agent not found with id: " + agentId);
+    }
 
     InterestedClientDocument client =
         InterestedClientDocument.builder()
@@ -499,6 +499,7 @@ public class PersonService {
             .phone(request.phone())
             .email(request.email())
             .roleIds(List.of("rol_interested_client"))
+            .assignedAgentId(agentId)
             .preferredContactMethod(request.preferredContactMethod())
             .budget(request.budget())
             .build();
@@ -508,32 +509,19 @@ public class PersonService {
     client.setCreatedBy(agentId);
 
     client = personRepository.save(client);
-
-    if (agent.getAssignedClientIds() == null) {
-      agent.setAssignedClientIds(new ArrayList<>());
-    }
-    agent.getAssignedClientIds().add(client.getId());
-    personRepository.save(agent);
-
     return mapToResponse(client);
   }
 
   public PersonResponse updateClientForAgent(
       String agentId, String clientId, UpdatePersonRequest request) {
-    EmployeeDocument agent =
-        personRepository
-            .findEmployeeByAuthUserId(agentId)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Agent not found with id: " + agentId));
-
-    if (agent.getAssignedClientIds() == null || !agent.getAssignedClientIds().contains(clientId)) {
-      throw new ResourceNotFoundException("Client not found or not assigned to you");
-    }
-
     PersonDocument client =
         personRepository
             .findById(clientId)
             .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+
+    if (client.getAssignedAgentId() == null || !client.getAssignedAgentId().equals(agentId)) {
+      throw new ResourceNotFoundException("Client not found or not assigned to you");
+    }
 
     if (request.firstName() != null) client.setFirstName(request.firstName());
     if (request.lastName() != null) client.setLastName(request.lastName());

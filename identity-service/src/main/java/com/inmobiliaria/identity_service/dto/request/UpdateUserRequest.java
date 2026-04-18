@@ -15,4 +15,5 @@ public record UpdateUserRequest(
     LocalDate hireDate,
     String taxId,
     String preferredContactMethod,
-    String budget) {}
+    String budget,
+    String assignedAgentId) {}
