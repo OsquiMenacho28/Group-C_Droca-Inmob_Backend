@@ -7,10 +7,12 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import com.inmobiliaria.visit_calendar_service.model.Visit;
+import com.inmobiliaria.visit_calendar_service.model.Visit.VisitStatus;
 
 /**
- * Repositorio MongoDB para la entidad Visita. Si ya existe en tu proyecto, agrega únicamente los
- * métodos que falten.
+ * MongoDB repository for Visit documents.
+ *
+ * <p>TD: Add availability validation queries needed by RescheduleService.
  */
 @Repository
 public interface VisitRepository extends MongoRepository<Visit, String> {
@@ -27,4 +29,39 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
 
   /** Citas de un inmueble */
   List<Visit> findByPropertyId(String propertyId);
+
+  // ── NEW methods needed for rescheduling availability check ────────────
+
+  /**
+   * Checks if the agent already has a SCHEDULED visit within a 1-hour window around the proposed
+   * new datetime.
+   *
+   * <p>Used by RescheduleService to prevent double-booking the agent.
+   *
+   * @param agentId Agent to check
+   * @param windowStart Start of the conflict window (newDateTime minus buffer)
+   * @param windowEnd End of the conflict window (newDateTime plus buffer)
+   * @param status Only check against SCHEDULED visits
+   */
+  boolean existsByAgentIdAndDateTimeBetweenAndStatus(
+      String agentId, LocalDateTime windowStart, LocalDateTime windowEnd, VisitStatus status);
+
+  /**
+   * Checks if the property already has a SCHEDULED visit within a 1-hour window.
+   *
+   * <p>Used to prevent scheduling two visits to the same property at the same time.
+   */
+  boolean existsByPropertyIdAndDateTimeBetweenAndStatus(
+      String propertyId, LocalDateTime windowStart, LocalDateTime windowEnd, VisitStatus status);
+
+  /**
+   * Returns all visits linked to a specific origin visit (i.e., all rescheduled visits that
+   * originated from a given cancelled visit).
+   *
+   * <p>Used to display the rescheduling chain in the UI.
+   */
+  List<Visit> findByOriginVisitId(String originVisitId);
+
+  /** Returns all visits for an agent with a specific status. */
+  List<Visit> findByAgentIdAndStatus(String agentId, VisitStatus status);
 }
