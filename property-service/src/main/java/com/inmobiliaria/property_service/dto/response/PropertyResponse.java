@@ -26,4 +26,7 @@ public record PropertyResponse(
     List<AssignmentHistory> assignmentHistory,
     List<PriceHistory> priceHistory,
     List<StatusHistory> statusHistory,
-    Set<String> accessPolicy) {}
+    Set<String> accessPolicy,
+    Double latitude,
+    Double longitude
+) {}

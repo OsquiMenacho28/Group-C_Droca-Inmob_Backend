@@ -223,4 +223,22 @@ public class PropertyController {
     List<PropertyResponse> data = propertyService.findByOwner(ownerId);
     return ResponseEntity.ok(responseFactory.success("Properties found", data));
   }
+
+  // ... (dentro de PropertyController)
+
+@PatchMapping("/{id}/location")
+@PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+public ResponseEntity<ApiResponse<PropertyResponse>> updateLocation(
+        @PathVariable String id,
+        @Valid @RequestBody UpdateLocationRequest request,
+        @RequestHeader("X-Auth-User-Id") String userId) {
+    
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    List<String> roles = auth.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .toList();
+
+    PropertyResponse data = propertyService.updateLocation(id, request, userId, roles);
+    return ResponseEntity.ok(responseFactory.success("Ubicación geográfica actualizada correctamente", data));
+}
 }
