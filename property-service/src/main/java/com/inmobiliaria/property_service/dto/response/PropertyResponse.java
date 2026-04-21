@@ -1,11 +1,13 @@
 package com.inmobiliaria.property_service.dto.response;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
 import com.inmobiliaria.property_service.domain.AssignmentHistory;
 import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.PriceHistory;
+import com.inmobiliaria.property_service.domain.RetiroMotivo;
 import com.inmobiliaria.property_service.domain.StatusHistory;
 
 public record PropertyResponse(
@@ -26,4 +28,7 @@ public record PropertyResponse(
     List<AssignmentHistory> assignmentHistory,
     List<PriceHistory> priceHistory,
     List<StatusHistory> statusHistory,
-    Set<String> accessPolicy) {}
+    Set<String> accessPolicy,
+    RetiroMotivo motivoRetiro,
+    String detalleRetiro,
+    Instant fechaRetiro ) {}

@@ -1,5 +1,6 @@
 package com.inmobiliaria.property_service.domain;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +30,10 @@ public class PropertyDocument extends BaseDocument {
   private String status;
   private String assignedAgentId;
   private String ownerId;
+  private RetiroMotivo motivoRetiro;
+  private String detalleRetiro;
+  private Instant fechaRetiro;
+  private String retiradoPor; 
 
   @Builder.Default private List<String> imageUrls = new ArrayList<>();
 

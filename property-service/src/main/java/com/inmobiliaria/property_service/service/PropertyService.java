@@ -163,6 +163,39 @@ public class PropertyService {
     return mapToResponse(propertyRepository.findById(id).orElseThrow());
   }
 
+  @Auditable(action = "PROPERTY_RETIRO")
+  public PropertyResponse retirarProperty(String id, RetirarPropertyRequest request, String adminId) {
+      PropertyDocument property = propertyRepository.findById(id)
+          .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));
+
+      // Validar que no esté ya retirada o eliminada
+      if ("RETIRADO".equals(property.getStatus()) || property.isDeleted()) {
+          throw new ValidationException("La propiedad ya está retirada o eliminada");
+      }
+
+      String oldStatus = property.getStatus();
+
+      property.setStatus("RETIRADO");
+      property.setMotivoRetiro(request.motivoRetiro());
+      property.setDetalleRetiro(request.detalleRetiro());
+      property.setFechaRetiro(Instant.now());
+      property.setRetiradoPor(adminId);
+      property.setUpdatedAt(Instant.now());
+
+      // Reutilizar el statusHistory existente
+      if (property.getStatusHistory() == null) {
+          property.setStatusHistory(new ArrayList<>());
+      }
+      property.getStatusHistory().add(StatusHistory.builder()
+          .oldStatus(oldStatus)
+          .newStatus("RETIRADO")
+          .changedAt(Instant.now())
+          .changedBy(adminId)
+          .build());
+
+      return mapToResponse(propertyRepository.save(property));
+  }
+
   public List<PropertyResponse> findAll() {
     return propertyRepository.findAll().stream().map(this::mapToResponse).toList();
   }

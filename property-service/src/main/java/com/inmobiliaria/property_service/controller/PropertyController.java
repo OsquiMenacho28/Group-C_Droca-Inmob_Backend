@@ -141,6 +141,16 @@ public class PropertyController {
         .body(responseFactory.created("Property created successfully", data));
   }
 
+  @PostMapping("/{id}/retirar")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> retirar(
+      @PathVariable String id,
+      @Valid @RequestBody RetirarPropertyRequest request,
+      @RequestHeader("X-Auth-User-Id") String adminId) {
+      PropertyResponse data = propertyService.retirarProperty(id, request, adminId);
+      return ResponseEntity.ok(responseFactory.success("Property retired successfully", data));
+  }
+
   @PatchMapping("/{id}/assign-owner")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<PropertyResponse>> assignOwner(
