@@ -46,4 +46,13 @@ public class IdentityDocumentController {
     return ResponseEntity.ok(
         responseFactory.success("Documents retrieved successfully", documents));
   }
+
+  /** Deletes an identity document. */
+  @DeleteMapping("/{documentId}")
+  public ResponseEntity<ApiResponse<Void>> deleteDocument(
+      @PathVariable("id") String personId, @PathVariable("documentId") String documentId) {
+    service.deleteDocument(personId, documentId);
+    return ResponseEntity.status(204)
+        .body(responseFactory.deleted("Document deleted successfully"));
+  }
 }
