@@ -176,10 +176,10 @@ public class CalendarController {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /**
-   * Reschedules a cancelled visit by creating a new PROGRAMADA visit.
+   * Reschedules a cancelled visit by creating a new SCHEDULED visit.
    *
    * <p>Returns 201 with the new visit data on success. Returns 404 if the original visit does not
-   * exist. Returns 409 if the visit is not in CANCELADA status (PA3). Returns 422 if the agent or
+   * exist. Returns 409 if the visit is not in CANCELLED status (PA3). Returns 422 if the agent or
    * property is unavailable at the new time.
    *
    * <p>API: POST /visits/{id}/reschedule Body: { "newDateTime": "2025-07-10T10:00:00", "notes":
