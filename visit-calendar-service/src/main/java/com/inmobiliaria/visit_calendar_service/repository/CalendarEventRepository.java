@@ -77,4 +77,20 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
   @Query("{ 'startTime': { $gte: ?0, $lt: ?1 }, 'agentId': ?2, 'status': { $ne: 'CANCELLED' } }")
   List<CalendarEvent> findByDayAndAgent(
       LocalDateTime dayStart, LocalDateTime dayEnd, String agentId);
+
+  /**
+   * Detecta conflictos de flota considerando la ventana de ocupación (incluyendo tránsito). Un
+   * conflicto ocurre si el vehículo ya está reservado (estatus CONFIRMED o SCHEDULED) y los
+   * horarios se solapan.
+   */
+  @Query(
+      "{ "
+          + "  'vehicleId': ?0, "
+          + "  'status': { $in: ['CONFIRMED', 'SCHEDULED'] }, "
+          + "  '$or': [ "
+          + "    { 'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } "
+          + "  ] "
+          + "}")
+  List<CalendarEvent> findConflictingVehicles(
+      String vehicleId, LocalDateTime occupancyStart, LocalDateTime occupancyEnd);
 }

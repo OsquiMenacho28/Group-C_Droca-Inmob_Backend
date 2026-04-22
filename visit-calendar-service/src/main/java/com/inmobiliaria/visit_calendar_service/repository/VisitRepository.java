@@ -64,4 +64,16 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
 
   /** Returns all visits for an agent with a specific status. */
   List<Visit> findByAgentIdAndStatus(String agentId, VisitStatus status);
+
+  /**
+   * Encuentra visitas que tienen un vehículo asignado y se solapan con el rango de tiempo dado.
+   * Usado para detección de conflictos de flota agnóstica.
+   */
+  @org.springframework.data.mongodb.repository.Query(
+      "{ 'vehicleId': ?0, 'status': 'SCHEDULED', "
+          + "$or: [ "
+          + "  { 'dateTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } "
+          + "] }")
+  List<Visit> findConflictingVehicles(
+      String vehicleId, java.time.LocalDateTime start, java.time.LocalDateTime end);
 }
