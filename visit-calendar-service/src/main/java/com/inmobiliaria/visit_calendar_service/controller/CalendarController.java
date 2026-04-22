@@ -2,7 +2,6 @@ package com.inmobiliaria.visit_calendar_service.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -26,9 +25,11 @@ import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictRes
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.CalendarService;
 import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
+import com.inmobiliaria.visit_calendar_service.service.VehicleService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,7 @@ public class CalendarController {
   private final CalendarService calendarService;
   private final ResponseFactory responseFactory;
   private final RescheduleService rescheduleService;
+  private final VehicleService vehicleService; // Añadido desde tu rama
 
   // -----------------------------------------------------------------------
   // HU1: Visualizar calendario compartido del equipo
@@ -171,9 +173,42 @@ public class CalendarController {
     return ResponseEntity.ok(responseFactory.success("Visita cancelada", cancelled));
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // METHOD 1 — POST /visits/{id}/reschedule
-  // ─────────────────────────────────────────────────────────────────────────────
+  // -----------------------------------------------------------------------
+  // Endpoints de vehículos
+  // -----------------------------------------------------------------------
+
+  /**
+   * GET /visits/{visitId}/vehicle-assignment Recupera los detalles de asignación de vehículo y
+   * tránsito de una visita (evento).
+   */
+  @GetMapping("/visits/{visitId}/vehicle-assignment")
+  public ResponseEntity<ApiResponse<CalendarEvent>> getVehicleAssignment(
+      @PathVariable String visitId) {
+    CalendarEvent event = vehicleService.getVisitWithAssignment(visitId);
+    return ResponseEntity.ok(responseFactory.success("Asignación de vehículo recuperada", event));
+  }
+
+  /**
+   * POST /visits/{visitId}/vehicle Asigna un vehículo a una visita con tiempos flexibles de
+   * desplazamiento.
+   */
+  @PostMapping("/visits/{visitId}/vehicle")
+  public ResponseEntity<ApiResponse<CalendarEvent>> assignVehicle(
+      @PathVariable String visitId, @RequestBody VehicleAssignmentRequest request) {
+
+    CalendarEvent updatedEvent =
+        vehicleService.assignVehicleToVisit(
+            visitId,
+            request.getVehicleId(),
+            request.getTravelTimeGo(),
+            request.getTravelTimeBack());
+    return ResponseEntity.ok(
+        responseFactory.success("Vehículo asignado a la visita exitosamente", updatedEvent));
+  }
+
+  // -----------------------------------------------------------------------
+  // Endpoints de reagendamiento (desde Sprint3_DEV)
+  // -----------------------------------------------------------------------
 
   /**
    * Reschedules a cancelled visit by creating a new SCHEDULED visit.
@@ -188,20 +223,18 @@ public class CalendarController {
   @PostMapping("/visits/{id}/reschedule")
   public ResponseEntity<?> rescheduleVisit(
       @PathVariable String id,
-      @RequestHeader("X-User-Id") String agentId,
+      @RequestHeader("X-Agent-Id") String agentId,
       @Valid @RequestBody RescheduleRequest request) {
 
     try {
       RescheduleResponse response = rescheduleService.reschedule(id, agentId, request);
-      return ResponseEntity.status(HttpStatus.CREATED).body(response);
+      return ResponseEntity.status(HttpStatus.CREATED)
+          .body(responseFactory.created("Visita reagendada exitosamente", response));
     } catch (ResponseStatusException e) {
-      return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
+      return ResponseEntity.status(e.getStatusCode())
+          .body(responseFactory.error(e.getReason() != null ? e.getReason() : e.getMessage()));
     }
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // METHOD 2 — GET /visits/{id}/rescheduled
-  // ─────────────────────────────────────────────────────────────────────────────
 
   /**
    * Returns all visits created by rescheduling the given original visit. Used by the frontend to
@@ -213,5 +246,15 @@ public class CalendarController {
   public ResponseEntity<List<Visit>> getRescheduledVisits(@PathVariable String id) {
     List<Visit> rescheduled = rescheduleService.getRescheduledVisits(id);
     return ResponseEntity.ok(rescheduled);
+  }
+
+  // -----------------------------------------------------------------------
+  // Clase interna para request de vehículo
+  // -----------------------------------------------------------------------
+  @lombok.Data
+  public static class VehicleAssignmentRequest {
+    private String vehicleId;
+    private Integer travelTimeGo;
+    private Integer travelTimeBack;
   }
 }

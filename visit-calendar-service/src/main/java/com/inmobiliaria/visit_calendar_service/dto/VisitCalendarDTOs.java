@@ -65,6 +65,9 @@ public class VisitCalendarDTOs {
     private String propertyAddress;
     private String agentId;
     private String agentName;
+    private String vehicleId;
+    private Integer travelTimeGo;
+    private Integer travelTimeBack;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private CalendarEvent.EventType type;
