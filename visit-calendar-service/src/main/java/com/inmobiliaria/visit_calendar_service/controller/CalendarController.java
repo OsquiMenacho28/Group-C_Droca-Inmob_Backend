@@ -2,19 +2,33 @@ package com.inmobiliaria.visit_calendar_service.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
+import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarEventResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.CalendarService;
+import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +50,7 @@ public class CalendarController {
 
   private final CalendarService calendarService;
   private final ResponseFactory responseFactory;
+  private final RescheduleService rescheduleService;
 
   // -----------------------------------------------------------------------
   // HU1: Visualizar calendario compartido del equipo
@@ -154,5 +169,49 @@ public class CalendarController {
 
     CalendarEventResponse cancelled = calendarService.cancelEvent(id, agentId);
     return ResponseEntity.ok(responseFactory.success("Visita cancelada", cancelled));
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // METHOD 1 — POST /visits/{id}/reschedule
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Reschedules a cancelled visit by creating a new PROGRAMADA visit.
+   *
+   * <p>Returns 201 with the new visit data on success. Returns 404 if the original visit does not
+   * exist. Returns 409 if the visit is not in CANCELADA status (PA3). Returns 422 if the agent or
+   * property is unavailable at the new time.
+   *
+   * <p>API: POST /visits/{id}/reschedule Body: { "newDateTime": "2025-07-10T10:00:00", "notes":
+   * "..." }
+   */
+  @PostMapping("/visits/{id}/reschedule")
+  public ResponseEntity<?> rescheduleVisit(
+      @PathVariable String id,
+      @RequestHeader("X-User-Id") String agentId,
+      @Valid @RequestBody RescheduleRequest request) {
+
+    try {
+      RescheduleResponse response = rescheduleService.reschedule(id, agentId, request);
+      return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    } catch (ResponseStatusException e) {
+      return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason()));
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // METHOD 2 — GET /visits/{id}/rescheduled
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Returns all visits created by rescheduling the given original visit. Used by the frontend to
+   * render the "View rescheduled visit" link.
+   *
+   * <p>API: GET /visits/{id}/rescheduled
+   */
+  @GetMapping("/visits/{id}/rescheduled")
+  public ResponseEntity<List<Visit>> getRescheduledVisits(@PathVariable String id) {
+    List<Visit> rescheduled = rescheduleService.getRescheduledVisits(id);
+    return ResponseEntity.ok(rescheduled);
   }
 }
