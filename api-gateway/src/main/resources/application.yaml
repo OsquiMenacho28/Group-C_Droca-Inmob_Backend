@@ -49,7 +49,7 @@ spring:
         - id: visit-calendar-service
           uri: lb://visit-calendar-service
           predicates:
-            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments, /api/v1/visits/*/reschedule, /api/v1/visits/*/rescheduled
+            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments, /api/v1/vehicles/**, /api/v1/vehicles, /api/v1/visits/*/reschedule, /api/v1/visits/*/rescheduled
           filters:
             - AuthenticationFilter
             - StripPrefix=2
