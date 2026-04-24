@@ -226,19 +226,19 @@ public class PropertyController {
 
   // ... (dentro de PropertyController)
 
-@PatchMapping("/{id}/location")
-@PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
-public ResponseEntity<ApiResponse<PropertyResponse>> updateLocation(
-        @PathVariable String id,
-        @Valid @RequestBody UpdateLocationRequest request,
-        @RequestHeader("X-Auth-User-Id") String userId) {
-    
+  @PatchMapping("/{id}/location")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> updateLocation(
+      @PathVariable String id,
+      @Valid @RequestBody UpdateLocationRequest request,
+      @RequestHeader("X-Auth-User-Id") String userId) {
+
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    List<String> roles = auth.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .toList();
+    List<String> roles =
+        auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
     PropertyResponse data = propertyService.updateLocation(id, request, userId, roles);
-    return ResponseEntity.ok(responseFactory.success("Ubicación geográfica actualizada correctamente", data));
-}
+    return ResponseEntity.ok(
+        responseFactory.success("Ubicación geográfica actualizada correctamente", data));
+  }
 }

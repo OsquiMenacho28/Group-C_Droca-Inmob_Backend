@@ -28,5 +28,4 @@ public record PropertyResponse(
     List<StatusHistory> statusHistory,
     Set<String> accessPolicy,
     Double latitude,
-    Double longitude
-) {}
+    Double longitude) {}

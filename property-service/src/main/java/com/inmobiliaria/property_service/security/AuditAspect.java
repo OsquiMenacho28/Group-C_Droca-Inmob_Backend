@@ -103,7 +103,7 @@ public class AuditAspect {
     compare(changes, "agentId", oldDoc.getAssignedAgentId(), newDoc.getAssignedAgentId());
     compare(changes, "latitude", oldDoc.getLatitude(), newDoc.getLatitude());
     compare(changes, "longitude", oldDoc.getLongitude(), newDoc.getLongitude());
-    
+
     return changes;
   }
 

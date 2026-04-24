@@ -302,9 +302,12 @@ public class PropertyService {
 
   // ... (dentro de la clase PropertyService)
 
-@Auditable(action = "LOCATION_UPDATE")
-public PropertyResponse updateLocation(String id, UpdateLocationRequest request, String userId, List<String> roles) {
-    PropertyDocument property = propertyRepository.findById(id)
+  @Auditable(action = "LOCATION_UPDATE")
+  public PropertyResponse updateLocation(
+      String id, UpdateLocationRequest request, String userId, List<String> roles) {
+    PropertyDocument property =
+        propertyRepository
+            .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));
 
     // Validar permisos (Admin o Agente asignado)
@@ -312,7 +315,8 @@ public PropertyResponse updateLocation(String id, UpdateLocationRequest request,
     boolean isAssignedAgent = userId.equals(property.getAssignedAgentId());
 
     if (!isAdmin && !isAssignedAgent) {
-        throw new AccessDeniedException("No tiene permisos para actualizar la ubicación de este inmueble");
+      throw new AccessDeniedException(
+          "No tiene permisos para actualizar la ubicación de este inmueble");
     }
 
     property.setLatitude(request.latitude());
@@ -320,8 +324,7 @@ public PropertyResponse updateLocation(String id, UpdateLocationRequest request,
     property.setUpdatedAt(Instant.now());
 
     return mapToResponse(propertyRepository.save(property));
-}
-
+  }
 
   public PropertyResponse updateOperationType(String id, OperationType newType) {
     PropertyDocument prop =
@@ -384,8 +387,7 @@ public PropertyResponse updateLocation(String id, UpdateLocationRequest request,
         doc.getStatusHistory() != null ? doc.getStatusHistory() : new ArrayList<>(),
         doc.getAccessPolicy() != null ? doc.getAccessPolicy() : new HashSet<>(),
         doc.getLatitude(),
-        doc.getLongitude()
-      );
+        doc.getLongitude());
   }
 
   /**
