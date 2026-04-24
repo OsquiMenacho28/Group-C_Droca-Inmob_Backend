@@ -374,7 +374,11 @@ public class PropertyService {
         doc.getAssignmentHistory() != null ? doc.getAssignmentHistory() : new ArrayList<>(),
         doc.getPriceHistory() != null ? doc.getPriceHistory() : new ArrayList<>(),
         doc.getStatusHistory() != null ? doc.getStatusHistory() : new ArrayList<>(),
-        doc.getAccessPolicy() != null ? doc.getAccessPolicy() : new HashSet<>());
+        doc.getAccessPolicy() != null ? doc.getAccessPolicy() : new HashSet<>(),
+        doc.getMotivoRetiro(),    // nuevo
+        doc.getDetalleRetiro(),   // nuevo
+        doc.getFechaRetiro()      // nuevo
+    );
   }
 
   /**
