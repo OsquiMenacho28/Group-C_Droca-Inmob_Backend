@@ -29,8 +29,8 @@ public class PropertyDocument extends BaseDocument {
   private String status;
   private String assignedAgentId;
   private String ownerId;
-  private Double Latitude;
-  private Double Longitude;
+  private Double latitude;
+  private Double longitude;
 
   @Builder.Default private List<String> imageUrls = new ArrayList<>();
 
