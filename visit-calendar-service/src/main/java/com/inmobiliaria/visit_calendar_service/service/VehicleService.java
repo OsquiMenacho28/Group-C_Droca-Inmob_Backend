@@ -36,6 +36,12 @@ public class VehicleService {
     return vehicleRepository.findAll();
   }
 
+  public Vehicle getVehicleById(String id) {
+    return vehicleRepository
+        .findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado: " + id));
+  }
+
   public Vehicle createVehicle(Vehicle vehicle) {
     return vehicleRepository.save(vehicle);
   }
@@ -55,6 +61,29 @@ public class VehicleService {
 
   public void deleteVehicle(String id) {
     vehicleRepository.deleteById(id);
+  }
+
+  public List<Vehicle> getAvailableVehicles(LocalDateTime dateTime) {
+    List<Vehicle> allVehicles = vehicleRepository.findAll();
+    return allVehicles.stream()
+        .filter(v -> v.getStatus() != Vehicle.VehicleStatus.MAINTENANCE)
+        .filter(v -> isVehicleAvailableAt(v.getId(), dateTime))
+        .toList();
+  }
+
+  private boolean isVehicleAvailableAt(String vehicleId, LocalDateTime dateTime) {
+    // Check conflicts at this specific time.
+    // We use dateTime as both start and end to find any occupancy that contains this point.
+    List<CalendarEvent> eventConflicts =
+        calendarEventRepository.findConflictingVehicles(
+            vehicleId, dateTime, dateTime.plusSeconds(1));
+    if (!eventConflicts.isEmpty()) return false;
+
+    List<Visit> visitConflicts =
+        visitRepository.findConflictingVehicles(vehicleId, dateTime, dateTime.plusSeconds(1));
+    if (!visitConflicts.isEmpty()) return false;
+
+    return true;
   }
 
   // ─── Lógica Agnóstica de Disponibilidad ──────────────────────────────────
