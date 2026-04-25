@@ -27,7 +27,9 @@ import lombok.NoArgsConstructor;
       name = "property_time_idx",
       def = "{'propertyId': 1, 'startTime': 1, 'endTime': 1}"),
   // Índice para consultar por agente
-  @CompoundIndex(name = "agent_time_idx", def = "{'agentId': 1, 'startTime': 1}")
+  @CompoundIndex(name = "agent_time_idx", def = "{'agentId': 1, 'startTime': 1}"),
+  // Índice para detectar conflictos de vehículos
+  @CompoundIndex(name = "vehicle_time_idx", def = "{'vehicleId': 1, 'startTime': 1, 'endTime': 1}")
 })
 public class CalendarEvent {
 
@@ -47,6 +49,15 @@ public class CalendarEvent {
 
   /** Nombre completo del agente */
   private String agentName;
+
+  /** ID del vehículo asignado a la visita */
+  private String vehicleId;
+
+  /** Tiempo de desplazamiento de ida (minutos) */
+  private Integer travelTimeGo;
+
+  /** Tiempo de desplazamiento de vuelta (minutos) */
+  private Integer travelTimeBack;
 
   /** Fecha y hora de inicio del evento */
   private LocalDateTime startTime;

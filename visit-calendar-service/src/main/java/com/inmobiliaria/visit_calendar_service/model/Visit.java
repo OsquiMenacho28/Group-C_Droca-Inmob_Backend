@@ -7,15 +7,7 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-/**
- * Entidad principal que representa una Visita/Cita inmobiliaria.
- *
- * <p>CAMBIOS PARA HU REASIGNACIÓN: - Se agregó el campo [reassignmentHistory] para mantener el
- * registro completo de todos los cambios de agente que tuvo la cita.
- *
- * <p>Los demás campos ya existían en el proyecto; se listan aquí para mostrar el documento completo
- * y dónde encajan los nuevos campos.
- */
+/** Entidad principal que representa una Visita/Cita inmobiliaria. */
 @Document(collection = "visits")
 public class Visit {
 
@@ -33,11 +25,23 @@ public class Visit {
    */
   private String agentId;
 
-  /** Fecha y hora programada para la visita */
+  /** ID del vehículo asignado a la visita */
+  private String vehicleId;
+
+  /** Fecha y hora de inicio programada para la visita */
   private LocalDateTime dateTime;
 
-  /** Estado de la visita: PENDIENTE, CONFIRMADA, CANCELADA, COMPLETADA */
-  private String status;
+  /** Fecha y hora de fin programada para la visita */
+  private LocalDateTime endTime;
+
+  /** Tiempo de desplazamiento de ida (en minutos) */
+  private Integer travelTimeGo;
+
+  /** Tiempo de desplazamiento de vuelta (en minutos) */
+  private Integer travelTimeBack;
+
+  /** Estado de la visita: PROGRAMADA, CANCELADA, COMPLETADA */
+  private VisitStatus status;
 
   /** Notas adicionales sobre la visita */
   private String notes;
@@ -45,17 +49,28 @@ public class Visit {
   /** Fecha en que se creó la solicitud de visita */
   private LocalDateTime createdAt;
 
-  /**
-   * Historial de todas las reasignaciones que ha tenido esta cita. Cada entrada registra: agente
-   * anterior, agente nuevo, motivo y fecha. Se inicializa como lista vacía para evitar NPE.
-   */
+  /** Historial de todas las reasignaciones */
   private List<ReassignmentHistory> reassignmentHistory = new ArrayList<>();
+
+  /** ID de la visita original si fue reprogramada */
+  private String originVisitId;
+
+  /** Historial de reprogramaciones */
+  private List<ReschedulingHistory> reschedulingHistory = new ArrayList<>();
+
+  public enum VisitStatus {
+    SCHEDULED,
+    CANCELLED,
+    COMPLETED
+  }
 
   // ── Constructors ──────────────────────────────────────────────────────────
 
   public Visit() {
     this.createdAt = LocalDateTime.now();
     this.reassignmentHistory = new ArrayList<>();
+    this.travelTimeGo = 0;
+    this.travelTimeBack = 0;
   }
 
   // ── Getters & Setters ─────────────────────────────────────────────────────
@@ -92,6 +107,14 @@ public class Visit {
     this.agentId = agentId;
   }
 
+  public String getVehicleId() {
+    return vehicleId;
+  }
+
+  public void setVehicleId(String vehicleId) {
+    this.vehicleId = vehicleId;
+  }
+
   public LocalDateTime getDateTime() {
     return dateTime;
   }
@@ -100,11 +123,35 @@ public class Visit {
     this.dateTime = dateTime;
   }
 
-  public String getStatus() {
+  public LocalDateTime getEndTime() {
+    return endTime;
+  }
+
+  public void setEndTime(LocalDateTime endTime) {
+    this.endTime = endTime;
+  }
+
+  public Integer getTravelTimeGo() {
+    return travelTimeGo;
+  }
+
+  public void setTravelTimeGo(Integer travelTimeGo) {
+    this.travelTimeGo = travelTimeGo;
+  }
+
+  public Integer getTravelTimeBack() {
+    return travelTimeBack;
+  }
+
+  public void setTravelTimeBack(Integer travelTimeBack) {
+    this.travelTimeBack = travelTimeBack;
+  }
+
+  public VisitStatus getStatus() {
     return status;
   }
 
-  public void setStatus(String status) {
+  public void setStatus(VisitStatus status) {
     this.status = status;
   }
 
@@ -130,5 +177,21 @@ public class Visit {
 
   public void setReassignmentHistory(List<ReassignmentHistory> reassignmentHistory) {
     this.reassignmentHistory = reassignmentHistory;
+  }
+
+  public String getOriginVisitId() {
+    return originVisitId;
+  }
+
+  public void setOriginVisitId(String originVisitId) {
+    this.originVisitId = originVisitId;
+  }
+
+  public List<ReschedulingHistory> getReschedulingHistory() {
+    return reschedulingHistory;
+  }
+
+  public void setReschedulingHistory(List<ReschedulingHistory> reschedulingHistory) {
+    this.reschedulingHistory = reschedulingHistory;
   }
 }

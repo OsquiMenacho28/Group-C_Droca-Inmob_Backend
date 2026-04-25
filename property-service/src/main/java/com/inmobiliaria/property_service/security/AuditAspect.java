@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -71,7 +72,8 @@ public class AuditAspect {
     }
 
     // 4. Save the log with details
-    String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    String userId = (auth != null) ? auth.getName() : "SYSTEM_UNKNOWN";
     AuditLog log =
         AuditLog.builder()
             .userId(userId)
@@ -101,6 +103,8 @@ public class AuditAspect {
     compare(changes, "operationType", oldDoc.getOperationType(), newDoc.getOperationType());
     compare(changes, "ownerId", oldDoc.getOwnerId(), newDoc.getOwnerId());
     compare(changes, "agentId", oldDoc.getAssignedAgentId(), newDoc.getAssignedAgentId());
+    compare(changes, "latitude", oldDoc.getLatitude(), newDoc.getLatitude());
+    compare(changes, "longitude", oldDoc.getLongitude(), newDoc.getLongitude());
 
     return changes;
   }

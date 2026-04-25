@@ -1,5 +1,5 @@
 server:
-  port: 8087
+  port: ${OPERATION_SERVICE_PORT:8087}
 
 spring:
   application:
@@ -7,7 +7,7 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb://admin:admin@localhost:27017/inmobiliaria_db?authSource=admin
+      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASS:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${OPERATION_DB:operation_db}?authSource=${MONGO_AUTH_SOURCE:admin}
 
   servlet:
     multipart:
@@ -19,18 +19,18 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
     register-with-eureka: true
     fetch-registry: true
   instance:
-    hostname: localhost
+    hostname: ${EUREKA_HOST:localhost}
     prefer-ip-address: true
 
 # MinIO configuration
 minio:
-  endpoint: http://localhost:9000
-  access-key: minioadmin # Change in production
-  secret-key: minioadmin # Change in production
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin} # Change in production
+  secret-key: ${MINIO_SECRET_KEY:minioadmin} # Change in production
   bucket-name: operations-payment-receipts # Bucket is auto-created on startup if it does not exist
 
 # File upload constraints (enforced in ReceiptService)

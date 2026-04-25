@@ -20,7 +20,8 @@ public class AdminDocument extends PersonDocument {
       String phone,
       String email,
       java.util.List<String> roleIds,
-      boolean customRole) {
+      boolean customRole,
+      String assignedAgentId) {
     super(
         id,
         authUserId,
@@ -32,6 +33,7 @@ public class AdminDocument extends PersonDocument {
         email,
         PersonType.ADMIN,
         roleIds,
-        customRole);
+        customRole,
+        assignedAgentId);
   }
 }

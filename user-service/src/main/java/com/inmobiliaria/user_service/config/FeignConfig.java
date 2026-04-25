@@ -5,7 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import feign.RequestInterceptor;
+import feign.codec.Decoder;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
@@ -37,5 +40,10 @@ public class FeignConfig {
         }
       }
     };
+  }
+
+  @Bean
+  public Decoder feignDecoder(ObjectMapper objectMapper) {
+    return new StandardApiResponseDecoder(objectMapper);
   }
 }

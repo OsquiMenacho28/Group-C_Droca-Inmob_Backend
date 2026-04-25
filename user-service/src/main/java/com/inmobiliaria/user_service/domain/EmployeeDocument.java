@@ -15,9 +15,6 @@ public class EmployeeDocument extends PersonDocument {
   private String position;
   private LocalDate hireDate;
 
-  // NUEVO: Lista de IDs de clientes asignados
-  private java.util.List<String> assignedClientIds = new java.util.ArrayList<>();
-
   @Builder
   public EmployeeDocument(
       String id,
@@ -30,10 +27,10 @@ public class EmployeeDocument extends PersonDocument {
       String email,
       java.util.List<String> roleIds,
       boolean customRole,
+      String assignedAgentId,
       String department,
       String position,
-      LocalDate hireDate,
-      java.util.List<String> assignedClientIds) {
+      LocalDate hireDate) {
     super(
         id,
         authUserId,
@@ -45,11 +42,10 @@ public class EmployeeDocument extends PersonDocument {
         email,
         PersonType.EMPLOYEE,
         roleIds,
-        customRole);
+        customRole,
+        assignedAgentId);
     this.department = department;
     this.position = position;
     this.hireDate = hireDate;
-    this.assignedClientIds =
-        assignedClientIds != null ? assignedClientIds : new java.util.ArrayList<>();
   }
 }

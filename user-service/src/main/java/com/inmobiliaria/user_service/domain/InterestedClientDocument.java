@@ -39,6 +39,7 @@ public class InterestedClientDocument extends PersonDocument {
       String email,
       java.util.List<String> roleIds,
       boolean customRole,
+      String assignedAgentId,
       String preferredContactMethod,
       String budget,
       List<String> interestedPropertyIds,
@@ -57,7 +58,8 @@ public class InterestedClientDocument extends PersonDocument {
         email,
         PersonType.INTERESTED_CLIENT,
         roleIds,
-        customRole);
+        customRole,
+        assignedAgentId);
     this.preferredContactMethod = preferredContactMethod;
     this.budget = budget;
     this.interestedPropertyIds = interestedPropertyIds;

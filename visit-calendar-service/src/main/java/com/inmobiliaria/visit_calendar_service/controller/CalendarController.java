@@ -6,15 +6,30 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
+import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarEventResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.CalendarService;
+import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
+import com.inmobiliaria.visit_calendar_service.service.VehicleService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +51,8 @@ public class CalendarController {
 
   private final CalendarService calendarService;
   private final ResponseFactory responseFactory;
+  private final RescheduleService rescheduleService;
+  private final VehicleService vehicleService; // Añadido desde tu rama
 
   // -----------------------------------------------------------------------
   // HU1: Visualizar calendario compartido del equipo
@@ -154,5 +171,90 @@ public class CalendarController {
 
     CalendarEventResponse cancelled = calendarService.cancelEvent(id, agentId);
     return ResponseEntity.ok(responseFactory.success("Visita cancelada", cancelled));
+  }
+
+  // -----------------------------------------------------------------------
+  // Endpoints de vehículos
+  // -----------------------------------------------------------------------
+
+  /**
+   * GET /visits/{visitId}/vehicle-assignment Recupera los detalles de asignación de vehículo y
+   * tránsito de una visita (evento).
+   */
+  @GetMapping("/visits/{visitId}/vehicle-assignment")
+  public ResponseEntity<ApiResponse<CalendarEvent>> getVehicleAssignment(
+      @PathVariable String visitId) {
+    CalendarEvent event = vehicleService.getVisitWithAssignment(visitId);
+    return ResponseEntity.ok(responseFactory.success("Asignación de vehículo recuperada", event));
+  }
+
+  /**
+   * POST /visits/{visitId}/vehicle Asigna un vehículo a una visita con tiempos flexibles de
+   * desplazamiento.
+   */
+  @PostMapping("/visits/{visitId}/vehicle")
+  public ResponseEntity<ApiResponse<CalendarEvent>> assignVehicle(
+      @PathVariable String visitId, @RequestBody VehicleAssignmentRequest request) {
+
+    CalendarEvent updatedEvent =
+        vehicleService.assignVehicleToVisit(
+            visitId,
+            request.getVehicleId(),
+            request.getTravelTimeGo(),
+            request.getTravelTimeBack());
+    return ResponseEntity.ok(
+        responseFactory.success("Vehículo asignado a la visita exitosamente", updatedEvent));
+  }
+
+  // -----------------------------------------------------------------------
+  // Endpoints de reagendamiento (desde Sprint3_DEV)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Reschedules a cancelled visit by creating a new SCHEDULED visit.
+   *
+   * <p>Returns 201 with the new visit data on success. Returns 404 if the original visit does not
+   * exist. Returns 409 if the visit is not in CANCELLED status (PA3). Returns 422 if the agent or
+   * property is unavailable at the new time.
+   *
+   * <p>API: POST /visits/{id}/reschedule Body: { "newDateTime": "2025-07-10T10:00:00", "notes":
+   * "..." }
+   */
+  @PostMapping("/visits/{id}/reschedule")
+  public ResponseEntity<?> rescheduleVisit(
+      @PathVariable String id,
+      @RequestHeader("X-Agent-Id") String agentId,
+      @Valid @RequestBody RescheduleRequest request) {
+
+    try {
+      RescheduleResponse response = rescheduleService.reschedule(id, agentId, request);
+      return ResponseEntity.status(HttpStatus.CREATED)
+          .body(responseFactory.created("Visita reagendada exitosamente", response));
+    } catch (ResponseStatusException e) {
+      return ResponseEntity.status(e.getStatusCode())
+          .body(responseFactory.error(e.getReason() != null ? e.getReason() : e.getMessage()));
+    }
+  }
+
+  /**
+   * Returns all visits created by rescheduling the given original visit. Used by the frontend to
+   * render the "View rescheduled visit" link.
+   *
+   * <p>API: GET /visits/{id}/rescheduled
+   */
+  @GetMapping("/visits/{id}/rescheduled")
+  public ResponseEntity<List<Visit>> getRescheduledVisits(@PathVariable String id) {
+    List<Visit> rescheduled = rescheduleService.getRescheduledVisits(id);
+    return ResponseEntity.ok(rescheduled);
+  }
+
+  // -----------------------------------------------------------------------
+  // Clase interna para request de vehículo
+  // -----------------------------------------------------------------------
+  @lombok.Data
+  public static class VehicleAssignmentRequest {
+    private String vehicleId;
+    private Integer travelTimeGo;
+    private Integer travelTimeBack;
   }
 }
