@@ -11,7 +11,7 @@ import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
 import com.inmobiliaria.visit_calendar_service.model.ReschedulingHistory;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
-import com.inmobiliaria.visit_calendar_service.model.Visit.VisitStatus;
+import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 
 import lombok.extern.slf4j.Slf4j;
@@ -72,7 +72,7 @@ public class RescheduleService {
                         HttpStatus.NOT_FOUND, "Visit not found: " + originalVisitId));
 
     // 2. Status guard — PA3: cannot reschedule a COMPLETED or SCHEDULED visit
-    if (original.getStatus() != VisitStatus.CANCELLED) {
+    if (original.getStatus() != EventStatus.CANCELLED) {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT,
           "Only cancelled visits can be rescheduled. "
@@ -81,12 +81,13 @@ public class RescheduleService {
     }
 
     // 3. Availability check — agent
-    validateAgentAvailability(original.getAgentId(), request.getNewDateTime(), null);
+    validateAgentAvailability(original.getAgentId(), request.getNewStartTime(), null);
 
     // 4. Availability check — property
-    validatePropertyAvailability(original.getPropertyId(), request.getNewDateTime(), null);
+    validatePropertyAvailability(original.getPropertyId(), request.getNewStartTime(), null);
 
-    // 5. Build the new visit (PA2: copy client, property, agent — add originVisitId)
+    // 5. Build the new visit (PA2: copy client, property, agent — add
+    // originVisitId)
     Visit newVisit = buildNewVisit(original, request, agentId);
     newVisit = visitRepository.save(newVisit);
     log.info(
@@ -98,8 +99,10 @@ public class RescheduleService {
     ReschedulingHistory record =
         ReschedulingHistory.builder()
             .newVisitId(newVisit.getId())
-            .previousDateTime(original.getDateTime())
-            .newDateTime(request.getNewDateTime())
+            .previousStartTime(original.getStartTime())
+            .previousEndTime(original.getEndTime())
+            .newStartTime(request.getNewStartTime())
+            .newEndTime(request.getNewEndTime())
             .rescheduledByAgentId(agentId)
             .rescheduledAt(LocalDateTime.now())
             .build();
@@ -147,8 +150,8 @@ public class RescheduleService {
     LocalDateTime windowEnd = dateTime.plusMinutes(AVAILABILITY_BUFFER_MINUTES);
 
     boolean conflict =
-        visitRepository.existsByAgentIdAndDateTimeBetweenAndStatus(
-            agentId, windowStart, windowEnd, VisitStatus.SCHEDULED);
+        visitRepository.existsByAgentIdAndDateRangeAndStatus(
+            agentId, windowStart, windowEnd, EventStatus.SCHEDULED);
 
     if (conflict) {
       throw new ResponseStatusException(
@@ -168,8 +171,8 @@ public class RescheduleService {
     LocalDateTime windowEnd = dateTime.plusMinutes(AVAILABILITY_BUFFER_MINUTES);
 
     boolean conflict =
-        visitRepository.existsByPropertyIdAndDateTimeBetweenAndStatus(
-            propertyId, windowStart, windowEnd, VisitStatus.SCHEDULED);
+        visitRepository.existsByPropertyIdAndDateRangeAndStatus(
+            propertyId, windowStart, windowEnd, EventStatus.SCHEDULED);
 
     if (conflict) {
       throw new ResponseStatusException(
@@ -180,21 +183,33 @@ public class RescheduleService {
   }
 
   /**
-   * Builds the new Visit entity from the original, applying the new datetime. Preserves:
-   * propertyId, clientId, agentId from the original (PA2). Sets: originVisitId to link back to the
-   * original (PA2).
+   * Builds the new Visit entity from the original, applying the new datetime. Preserves all details
+   * from the original visit (propertyId, clientId, agentId, propertyName, agentName, clientName,
+   * type) (PA2). Sets: originVisitId to link back to the original (PA2), status to SCHEDULED, and
+   * createdAt to now.
    */
   private Visit buildNewVisit(Visit original, RescheduleRequest request, String agentId) {
     Visit newVisit = new Visit();
+    // Copy all relevant fields from original
     newVisit.setPropertyId(original.getPropertyId());
-    newVisit.setClientId(original.getClientId());
+    newVisit.setPropertyName(original.getPropertyName());
+    newVisit.setPropertyAddress(original.getPropertyAddress());
     newVisit.setAgentId(original.getAgentId());
-    newVisit.setDateTime(request.getNewDateTime());
-    newVisit.setStatus(VisitStatus.SCHEDULED);
+    newVisit.setAgentName(original.getAgentName());
+    newVisit.setClientId(original.getClientId());
+    newVisit.setClientName(original.getClientName());
+    newVisit.setStartTime(request.getNewStartTime());
+    newVisit.setEndTime(request.getNewEndTime());
+    newVisit.setVehicleId(original.getVehicleId());
+    newVisit.setTravelTimeGo(original.getTravelTimeGo());
+    newVisit.setTravelTimeBack(original.getTravelTimeBack());
+    newVisit.setType(original.getType());
+    newVisit.setStatus(EventStatus.SCHEDULED);
     newVisit.setNotes(request.getNotes() != null ? request.getNotes() : original.getNotes());
     newVisit.setOriginVisitId(original.getId());
     newVisit.setCreatedAt(LocalDateTime.now());
     newVisit.setReschedulingHistory(new java.util.ArrayList<>());
+    newVisit.setOwnEvent(original.getOwnEvent());
     return newVisit;
   }
 }

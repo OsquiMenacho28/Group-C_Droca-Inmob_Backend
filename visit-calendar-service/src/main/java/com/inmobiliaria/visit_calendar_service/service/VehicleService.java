@@ -160,7 +160,7 @@ public class VehicleService {
             .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
 
     LocalDateTime occupancyStart =
-        visit.getDateTime().minusMinutes(travelGo != null ? travelGo : 0);
+        visit.getStartTime().minusMinutes(travelGo != null ? travelGo : 0);
     LocalDateTime occupancyEnd =
         visit.getEndTime().plusMinutes(travelBack != null ? travelBack : 0);
 
