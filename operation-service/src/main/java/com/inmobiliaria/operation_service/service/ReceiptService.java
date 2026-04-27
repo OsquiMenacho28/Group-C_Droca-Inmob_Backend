@@ -32,7 +32,6 @@ public class ReceiptService {
     // 1. Upload to MinIO
     String minioPath = minioStorageService.uploadFile(file, operationId);
 
-    // 2. Save metadata to Mongo
     ReceiptDocument doc =
         ReceiptDocument.builder()
             .operationId(operationId)
@@ -43,6 +42,7 @@ public class ReceiptService {
             .amount(request.getAmount().doubleValue())
             .currency(request.getCurrency())
             .notes(request.getConcept())
+            .paymentDate(request.getPaymentDate()) // Store the actual payment date
             .build();
 
     doc.setCreatedAt(Instant.now());
@@ -87,6 +87,7 @@ public class ReceiptService {
         .amount(java.math.BigDecimal.valueOf(doc.getAmount()))
         .currency(doc.getCurrency())
         .concept(doc.getNotes())
+        .paymentDate(doc.getPaymentDate())
         .createdBy(doc.getCreatedBy())
         .createdAt(
             doc.getCreatedAt() != null

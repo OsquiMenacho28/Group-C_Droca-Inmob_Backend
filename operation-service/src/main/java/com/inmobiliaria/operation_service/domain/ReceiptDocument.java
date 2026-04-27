@@ -1,5 +1,7 @@
 package com.inmobiliaria.operation_service.domain;
 
+import java.time.LocalDateTime;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -21,4 +23,5 @@ public class ReceiptDocument extends BaseDocument {
   private Double amount;
   private String currency;
   private String notes;
+  private LocalDateTime paymentDate;
 }
