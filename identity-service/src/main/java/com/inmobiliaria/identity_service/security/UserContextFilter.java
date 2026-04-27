@@ -38,7 +38,14 @@ public class UserContextFilter extends OncePerRequestFilter {
           authorities =
               Arrays.stream(cleanRoles.split(","))
                   .filter(role -> !role.isEmpty())
-                  .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                  .map(
+                      role -> {
+                        String finalRole = role.toUpperCase();
+                        if (!finalRole.startsWith("ROLE_")) {
+                          finalRole = "ROLE_" + finalRole;
+                        }
+                        return new SimpleGrantedAuthority(finalRole);
+                      })
                   .collect(Collectors.toList());
         }
       }
