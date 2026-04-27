@@ -1,15 +1,23 @@
 package com.inmobiliaria.operation_service.controller;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.inmobiliaria.operation_service.dto.AgentRankingResponse;
+import com.inmobiliaria.operation_service.dto.OperationRequest;
+import com.inmobiliaria.operation_service.dto.OperationResponse;
 import com.inmobiliaria.operation_service.dto.response.ApiResponse;
 import com.inmobiliaria.operation_service.dto.response.ResponseFactory;
-import com.inmobiliaria.operation_service.model.Operation;
+import com.inmobiliaria.operation_service.service.OperationService;
+import com.inmobiliaria.operation_service.service.ReportService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -17,17 +25,55 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OperationController {
 
+  private final OperationService operationService;
+  private final ReportService reportService;
   private final ResponseFactory responseFactory;
 
   @GetMapping
-  public ResponseEntity<ApiResponse<List<Operation>>> getAllOperations() {
+  public ResponseEntity<ApiResponse<List<OperationResponse>>> getAllOperations() {
     return ResponseEntity.ok(
-        responseFactory.success("Operations retrieved successfully", new ArrayList<>()));
+        responseFactory.success("Operations retrieved successfully", operationService.findAll()));
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ApiResponse<Operation>> getOperationById(@PathVariable String id) {
-    throw new com.inmobiliaria.operation_service.exception.ResourceNotFoundException(
-        "Operation with ID " + id + " not found");
+  public ResponseEntity<ApiResponse<OperationResponse>> getOperationById(@PathVariable String id) {
+    return ResponseEntity.ok(
+        responseFactory.success("Operation retrieved successfully", operationService.findById(id)));
+  }
+
+  @PostMapping
+  public ResponseEntity<ApiResponse<OperationResponse>> createOperation(
+      @Valid @RequestBody OperationRequest request,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader(value = "X-Auth-Roles", required = false) String roles) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(
+            responseFactory.created(
+                "Operation created successfully", operationService.create(request, userId, roles)));
+  }
+
+  @PatchMapping("/{id}/status")
+  public ResponseEntity<ApiResponse<OperationResponse>> updateStatus(
+      @PathVariable String id,
+      @RequestBody java.util.Map<String, String> body,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader(value = "X-Auth-Roles", required = false) String roles) {
+    String status = body.get("status");
+    return ResponseEntity.ok(
+        responseFactory.success(
+            "Operation status updated successfully",
+            operationService.updateStatus(id, status, userId, roles)));
+  }
+
+  @GetMapping("/reports/agent-ranking")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<AgentRankingResponse>> getAgentRanking(
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+      @RequestParam(required = false) String department) {
+    return ResponseEntity.ok(
+        responseFactory.success(
+            "Ranking retrieved successfully",
+            reportService.getAgentRanking(startDate, endDate, department)));
   }
 }
