@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.property_service.client.IdentityClient;
+import com.inmobiliaria.property_service.client.OperationClient;
 import com.inmobiliaria.property_service.domain.*;
 import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
@@ -31,6 +32,7 @@ public class PropertyService {
 
   private final PropertyRepository propertyRepository;
   private final IdentityClient identityClient;
+  private final OperationClient operationClient;
   private final MongoTemplate mongoTemplate;
   private final ImageService imageService;
 
@@ -65,9 +67,26 @@ public class PropertyService {
     if (zone != null && !zone.isBlank()) {
       filters.add(Criteria.where("zone").is(zone));
     }
+
     if (status != null && !status.isBlank()) {
-      filters.add(Criteria.where("status").is(status));
+      filters.add(Criteria.where("status").is(PropertyStatus.valueOf(status.toUpperCase())));
+    } else {
+      // DEFAULT: Hide VENDIDO and ELIMINADO properties from main listings unless explicitly
+      // requested
+      filters.add(Criteria.where("status").nin(PropertyStatus.VENDIDO, PropertyStatus.ELIMINADO));
+
+      if (!roles.contains("ROLE_ADMIN") && !roles.contains("ROLE_AGENT")) {
+        // FOR CLIENTS: By default only show available or almost available ones
+        filters.add(
+            Criteria.where("status")
+                .in(
+                    PropertyStatus.DISPONIBLE,
+                    PropertyStatus.RESERVADO,
+                    PropertyStatus.EN_NEGOCIACION,
+                    PropertyStatus.CONTRACTED));
+      }
     }
+
     if (operationType != null) {
       filters.add(Criteria.where("operationType").is(operationType));
     }
@@ -81,13 +100,27 @@ public class PropertyService {
       filters.add(Criteria.where("assignedAgentId").is(agentId));
     }
 
-    // Seguridad: Si no es ADMIN, solo ve sus asignadas o las permitidas por política
+    // Seguridad: Si no es ADMIN, solo ve sus asignadas, las permitidas por política (PUBLIC por
+    // defecto) o cualquier propiedad disponible/en curso (HU: Visibilidad pública)
     if (!roles.contains("ROLE_ADMIN")) {
       Criteria securityCriteria =
           new Criteria()
               .orOperator(
                   Criteria.where("assignedAgentId").is(currentUserId),
-                  Criteria.where("accessPolicy").in(currentUserId, "ROLE_AGENT"));
+                  Criteria.where("ownerId").is(currentUserId),
+                  Criteria.where("accessPolicy")
+                      .in(
+                          currentUserId,
+                          "ROLE_AGENT",
+                          "PUBLIC",
+                          "ROLE_USER",
+                          "rol_interested_client"),
+                  Criteria.where("status")
+                      .in(
+                          PropertyStatus.DISPONIBLE,
+                          PropertyStatus.RESERVADO,
+                          PropertyStatus.EN_NEGOCIACION,
+                          PropertyStatus.CONTRACTED));
       filters.add(securityCriteria);
     }
 
@@ -216,10 +249,13 @@ public class PropertyService {
             .operationType(request.operationType())
             .m2(request.m2())
             .rooms(request.rooms())
-            .status("DISPONIBLE")
+            .status(PropertyStatus.DISPONIBLE)
             .assignedAgentId(agentId)
             .ownerId(request.ownerId())
-            .accessPolicy(request.accessPolicy() != null ? request.accessPolicy() : new HashSet<>())
+            .accessPolicy(
+                request.accessPolicy() != null && !request.accessPolicy().isEmpty()
+                    ? request.accessPolicy()
+                    : new HashSet<>(List.of("PUBLIC")))
             .build();
     property.setCreatedAt(Instant.now());
     property.setCreatedBy(agentId);
@@ -377,7 +413,7 @@ public class PropertyService {
         doc.getOperationType(),
         doc.getM2(),
         doc.getRooms(),
-        doc.getStatus(),
+        doc.getStatus() != null ? doc.getStatus().name() : null,
         doc.getAssignedAgentId(),
         agentName,
         doc.getOwnerId(),
@@ -428,7 +464,7 @@ public class PropertyService {
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado: " + id));
 
     property.setDeleted(true);
-    property.setStatus("ELIMINADO"); // Opcional: cambiar el status visual también
+    property.setStatus(PropertyStatus.ELIMINADO); // Opcional: cambiar el status visual también
     property.setUpdatedAt(Instant.now());
 
     propertyRepository.save(property);
@@ -438,26 +474,43 @@ public class PropertyService {
 
   @Auditable(action = "STATUS_CHANGE")
   public PropertyResponse updateStatus(
-      String id, String newStatus, String currentUserId, List<String> roles) {
+      String id, String newStatus, String currentUserId, List<String> roles, boolean isInternal) {
     PropertyDocument prop =
         propertyRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
 
-    String oldStatus = prop.getStatus().toUpperCase();
-    String targetStatus = newStatus.toUpperCase();
+    PropertyStatus oldStatus = prop.getStatus();
+    PropertyStatus targetStatus = PropertyStatus.valueOf(newStatus.toUpperCase());
     boolean isAdmin = roles.contains("ROLE_ADMIN");
     boolean isAssignedAgent = currentUserId.equals(prop.getAssignedAgentId());
 
+    // --- Restriction: Business states must be driven by Operations ---
+    if (!isInternal && !isAdmin) {
+      if (targetStatus == PropertyStatus.VENDIDO
+          || targetStatus == PropertyStatus.RESERVADO
+          || targetStatus == PropertyStatus.EN_NEGOCIACION) {
+        throw new ValidationException(
+            "El estado "
+                + targetStatus
+                + " solo puede ser asignado a través del módulo de Operaciones.");
+      }
+    }
+
     // --- PA3: Validación de permisos y transiciones críticas ---
-    if (!isAdmin && !isAssignedAgent) {
+    if (!isAdmin && !isAssignedAgent && !isInternal) {
       throw new AccessDeniedException("No autorizado para modificar esta propiedad.");
     }
 
-    // Bloquear que un agente revierta un estado "VENDIDO" (PA:3)
-    if (oldStatus.equals("VENDIDO") && !isAdmin) {
-      throw new AccessDeniedException(
-          "Operación no permitida: Solo un Administrador puede revertir el estado de una propiedad ya vendida.");
+    // Bloquear cualquier reversión de un estado "VENDIDO" (Terminal y definitivo)
+    if (oldStatus == PropertyStatus.VENDIDO) {
+      throw new ValidationException(
+          "Esta propiedad ha sido marcada como VENDIDA de forma definitiva. No es posible revertir su estado.");
+    }
+
+    // TRIGGER: Si se cambia a VENDIDO manualmente (por admin), crear registro de Operación
+    if (targetStatus == PropertyStatus.VENDIDO && !isInternal) {
+      triggerManualClosureOperation(prop, currentUserId, roles);
     }
 
     // --- Registro de Historial (PA:2) ---
@@ -468,8 +521,8 @@ public class PropertyService {
     prop.getStatusHistory()
         .add(
             StatusHistory.builder()
-                .oldStatus(oldStatus)
-                .newStatus(targetStatus)
+                .oldStatus(oldStatus.name())
+                .newStatus(targetStatus.name())
                 .changedAt(Instant.now())
                 .changedBy(currentUserId)
                 .build());
@@ -478,6 +531,58 @@ public class PropertyService {
     prop.setUpdatedAt(Instant.now());
 
     return mapToResponse(propertyRepository.save(prop));
+  }
+
+  private void triggerManualClosureOperation(
+      PropertyDocument prop, String currentUserId, List<String> roles) {
+    try {
+      String ownerName = "Desconocido";
+      if (prop.getOwnerId() != null) {
+        try {
+          var res = identityClient.findById(prop.getOwnerId());
+          ownerName = res.fullName();
+        } catch (Exception e) {
+          log.warn("Could not fetch owner name for manual closure: {}", e.getMessage());
+        }
+      }
+
+      String agentName = "Administrador";
+      String dept = "Gerencia";
+      try {
+        var res = identityClient.findById(currentUserId);
+        agentName = res.fullName();
+        dept = res.department();
+      } catch (Exception e) {
+        log.warn("Could not fetch agent name for manual closure: {}", e.getMessage());
+      }
+
+      var opRequest =
+          com.inmobiliaria.property_service.client.OperationClient.CreateOperationRequest.builder()
+              .propertyId(prop.getId())
+              .propertyName(prop.getTitle())
+              .propertyType(prop.getType())
+              .operationType(prop.getOperationType().name())
+              .finalPrice(prop.getPrice())
+              .currency("USD")
+              .clientId("ADMIN_MANUAL")
+              .clientName("Cierre Directo por Admin")
+              .agentId(currentUserId)
+              .agentName(agentName)
+              .department(dept)
+              .ownerId(prop.getOwnerId())
+              .ownerName(ownerName)
+              .status("CLOSED")
+              .closureDate(java.time.LocalDateTime.now())
+              .notes("Operación generada automáticamente por cambio de estado manual a VENDIDO.")
+              .build();
+
+      operationClient.createOperation(opRequest, currentUserId, String.join(",", roles));
+      log.info("Manual closure operation triggered for property {}", prop.getId());
+    } catch (Exception e) {
+      log.error("Failed to trigger manual closure operation: {}", e.getMessage());
+      throw new ValidationException(
+          "No se pudo registrar la operación de cierre obligatoria: " + e.getMessage());
+    }
   }
 
   @Auditable(action = "PROPERTY_UPDATE")
@@ -527,10 +632,48 @@ public class PropertyService {
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
 
-    if (prop.getStatus().equalsIgnoreCase("VENDIDO")
-        || prop.getStatus().equalsIgnoreCase("RESERVADO")) {
+    if (prop.getStatus() == PropertyStatus.VENDIDO
+        || prop.getStatus() == PropertyStatus.RESERVADO) {
       throw new ValidationException(
           "El sistema no permite realizar esta acción: La propiedad ya está " + prop.getStatus());
     }
+  }
+
+  @Auditable(action = "PROPERTY_REINCORPORATE")
+  public PropertyResponse reincorporateProperty(String id, String userId) {
+    PropertyDocument prop =
+        propertyRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
+
+    PropertyStatus currentStatus = prop.getStatus();
+
+    // Validación de estados previos permitidos (VENDIDO o ELIMINADO - mapped from RETIRADO logic)
+    if (currentStatus != PropertyStatus.VENDIDO && currentStatus != PropertyStatus.ELIMINADO) {
+      throw new ValidationException(
+          "Solo se pueden reincorporar inmuebles con estado VENDIDO o ELIMINADO. Estado actual: "
+              + currentStatus);
+    }
+
+    // Registrar en el historial de estados
+    if (prop.getStatusHistory() == null) {
+      prop.setStatusHistory(new ArrayList<>());
+    }
+
+    prop.getStatusHistory()
+        .add(
+            StatusHistory.builder()
+                .oldStatus(currentStatus.name())
+                .newStatus(PropertyStatus.DISPONIBLE.name())
+                .changedAt(Instant.now())
+                .changedBy(userId)
+                .build());
+
+    // Actualizar estado principal
+    prop.setStatus(PropertyStatus.DISPONIBLE);
+    prop.setUpdatedAt(Instant.now());
+
+    log.info("Inmueble {} reincorporado al inventario por usuario {}", id, userId);
+    return mapToResponse(propertyRepository.save(prop));
   }
 }

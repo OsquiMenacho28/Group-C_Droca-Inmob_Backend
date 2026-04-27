@@ -28,6 +28,12 @@ public class GlobalExceptionHandler {
         .body(responseFactory.notFound(ex.getMessage()));
   }
 
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleValidation(ValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error(ex.getMessage()));
+  }
+
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
     List<ApiResponse.ApiError> errors =

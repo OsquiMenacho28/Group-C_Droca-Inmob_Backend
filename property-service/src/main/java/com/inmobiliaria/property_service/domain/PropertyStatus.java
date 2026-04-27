@@ -5,5 +5,7 @@ public enum PropertyStatus {
   RESERVADO,
   VENDIDO,
   EN_NEGOCIACION,
-  ELIMINADO
+  CONTRACTED,
+  ELIMINADO,
+  RETIRADO
 }
