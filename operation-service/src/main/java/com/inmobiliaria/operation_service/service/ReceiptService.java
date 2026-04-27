@@ -1,143 +1,98 @@
 package com.inmobiliaria.operation_service.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.inmobiliaria.operation_service.domain.ReceiptDocument;
 import com.inmobiliaria.operation_service.dto.ReceiptResponse;
 import com.inmobiliaria.operation_service.dto.ReceiptUploadRequest;
-import com.inmobiliaria.operation_service.model.Receipt;
+import com.inmobiliaria.operation_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.operation_service.repository.ReceiptRepository;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Business logic for receipt management.
- *
- * <p>Covers all three operations required by the User Story: - attachReceipt → validate, upload to
- * MinIO, persist metadata in MongoDB - listReceipts → fetch all receipts for an operation with
- * download URLs - deleteReceipt → remove file from MinIO and document from MongoDB
- */
-@Slf4j
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class ReceiptService {
 
   private final ReceiptRepository receiptRepository;
-  private final MinioStorageService storageService;
+  private final MinioStorageService minioStorageService;
 
-  public ReceiptService(ReceiptRepository receiptRepository, MinioStorageService storageService) {
-    this.receiptRepository = receiptRepository;
-    this.storageService = storageService;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // ATTACH RECEIPT
-  // POST /api/operations/{operationId}/receipts
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Validates and attaches a payment receipt to an operation.
-   *
-   * <p>Flow: 1. Validate file type and size (delegated to MinioStorageService). 2. Upload the file
-   * to MinIO — get back the object key. 3. Persist the receipt metadata in MongoDB. 4. Return the
-   * saved receipt with a pre-signed download URL.
-   *
-   * @param operationId The operation to attach the receipt to
-   * @param agentId ID of the authenticated agent (from JWT via gateway)
-   * @param file The uploaded file (PDF / image)
-   * @param request Form-data fields: amount, currency, paymentDate, concept
-   * @return The persisted receipt with a download URL
-   * @throws IllegalArgumentException if the file type or size is invalid (PA2)
-   */
   public ReceiptResponse attachReceipt(
       String operationId, String agentId, MultipartFile file, ReceiptUploadRequest request) {
-    // 1. Validate (throws IllegalArgumentException on bad type/size)
-    storageService.validateFile(file);
 
-    // 2. Upload to MinIO
-    String fileKey = storageService.uploadFile(file, operationId);
-    log.info("[ReceiptService] File uploaded to MinIO: key='{}'", fileKey);
+    // 1. Upload to MinIO
+    String minioPath = minioStorageService.uploadFile(file, operationId);
 
-    // 3. Build and persist the Receipt document
-    Receipt receipt =
-        Receipt.builder()
+    // 2. Save metadata to Mongo
+    ReceiptDocument doc =
+        ReceiptDocument.builder()
             .operationId(operationId)
-            .amount(request.getAmount())
-            .currency(request.getCurrency())
-            .paymentDate(request.getPaymentDate())
-            .concept(request.getConcept())
-            .fileKey(fileKey)
-            .originalFileName(file.getOriginalFilename())
+            .fileName(file.getOriginalFilename())
             .contentType(file.getContentType())
-            .fileSizeBytes(file.getSize())
-            .uploadedByAgentId(agentId)
-            .uploadedAt(LocalDateTime.now())
+            .size(file.getSize())
+            .minioObjectPath(minioPath)
+            .amount(request.getAmount().doubleValue())
+            .currency(request.getCurrency())
+            .notes(request.getConcept())
             .build();
 
-    receipt = receiptRepository.save(receipt);
-    log.info(
-        "[ReceiptService] Receipt saved: id='{}', operation='{}'", receipt.getId(), operationId);
+    doc.setCreatedAt(Instant.now());
+    doc.setCreatedBy(agentId);
 
-    // 4. Generate pre-signed URL and return response
-    String downloadUrl = storageService.generatePresignedUrl(fileKey);
-    return ReceiptResponse.from(receipt, downloadUrl);
+    ReceiptDocument saved = receiptRepository.save(doc);
+    return mapToResponse(saved);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // LIST RECEIPTS
-  // GET /api/operations/{operationId}/receipts
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Returns all receipts attached to an operation, each with a fresh pre-signed download URL valid
-   * for 1 hour.
-   *
-   * @param operationId The operation to query
-   * @return List of ReceiptResponse DTOs ordered by upload date descending
-   */
   public List<ReceiptResponse> listReceipts(String operationId) {
-    return receiptRepository.findByOperationIdOrderByUploadedAtDesc(operationId).stream()
-        .map(r -> ReceiptResponse.from(r, storageService.generatePresignedUrl(r.getFileKey())))
+    return receiptRepository.findByOperationId(operationId).stream()
+        .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // DELETE RECEIPT
-  // DELETE /api/operations/{operationId}/receipts/{receiptId}
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Deletes a receipt from MongoDB and removes its file from MinIO.
-   *
-   * <p>The ownership check (receipt belongs to operationId) is performed here to prevent an agent
-   * from deleting receipts of other operations by manipulating the URL path.
-   *
-   * @param operationId The operation the receipt must belong to
-   * @param receiptId The receipt to delete
-   * @throws RuntimeException if the receipt is not found or does not belong to the specified
-   *     operation
-   */
   public void deleteReceipt(String operationId, String receiptId) {
-    // 1. Fetch the receipt
-    Receipt receipt =
+    ReceiptDocument doc =
         receiptRepository
             .findById(receiptId)
-            .orElseThrow(() -> new RuntimeException("Receipt not found: " + receiptId));
+            .orElseThrow(() -> new ResourceNotFoundException("Receipt not found"));
 
-    // 2. Verify it belongs to the specified operation
-    if (!receipt.getOperationId().equals(operationId)) {
-      throw new RuntimeException(
-          "Receipt '" + receiptId + "' does not belong to operation '" + operationId + "'.");
+    if (!doc.getOperationId().equals(operationId)) {
+      throw new IllegalArgumentException("Receipt does not belong to this operation");
     }
 
-    // 3. Remove file from MinIO (fail-silent if file is already gone)
-    storageService.deleteFile(receipt.getFileKey());
+    // Delete from MinIO
+    minioStorageService.deleteFile(doc.getMinioObjectPath());
 
-    // 4. Remove document from MongoDB
-    receiptRepository.deleteById(receiptId);
-    log.info("[ReceiptService] Receipt deleted: id='{}', operation='{}'", receiptId, operationId);
+    // Delete from Mongo
+    receiptRepository.delete(doc);
+  }
+
+  private ReceiptResponse mapToResponse(ReceiptDocument doc) {
+    String downloadUrl = minioStorageService.generatePresignedUrl(doc.getMinioObjectPath());
+
+    return ReceiptResponse.builder()
+        .id(doc.getId())
+        .operationId(doc.getOperationId())
+        .fileName(doc.getFileName())
+        .contentType(doc.getContentType())
+        .size(doc.getSize())
+        .amount(java.math.BigDecimal.valueOf(doc.getAmount()))
+        .currency(doc.getCurrency())
+        .concept(doc.getNotes())
+        .createdBy(doc.getCreatedBy())
+        .createdAt(
+            doc.getCreatedAt() != null
+                ? LocalDateTime.ofInstant(doc.getCreatedAt(), ZoneOffset.UTC)
+                : null)
+        .downloadUrl(downloadUrl)
+        .build();
   }
 }
