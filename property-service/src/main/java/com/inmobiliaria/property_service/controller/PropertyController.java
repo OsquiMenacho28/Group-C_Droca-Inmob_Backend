@@ -193,13 +193,17 @@ public class PropertyController {
   public ResponseEntity<ApiResponse<PropertyResponse>> updateStatus(
       @PathVariable String id,
       @Valid @RequestBody UpdateStatusRequest request,
-      @RequestHeader("X-Auth-User-Id") String userId) {
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader(value = "X-Internal-Call", defaultValue = "false") boolean isInternal) {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     List<String> roles =
-        auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+        auth != null
+            ? auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList()
+            : Collections.emptyList();
 
-    PropertyResponse data = propertyService.updateStatus(id, request.status(), userId, roles);
+    PropertyResponse data =
+        propertyService.updateStatus(id, request.status(), userId, roles, isInternal);
     return ResponseEntity.ok(responseFactory.success("Status updated successfully", data));
   }
 
