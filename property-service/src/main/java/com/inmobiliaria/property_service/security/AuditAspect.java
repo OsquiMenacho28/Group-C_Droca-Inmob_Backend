@@ -61,8 +61,8 @@ public class AuditAspect {
         changes = calculateChanges(beforeState, afterState);
 
         // Summaries for the main table view
-        previousSummary = beforeState.getStatus();
-        newSummary = afterState.getStatus();
+        previousSummary = beforeState.getStatus() != null ? beforeState.getStatus().name() : "N/A";
+        newSummary = afterState.getStatus() != null ? afterState.getStatus().name() : "N/A";
 
         if (action.equals("PROPERTY_UPDATE")) {
           previousSummary = beforeState.getTitle();
