@@ -2,7 +2,11 @@ package com.inmobiliaria.operation_service.service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -25,8 +29,66 @@ public class OperationService {
   private final OperationRepository operationRepository;
   private final PropertyClient propertyClient;
 
-  public List<OperationResponse> findAll() {
-    return operationRepository.findAll().stream()
+  public List<OperationResponse> findAll(String userId, String rolesHeader) {
+    log.info(
+        "[OperationService] Finding operations. User: {}, RolesHeader: {}", userId, rolesHeader);
+
+    if (rolesHeader == null || rolesHeader.isBlank()) {
+      log.warn("[OperationService] No roles provided for user: {}", userId);
+      return new ArrayList<>();
+    }
+
+    // Clean and normalize roles: "[ROLE_ADMIN, AGENT]" -> ["ROLE_ADMIN", "AGENT"]
+    String cleanRoles =
+        rolesHeader.replace("[", "").replace("]", "").replace(" ", "").toUpperCase();
+    List<String> roles = Arrays.asList(cleanRoles.split(","));
+    log.debug("[OperationService] Normalized roles: {}", roles);
+
+    // Check for Admin (flexible check)
+    if (roles.contains("ROLE_ADMIN") || roles.contains("ADMIN")) {
+      log.info("[OperationService] User {} has ADMIN privileges. Fetching all operations.", userId);
+      return operationRepository.findAll().stream()
+          .sorted(
+              (a, b) -> {
+                if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+                return b.getCreatedAt().compareTo(a.getCreatedAt());
+              })
+          .map(this::mapToResponse)
+          .collect(Collectors.toList());
+    }
+
+    Set<OperationDocument> combinedOperations = new HashSet<>();
+
+    // Check for Agent
+    if (roles.contains("ROLE_AGENT") || roles.contains("AGENT")) {
+      List<OperationDocument> agentOps = operationRepository.findByAgentId(userId);
+      log.debug("[OperationService] Found {} operations for agent: {}", agentOps.size(), userId);
+      combinedOperations.addAll(agentOps);
+    }
+
+    // Owner and Client check (based on ID match in document)
+    List<OperationDocument> ownerOps = operationRepository.findByOwnerId(userId);
+    List<OperationDocument> clientOps = operationRepository.findByClientId(userId);
+
+    log.debug(
+        "[OperationService] ID matches -> Owner: {}, Client: {}",
+        ownerOps.size(),
+        clientOps.size());
+
+    combinedOperations.addAll(ownerOps);
+    combinedOperations.addAll(clientOps);
+
+    log.info(
+        "[OperationService] Total unique operations for user {}: {}",
+        userId,
+        combinedOperations.size());
+
+    return combinedOperations.stream()
+        .sorted(
+            (a, b) -> {
+              if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+              return b.getCreatedAt().compareTo(a.getCreatedAt());
+            })
         .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
@@ -89,13 +151,26 @@ public class OperationService {
     return mapToResponse(saved);
   }
 
-  public OperationResponse updateStatus(String id, String status, String userId, String roles) {
+  public OperationResponse updateStatus(
+      String id, String status, String userId, String rolesHeader) {
     OperationDocument operation =
         operationRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Operation not found with id: " + id));
 
     String oldStatus = operation.getStatus();
+
+    // Permission Check
+    String cleanRoles = rolesHeader.replace("[", "").replace("]", "").replace(" ", "");
+    List<String> roles = Arrays.asList(cleanRoles.split(","));
+
+    boolean isAdmin = roles.contains("ROLE_ADMIN");
+    boolean isAssignedAgent = userId.equals(operation.getAgentId());
+
+    if (!isAdmin && !isAssignedAgent) {
+      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+          "Only Admins or the assigned Agent can update the operation status.");
+    }
 
     // Bloquear cualquier cambio si la operación ya está CERRADA, excepto para CANCELARLA si es
     // inválida
@@ -146,8 +221,6 @@ public class OperationService {
       case "CLOSED" -> "VENDIDO";
       case "PENDING" -> "RESERVADO";
       case "ACTIVE" -> "EN_NEGOCIACION";
-      // Cuando se cancela una operación, NO se revierte el estado de la propiedad para asegurar
-      // consistencia
       case "CANCELLED" -> null;
       default -> null;
     };

@@ -91,12 +91,18 @@ public class ReceiptController {
 
   @DeleteMapping("/{receiptId}")
   public ResponseEntity<ApiResponse<Void>> deleteReceipt(
-      @PathVariable String operationId, @PathVariable String receiptId) {
+      @PathVariable String operationId,
+      @PathVariable String receiptId,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader("X-Auth-Roles") String roles) {
 
     try {
-      receiptService.deleteReceipt(operationId, receiptId);
+      receiptService.deleteReceipt(operationId, receiptId, userId, roles);
       return ResponseEntity.ok(responseFactory.deleted("Receipt deleted successfully."));
 
+    } catch (com.inmobiliaria.operation_service.exception.ValidationException e) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+          .body(responseFactory.error(e.getMessage()));
     } catch (RuntimeException e) {
       log.warn("[ReceiptController] Delete failed: {}", e.getMessage());
       return ResponseEntity.status(HttpStatus.BAD_REQUEST)

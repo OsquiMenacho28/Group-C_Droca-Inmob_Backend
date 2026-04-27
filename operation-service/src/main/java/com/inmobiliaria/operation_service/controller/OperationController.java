@@ -30,9 +30,11 @@ public class OperationController {
   private final ResponseFactory responseFactory;
 
   @GetMapping
-  public ResponseEntity<ApiResponse<List<OperationResponse>>> getAllOperations() {
+  public ResponseEntity<ApiResponse<List<OperationResponse>>> getAllOperations(
+      @RequestHeader("X-Auth-User-Id") String userId, @RequestHeader("X-Auth-Roles") String roles) {
     return ResponseEntity.ok(
-        responseFactory.success("Operations retrieved successfully", operationService.findAll()));
+        responseFactory.success(
+            "Operations retrieved successfully", operationService.findAll(userId, roles)));
   }
 
   @GetMapping("/{id}")

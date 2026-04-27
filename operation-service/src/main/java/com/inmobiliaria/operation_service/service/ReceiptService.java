@@ -3,16 +3,19 @@ package com.inmobiliaria.operation_service.service;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.inmobiliaria.operation_service.domain.OperationDocument;
 import com.inmobiliaria.operation_service.domain.ReceiptDocument;
 import com.inmobiliaria.operation_service.dto.ReceiptResponse;
 import com.inmobiliaria.operation_service.dto.ReceiptUploadRequest;
 import com.inmobiliaria.operation_service.exception.ResourceNotFoundException;
+import com.inmobiliaria.operation_service.repository.OperationRepository;
 import com.inmobiliaria.operation_service.repository.ReceiptRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ReceiptService {
 
   private final ReceiptRepository receiptRepository;
+  private final OperationRepository operationRepository;
   private final MinioStorageService minioStorageService;
 
   public ReceiptResponse attachReceipt(
@@ -58,7 +62,8 @@ public class ReceiptService {
         .collect(Collectors.toList());
   }
 
-  public void deleteReceipt(String operationId, String receiptId) {
+  public void deleteReceipt(
+      String operationId, String receiptId, String userId, String rolesHeader) {
     ReceiptDocument doc =
         receiptRepository
             .findById(receiptId)
@@ -66,6 +71,21 @@ public class ReceiptService {
 
     if (!doc.getOperationId().equals(operationId)) {
       throw new IllegalArgumentException("Receipt does not belong to this operation");
+    }
+
+    // Permission Check: Only Admin or the Agent assigned to this operation can delete
+    OperationDocument operation =
+        operationRepository
+            .findById(operationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Operation not found"));
+
+    List<String> roles = Arrays.asList(rolesHeader.split(","));
+    boolean isAdmin = roles.contains("ROLE_ADMIN");
+    boolean isAssignedAgent = userId.equals(operation.getAgentId());
+
+    if (!isAdmin && !isAssignedAgent) {
+      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+          "You do not have permission to delete this receipt.");
     }
 
     // Delete from MinIO

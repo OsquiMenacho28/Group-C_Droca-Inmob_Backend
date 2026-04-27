@@ -15,5 +15,9 @@ public interface OperationRepository extends MongoRepository<OperationDocument, 
 
   List<OperationDocument> findByAgentId(String agentId);
 
+  List<OperationDocument> findByOwnerId(String ownerId);
+
+  List<OperationDocument> findByClientId(String clientId);
+
   java.util.Optional<OperationDocument> findByPropertyIdAndStatus(String propertyId, String status);
 }
