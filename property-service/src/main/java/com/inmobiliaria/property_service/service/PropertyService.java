@@ -644,14 +644,17 @@ public class PropertyService {
     PropertyDocument prop =
         propertyRepository
             .findById(id)
+    PropertyDocument prop =
+        propertyRepository
+            .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
 
     PropertyStatus currentStatus = prop.getStatus();
 
-    // Validación de estados previos permitidos (VENDIDO o ELIMINADO - mapped from RETIRADO logic)
-    if (currentStatus != PropertyStatus.VENDIDO && currentStatus != PropertyStatus.ELIMINADO) {
+    // Validación de estados previos permitidos (VENDIDO o RETIRADO)
+    if (!currentStatus.equals("VENDIDO") && !currentStatus.equals("RETIRADO")) {
       throw new ValidationException(
-          "Solo se pueden reincorporar inmuebles con estado VENDIDO o ELIMINADO. Estado actual: "
+          "Solo se pueden reincorporar inmuebles con estado VENDIDO o RETIRADO. Estado actual: "
               + currentStatus);
     }
 
@@ -663,8 +666,8 @@ public class PropertyService {
     prop.getStatusHistory()
         .add(
             StatusHistory.builder()
-                .oldStatus(currentStatus.name())
-                .newStatus(PropertyStatus.DISPONIBLE.name())
+                .oldStatus(currentStatus)
+                .newStatus("DISPONIBLE")
                 .changedAt(Instant.now())
                 .changedBy(userId)
                 .build());
