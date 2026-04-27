@@ -38,7 +38,7 @@ public class UserController {
   }
 
   @GetMapping
-  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('INTERESTED_CLIENT')")
   public ResponseEntity<ApiResponse<List<UserResponse>>> findAll(
       @RequestParam(required = false) com.inmobiliaria.identity_service.domain.UserStatus status,
       @RequestParam(required = false) String query,
@@ -50,7 +50,7 @@ public class UserController {
   }
 
   @GetMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('INTERESTED_CLIENT')")
   public ResponseEntity<ApiResponse<UserResponse>> findById(@PathVariable String id) {
     UserResponse response = userService.findById(id);
     return ResponseEntity.ok(responseFactory.success("User retrieved successfully", response));

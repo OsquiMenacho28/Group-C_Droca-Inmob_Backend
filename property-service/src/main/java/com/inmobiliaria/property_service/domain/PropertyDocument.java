@@ -26,7 +26,7 @@ public class PropertyDocument extends BaseDocument {
   private OperationType operationType;
   private Double m2;
   private Integer rooms;
-  private String status;
+  private PropertyStatus status;
   private String assignedAgentId;
   private String ownerId;
   private Double latitude;
