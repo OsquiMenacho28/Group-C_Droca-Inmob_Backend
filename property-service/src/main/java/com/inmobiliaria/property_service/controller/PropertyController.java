@@ -241,4 +241,14 @@ public class PropertyController {
     return ResponseEntity.ok(
         responseFactory.success("Ubicación geográfica actualizada correctamente", data));
   }
+
+  @PostMapping("/{id}/reincorporate")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> reincorporate(
+          @PathVariable String id, 
+          @RequestHeader("X-Auth-User-Id") String adminId) {
+      
+      PropertyResponse data = propertyService.reincorporateProperty(id, adminId);
+      return ResponseEntity.ok(responseFactory.success("Inmueble reincorporado exitosamente al inventario", data));
+  }
 }
