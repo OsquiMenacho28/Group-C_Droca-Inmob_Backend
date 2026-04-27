@@ -641,30 +641,36 @@ public class PropertyService {
 
   @Auditable(action = "PROPERTY_REINCORPORATE")
   public PropertyResponse reincorporateProperty(String id, String userId) {
-    PropertyDocument prop = propertyRepository.findById(id)
+    PropertyDocument prop =
+        propertyRepository
+            .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
 
-    String currentStatus = prop.getStatus().toUpperCase();
+    PropertyStatus currentStatus = prop.getStatus();
 
-    // Validación de estados previos permitidos (VENDIDO o RETIRADO)
-    if (!currentStatus.equals("VENDIDO") && !currentStatus.equals("RETIRADO")) {
-        throw new ValidationException("Solo se pueden reincorporar inmuebles con estado VENDIDO o RETIRADO. Estado actual: " + currentStatus);
+    // Validación de estados previos permitidos (VENDIDO o ELIMINADO - mapped from RETIRADO logic)
+    if (currentStatus != PropertyStatus.VENDIDO && currentStatus != PropertyStatus.ELIMINADO) {
+      throw new ValidationException(
+          "Solo se pueden reincorporar inmuebles con estado VENDIDO o ELIMINADO. Estado actual: "
+              + currentStatus);
     }
 
     // Registrar en el historial de estados
     if (prop.getStatusHistory() == null) {
-        prop.setStatusHistory(new ArrayList<>());
+      prop.setStatusHistory(new ArrayList<>());
     }
 
-    prop.getStatusHistory().add(StatusHistory.builder()
-            .oldStatus(currentStatus)
-            .newStatus("DISPONIBLE")
-            .changedAt(Instant.now())
-            .changedBy(userId)
-            .build());
+    prop.getStatusHistory()
+        .add(
+            StatusHistory.builder()
+                .oldStatus(currentStatus.name())
+                .newStatus(PropertyStatus.DISPONIBLE.name())
+                .changedAt(Instant.now())
+                .changedBy(userId)
+                .build());
 
     // Actualizar estado principal
-    prop.setStatus("DISPONIBLE");
+    prop.setStatus(PropertyStatus.DISPONIBLE);
     prop.setUpdatedAt(Instant.now());
 
     log.info("Inmueble {} reincorporado al inventario por usuario {}", id, userId);
