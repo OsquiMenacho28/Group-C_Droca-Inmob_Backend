@@ -1,6 +1,9 @@
 package com.inmobiliaria.property_service.controller;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -254,5 +257,20 @@ public class PropertyController {
     PropertyResponse data = propertyService.reincorporateProperty(id, adminId);
     return ResponseEntity.ok(
         responseFactory.success("Inmueble reincorporado exitosamente al inventario", data));
+  }
+
+  @PostMapping("/{id}/retirar")
+  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> retireProperty(
+          @PathVariable String id,
+          @Valid @RequestBody RetirePropertyRequest request,
+          @RequestHeader("X-Auth-User-Id") String userId,
+          @RequestHeader("X-Auth-Roles") String roles) {
+      // Convertir la cadena de roles a List<String>
+      List<String> roleList = Arrays.stream(roles.split(","))
+              .map(String::trim)
+              .collect(Collectors.toList());
+      PropertyResponse response = propertyService.retireProperty(id, request, userId, roleList);
+      return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
   }
 }
