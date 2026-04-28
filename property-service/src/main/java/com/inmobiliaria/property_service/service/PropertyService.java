@@ -641,42 +641,40 @@ public class PropertyService {
 
   @Auditable(action = "PROPERTY_REINCORPORATE")
   public PropertyResponse reincorporateProperty(String id, String userId) {
-    PropertyDocument prop =
-        propertyRepository
-            .findById(id)
-    PropertyDocument prop =
+    PropertyDocument prop1 =
         propertyRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
 
-    PropertyStatus currentStatus = prop.getStatus();
+    PropertyStatus currentStatus = prop1.getStatus();
 
     // Validación de estados previos permitidos (VENDIDO o RETIRADO)
-    if (!currentStatus.equals("VENDIDO") && !currentStatus.equals("RETIRADO")) {
+    if (currentStatus != PropertyStatus.VENDIDO && currentStatus != PropertyStatus.RETIRADO) {
       throw new ValidationException(
           "Solo se pueden reincorporar inmuebles con estado VENDIDO o RETIRADO. Estado actual: "
               + currentStatus);
     }
 
     // Registrar en el historial de estados
-    if (prop.getStatusHistory() == null) {
-      prop.setStatusHistory(new ArrayList<>());
+    if (prop1.getStatusHistory() == null) {
+      prop1.setStatusHistory(new ArrayList<>());
     }
 
-    prop.getStatusHistory()
+    prop1
+        .getStatusHistory()
         .add(
             StatusHistory.builder()
-                .oldStatus(currentStatus)
-                .newStatus("DISPONIBLE")
+                .oldStatus(currentStatus.name())
+                .newStatus(PropertyStatus.DISPONIBLE.name())
                 .changedAt(Instant.now())
                 .changedBy(userId)
                 .build());
 
     // Actualizar estado principal
-    prop.setStatus(PropertyStatus.DISPONIBLE);
-    prop.setUpdatedAt(Instant.now());
+    prop1.setStatus(PropertyStatus.DISPONIBLE);
+    prop1.setUpdatedAt(Instant.now());
 
     log.info("Inmueble {} reincorporado al inventario por usuario {}", id, userId);
-    return mapToResponse(propertyRepository.save(prop));
+    return mapToResponse(propertyRepository.save(prop1));
   }
 }
