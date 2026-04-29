@@ -43,15 +43,26 @@ public class OperationController {
         responseFactory.success("Operation retrieved successfully", operationService.findById(id)));
   }
 
+  @GetMapping("/property/{propertyId}")
+  public ResponseEntity<ApiResponse<OperationResponse>> getOperationByPropertyId(
+      @PathVariable String propertyId) {
+    return ResponseEntity.ok(
+        responseFactory.success(
+            "Operation retrieved successfully", operationService.findByPropertyId(propertyId)));
+  }
+
   @PostMapping
   public ResponseEntity<ApiResponse<OperationResponse>> createOperation(
       @Valid @RequestBody OperationRequest request,
       @RequestHeader("X-Auth-User-Id") String userId,
-      @RequestHeader(value = "X-Auth-Roles", required = false) String roles) {
+      @RequestHeader(value = "X-Auth-Roles", required = false) String roles,
+      @RequestHeader(value = "X-Skip-Property-Sync", defaultValue = "false")
+          boolean skipPropertySync) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(
             responseFactory.created(
-                "Operation created successfully", operationService.create(request, userId, roles)));
+                "Operation created successfully",
+                operationService.create(request, userId, roles, !skipPropertySync)));
   }
 
   @PatchMapping("/{id}/status")
@@ -65,6 +76,17 @@ public class OperationController {
         responseFactory.success(
             "Operation status updated successfully",
             operationService.updateStatus(id, status, userId, roles)));
+  }
+
+  @PostMapping("/property/{propertyId}/sold/cancel")
+  public ResponseEntity<ApiResponse<OperationResponse>> cancelSoldOperationForProperty(
+      @PathVariable String propertyId,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader(value = "X-Auth-Roles", required = false) String roles) {
+    return ResponseEntity.ok(
+        responseFactory.success(
+            "Sold operation cancelled successfully",
+            operationService.cancelSoldOperationForProperty(propertyId, userId, roles)));
   }
 
   @GetMapping("/reports/agent-ranking")

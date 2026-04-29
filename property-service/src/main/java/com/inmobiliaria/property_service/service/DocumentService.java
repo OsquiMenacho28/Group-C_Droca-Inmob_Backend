@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.property_service.domain.DocumentMetadata;
 import com.inmobiliaria.property_service.domain.PropertyDocument;
-import com.inmobiliaria.property_service.domain.PropertyStatus;
 import com.inmobiliaria.property_service.dto.request.ConfirmUploadRequest;
 import com.inmobiliaria.property_service.dto.request.GenerateUploadUrlRequest;
 import com.inmobiliaria.property_service.dto.response.DocumentResponse;
@@ -179,14 +178,6 @@ public class DocumentService {
       property.setDocuments(new ArrayList<>());
     }
     property.getDocuments().add(document);
-
-    // US1 AC3: Update property status for exclusivity contract
-    if ("EXCLUSIVITY_CONTRACT".equals(request.getDocumentType())) {
-      property.setStatus(PropertyStatus.CONTRACTED);
-      log.info(
-          "Property {} status updated to CONTRACTED after exclusivity contract upload",
-          property.getId());
-    }
 
     property.setUpdatedAt(Instant.now());
     PropertyDocument saved = propertyRepository.save(property);

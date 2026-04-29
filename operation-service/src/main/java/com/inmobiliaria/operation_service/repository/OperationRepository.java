@@ -20,4 +20,10 @@ public interface OperationRepository extends MongoRepository<OperationDocument, 
   List<OperationDocument> findByClientId(String clientId);
 
   java.util.Optional<OperationDocument> findByPropertyIdAndStatus(String propertyId, String status);
+
+  java.util.Optional<OperationDocument> findFirstByPropertyIdAndStatusOrderByCreatedAtDesc(
+      String propertyId, String status);
+
+  java.util.Optional<OperationDocument> findFirstByPropertyIdOrderByCreatedAtDesc(
+      String propertyId);
 }

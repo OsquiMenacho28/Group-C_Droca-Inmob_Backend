@@ -190,12 +190,14 @@ public class PropertyController {
   }
 
   @PatchMapping("/{id}/status")
-  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN') or #isInternal")
   public ResponseEntity<ApiResponse<PropertyResponse>> updateStatus(
       @PathVariable String id,
       @Valid @RequestBody UpdateStatusRequest request,
       @RequestHeader("X-Auth-User-Id") String userId,
-      @RequestHeader(value = "X-Internal-Call", defaultValue = "false") boolean isInternal) {
+      @RequestHeader(value = "X-Internal-Call", defaultValue = "false")
+          @org.springframework.security.access.method.P("isInternal")
+          boolean isInternal) {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     List<String> roles =
@@ -229,8 +231,6 @@ public class PropertyController {
     return ResponseEntity.ok(responseFactory.success("Properties found", data));
   }
 
-  // ... (dentro de PropertyController)
-
   @PatchMapping("/{id}/location")
   @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<PropertyResponse>> updateLocation(
@@ -247,30 +247,37 @@ public class PropertyController {
         responseFactory.success("Ubicación geográfica actualizada correctamente", data));
   }
 
+  // REINCORPORATE - Your feature (US-59 relist)
   @PostMapping("/{id}/reincorporate")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<PropertyResponse>> reincorporate(
-      @PathVariable String id, @RequestHeader("X-Auth-User-Id") String adminId) {
+      @PathVariable String id,
+      @RequestHeader("X-Auth-User-Id") String adminId,
+      @RequestHeader("X-Auth-Roles") String rolesHeader) {
 
-    PropertyResponse data = propertyService.reincorporateProperty(id, adminId);
+    List<String> roles = Arrays.asList(rolesHeader.replace("[", "").replace("]", "").split(","));
+    PropertyResponse data = propertyService.reincorporateProperty(id, adminId, roles);
     return ResponseEntity.ok(
         responseFactory.success("Inmueble reincorporado exitosamente al inventario", data));
   }
 
+  // RETIRAR - Their feature (track why listing got down) + Your feature integration
   @PostMapping("/{id}/retirar")
   @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
   public ResponseEntity<ApiResponse<PropertyResponse>> retireProperty(
       @PathVariable String id,
       @Valid @RequestBody RetirePropertyRequest request,
       @RequestHeader("X-Auth-User-Id") String userId,
-      @RequestHeader("X-Auth-Roles") String roles) {
+      @RequestHeader("X-Auth-Roles") String rolesHeader) {
+
     // Convertir el header a lista de roles con prefijo ROLE_
-    List<String> roleList =
-        Arrays.stream(roles.split(","))
+    List<String> roles =
+        Arrays.stream(rolesHeader.split(","))
             .map(String::trim)
             .map(role -> "ROLE_" + role)
             .collect(Collectors.toList());
-    PropertyResponse response = propertyService.retireProperty(id, request, userId, roleList);
+
+    PropertyResponse response = propertyService.retireProperty(id, request, userId, roles);
     return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
   }
 }

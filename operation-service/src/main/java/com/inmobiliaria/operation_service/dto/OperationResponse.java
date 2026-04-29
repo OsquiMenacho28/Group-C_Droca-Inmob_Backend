@@ -1,6 +1,9 @@
 package com.inmobiliaria.operation_service.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import com.inmobiliaria.operation_service.domain.OperationStatusHistory;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,4 +33,5 @@ public class OperationResponse {
   private String notes;
   private LocalDateTime closureDate;
   private LocalDateTime createdAt;
+  private List<OperationStatusHistory> statusHistory;
 }

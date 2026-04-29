@@ -5,7 +5,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -13,9 +15,11 @@ import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.operation_service.client.PropertyClient;
 import com.inmobiliaria.operation_service.domain.OperationDocument;
+import com.inmobiliaria.operation_service.domain.OperationStatusHistory;
 import com.inmobiliaria.operation_service.dto.OperationRequest;
 import com.inmobiliaria.operation_service.dto.OperationResponse;
 import com.inmobiliaria.operation_service.exception.ResourceNotFoundException;
+import com.inmobiliaria.operation_service.exception.ValidationException;
 import com.inmobiliaria.operation_service.repository.OperationRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -47,12 +51,7 @@ public class OperationService {
     // Check for Admin (flexible check)
     if (roles.contains("ROLE_ADMIN") || roles.contains("ADMIN")) {
       log.info("[OperationService] User {} has ADMIN privileges. Fetching all operations.", userId);
-      return operationRepository.findAll().stream()
-          .sorted(
-              (a, b) -> {
-                if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
-                return b.getCreatedAt().compareTo(a.getCreatedAt());
-              })
+      return latestOperationPerProperty(operationRepository.findAll()).stream()
           .map(this::mapToResponse)
           .collect(Collectors.toList());
     }
@@ -83,12 +82,7 @@ public class OperationService {
         userId,
         combinedOperations.size());
 
-    return combinedOperations.stream()
-        .sorted(
-            (a, b) -> {
-              if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
-              return b.getCreatedAt().compareTo(a.getCreatedAt());
-            })
+    return latestOperationPerProperty(combinedOperations.stream().toList()).stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
@@ -101,7 +95,23 @@ public class OperationService {
     return mapToResponse(operation);
   }
 
+  public OperationResponse findByPropertyId(String propertyId) {
+    OperationDocument operation =
+        operationRepository
+            .findFirstByPropertyIdOrderByCreatedAtDesc(propertyId)
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "No operation found for propertyId: " + propertyId));
+    return mapToResponse(operation);
+  }
+
   public OperationResponse create(OperationRequest request, String userId, String roles) {
+    return create(request, userId, roles, true);
+  }
+
+  public OperationResponse create(
+      OperationRequest request, String userId, String roles, boolean syncProperty) {
     // Prevent duplicate closure
     if ("CLOSED".equalsIgnoreCase(request.getStatus())) {
       operationRepository
@@ -136,16 +146,19 @@ public class OperationService {
 
     operation.setCreatedAt(Instant.now());
     operation.setCreatedBy(userId);
+    appendStatusHistory(operation, null, request.getStatus(), userId, "Operation created");
 
     OperationDocument saved = operationRepository.save(operation);
 
-    try {
-      syncPropertyStatus(saved.getPropertyId(), saved.getStatus(), userId);
-    } catch (Exception e) {
-      log.error("Failed to sync status, rolling back operation creation: {}", e.getMessage());
-      operationRepository.delete(saved);
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
-          "Failed to update property status. Operation cancelled: " + e.getMessage());
+    if (syncProperty) {
+      try {
+        syncPropertyStatus(saved.getPropertyId(), saved.getStatus(), userId);
+      } catch (Exception e) {
+        log.error("Failed to sync status, rolling back operation creation: {}", e.getMessage());
+        operationRepository.delete(saved);
+        throw new com.inmobiliaria.operation_service.exception.ValidationException(
+            "Failed to update property status. Operation cancelled: " + e.getMessage());
+      }
     }
 
     return mapToResponse(saved);
@@ -153,6 +166,7 @@ public class OperationService {
 
   public OperationResponse updateStatus(
       String id, String status, String userId, String rolesHeader) {
+    // Buscar la operación una sola vez
     OperationDocument operation =
         operationRepository
             .findById(id)
@@ -160,34 +174,40 @@ public class OperationService {
 
     String oldStatus = operation.getStatus();
 
-    // Permission Check
-    String cleanRoles = rolesHeader.replace("[", "").replace("]", "").replace(" ", "");
-    List<String> roles = Arrays.asList(cleanRoles.split(","));
+    // Normalizar roles - agregar import org.springframework.http.HttpStatus si es necesario
+    if (rolesHeader == null) rolesHeader = "";
+    String cleanRoles =
+        rolesHeader.replace("[", "").replace("]", "").replace(" ", "").toUpperCase();
+    List<String> rawRoles = Arrays.asList(cleanRoles.split(","));
 
-    boolean isAdmin = roles.contains("ROLE_ADMIN");
+    // Normalizar roles (asegurar que tengan prefijo ROLE_)
+    List<String> normalizedRoles =
+        rawRoles.stream()
+            .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+            .collect(Collectors.toList());
+
+    boolean isAdmin = normalizedRoles.contains("ROLE_ADMIN");
     boolean isAssignedAgent = userId.equals(operation.getAgentId());
 
     if (!isAdmin && !isAssignedAgent) {
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+      throw new ValidationException(
           "Only Admins or the assigned Agent can update the operation status.");
     }
 
-    // Bloquear cualquier cambio si la operación ya está CERRADA, excepto para CANCELARLA si es
-    // inválida
+    // Validaciones de estado
     if ("CLOSED".equalsIgnoreCase(oldStatus) && !"CANCELLED".equalsIgnoreCase(status)) {
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+      throw new ValidationException(
           "Esta operación ya ha sido CERRADA de forma definitiva y no puede ser modificada.");
     }
 
-    // Si ya está CANCELADA, no se puede mover a otro estado
     if ("CANCELLED".equalsIgnoreCase(oldStatus)) {
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
-          "La operación ya ha sido cancelada y no puede ser reactivada.");
+      throw new ValidationException("La operación ya ha sido cancelada y no puede ser reactivada.");
     }
 
+    // Actualizar estado
     operation.setStatus(status);
     operation.setUpdatedAt(Instant.now());
-
+    appendStatusHistory(operation, oldStatus, status, userId, "Operation status updated");
     OperationDocument saved = operationRepository.save(operation);
 
     try {
@@ -195,12 +215,26 @@ public class OperationService {
     } catch (Exception e) {
       log.error("Failed to sync status, rolling back status update: {}", e.getMessage());
       operation.setStatus(oldStatus);
+      removeLatestStatusHistory(operation);
       operationRepository.save(operation);
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+      throw new ValidationException(
           "Failed to update property status. Reverting operation status: " + e.getMessage());
     }
 
     return mapToResponse(saved);
+  }
+
+  public OperationResponse cancelSoldOperationForProperty(
+      String propertyId, String userId, String rolesHeader) {
+    OperationDocument soldOperation =
+        operationRepository
+            .findFirstByPropertyIdAndStatusOrderByCreatedAtDesc(propertyId, "CLOSED")
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "No CLOSED operation found for propertyId: " + propertyId));
+
+    return updateStatus(soldOperation.getId(), "CANCELLED", userId, rolesHeader);
   }
 
   private void syncPropertyStatus(String propertyId, String operationStatus, String userId) {
@@ -226,6 +260,58 @@ public class OperationService {
     };
   }
 
+  private List<OperationDocument> latestOperationPerProperty(List<OperationDocument> operations) {
+    Map<String, OperationDocument> latestByProperty = new LinkedHashMap<>();
+
+    operations.stream()
+        .sorted(this::compareNewestFirst)
+        .forEach(
+            operation -> {
+              String key =
+                  operation.getPropertyId() != null ? operation.getPropertyId() : operation.getId();
+              latestByProperty.putIfAbsent(key, operation);
+            });
+
+    return new ArrayList<>(latestByProperty.values());
+  }
+
+  private int compareNewestFirst(OperationDocument a, OperationDocument b) {
+    Instant aDate = a.getCreatedAt();
+    Instant bDate = b.getCreatedAt();
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+    return bDate.compareTo(aDate);
+  }
+
+  private void appendStatusHistory(
+      OperationDocument operation,
+      String oldStatus,
+      String newStatus,
+      String userId,
+      String notes) {
+    if (operation.getStatusHistory() == null) {
+      operation.setStatusHistory(new ArrayList<>());
+    }
+    operation
+        .getStatusHistory()
+        .add(
+            OperationStatusHistory.builder()
+                .oldStatus(oldStatus)
+                .newStatus(newStatus)
+                .changedAt(Instant.now())
+                .changedBy(userId)
+                .notes(notes)
+                .build());
+  }
+
+  private void removeLatestStatusHistory(OperationDocument operation) {
+    if (operation.getStatusHistory() == null || operation.getStatusHistory().isEmpty()) {
+      return;
+    }
+    operation.getStatusHistory().remove(operation.getStatusHistory().size() - 1);
+  }
+
   private OperationResponse mapToResponse(OperationDocument op) {
     return OperationResponse.builder()
         .id(op.getId())
@@ -249,6 +335,7 @@ public class OperationService {
             op.getCreatedAt() != null
                 ? LocalDateTime.ofInstant(op.getCreatedAt(), java.time.ZoneOffset.UTC)
                 : null)
+        .statusHistory(op.getStatusHistory() != null ? op.getStatusHistory() : new ArrayList<>())
         .build();
   }
 }

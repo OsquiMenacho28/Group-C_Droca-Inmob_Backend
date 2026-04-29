@@ -32,6 +32,13 @@ public class GlobalExceptionHandler {
         .body(responseFactory.forbidden(ex.getMessage()));
   }
 
+  @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+  public ResponseEntity<ApiResponse<Void>> handleSpringAccessDenied(
+      org.springframework.security.access.AccessDeniedException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(responseFactory.forbidden("Access Denied: " + ex.getMessage()));
+  }
+
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<ApiResponse<Void>> handleValidation(ValidationException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -59,5 +66,11 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(responseFactory.error("An unexpected error occurred: " + ex.getMessage()));
+  }
+
+  @ExceptionHandler(ConflictException.class)
+  public ResponseEntity<ApiResponse<Void>> handleConflict(ConflictException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(responseFactory.conflict(ex.getMessage(), "status", "STATUS_NOT_ALLOWED"));
   }
 }
