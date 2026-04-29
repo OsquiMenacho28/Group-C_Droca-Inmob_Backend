@@ -20,9 +20,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class UserContextFilter extends OncePerRequestFilter {
-  
+
   private static final Logger logger = LoggerFactory.getLogger(UserContextFilter.class);
-  
+
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

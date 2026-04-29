@@ -1,6 +1,8 @@
 package com.inmobiliaria.operation_service.domain;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -39,4 +41,6 @@ public class OperationDocument extends BaseDocument {
   private String status;
   private String notes;
   private LocalDateTime closureDate;
+
+  @Builder.Default private List<OperationStatusHistory> statusHistory = new ArrayList<>();
 }

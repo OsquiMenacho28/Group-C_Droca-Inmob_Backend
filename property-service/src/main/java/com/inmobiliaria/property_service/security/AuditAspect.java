@@ -60,6 +60,10 @@ public class AuditAspect {
       if (afterState != null) {
         changes = calculateChanges(beforeState, afterState);
 
+        if (changes.isEmpty()) {
+          return result;
+        }
+
         // Summaries for the main table view
         previousSummary = beforeState.getStatus() != null ? beforeState.getStatus().name() : "N/A";
         newSummary = afterState.getStatus() != null ? afterState.getStatus().name() : "N/A";

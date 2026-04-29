@@ -31,7 +31,26 @@ public class ReceiptService {
   private final MinioStorageService minioStorageService;
 
   public ReceiptResponse attachReceipt(
-      String operationId, String agentId, MultipartFile file, ReceiptUploadRequest request) {
+      String operationId,
+      String userId,
+      String rolesHeader,
+      MultipartFile file,
+      ReceiptUploadRequest request) {
+
+    OperationDocument operation =
+        operationRepository
+            .findById(operationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Operation not found"));
+
+    if (!isRelatedUser(operation, userId, rolesHeader)) {
+      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+          "You do not have permission to upload receipts for this operation.");
+    }
+
+    if (!"PENDING".equalsIgnoreCase(operation.getStatus())) {
+      throw new IllegalArgumentException(
+          "Receipts can only be uploaded while the property is reserved.");
+    }
 
     // 1. Upload to MinIO
     String minioPath = minioStorageService.uploadFile(file, operationId);
@@ -50,7 +69,7 @@ public class ReceiptService {
             .build();
 
     doc.setCreatedAt(Instant.now());
-    doc.setCreatedBy(agentId);
+    doc.setCreatedBy(userId);
 
     ReceiptDocument saved = receiptRepository.save(doc);
     return mapToResponse(saved);
@@ -79,11 +98,7 @@ public class ReceiptService {
             .findById(operationId)
             .orElseThrow(() -> new ResourceNotFoundException("Operation not found"));
 
-    List<String> roles = Arrays.asList(rolesHeader.split(","));
-    boolean isAdmin = roles.contains("ROLE_ADMIN");
-    boolean isAssignedAgent = userId.equals(operation.getAgentId());
-
-    if (!isAdmin && !isAssignedAgent) {
+    if (!isAdminOrAssignedAgent(operation, userId, rolesHeader)) {
       throw new com.inmobiliaria.operation_service.exception.ValidationException(
           "You do not have permission to delete this receipt.");
     }
@@ -93,6 +108,28 @@ public class ReceiptService {
 
     // Delete from Mongo
     receiptRepository.delete(doc);
+  }
+
+  private boolean isRelatedUser(OperationDocument operation, String userId, String rolesHeader) {
+    return hasAdminRole(rolesHeader)
+        || userId.equals(operation.getAgentId())
+        || userId.equals(operation.getOwnerId())
+        || userId.equals(operation.getClientId());
+  }
+
+  private boolean isAdminOrAssignedAgent(
+      OperationDocument operation, String userId, String rolesHeader) {
+    return hasAdminRole(rolesHeader) || userId.equals(operation.getAgentId());
+  }
+
+  private boolean hasAdminRole(String rolesHeader) {
+    if (rolesHeader == null || rolesHeader.isBlank()) {
+      return false;
+    }
+    return Arrays.stream(rolesHeader.replace("[", "").replace("]", "").split(","))
+        .map(String::trim)
+        .map(String::toUpperCase)
+        .anyMatch(role -> role.equals("ADMIN") || role.equals("ROLE_ADMIN"));
   }
 
   private ReceiptResponse mapToResponse(ReceiptDocument doc) {

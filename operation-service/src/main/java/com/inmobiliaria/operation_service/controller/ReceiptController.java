@@ -40,7 +40,8 @@ public class ReceiptController {
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ApiResponse<ReceiptResponse>> attachReceipt(
       @PathVariable String operationId,
-      @RequestHeader("X-Auth-User-Id") String agentId,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader("X-Auth-Roles") String roles,
       @RequestParam("file") MultipartFile file,
       @RequestParam("amount") String amount,
       @RequestParam("currency") String currency,
@@ -62,7 +63,8 @@ public class ReceiptController {
       request.setPaymentDate(parsedDate);
       request.setConcept(concept);
 
-      ReceiptResponse response = receiptService.attachReceipt(operationId, agentId, file, request);
+      ReceiptResponse response =
+          receiptService.attachReceipt(operationId, userId, roles, file, request);
       return ResponseEntity.status(HttpStatus.CREATED)
           .body(responseFactory.created("Receipt attached successfully", response));
 
@@ -70,6 +72,12 @@ public class ReceiptController {
       log.warn("[ReceiptController] Invalid date format: {}", paymentDate);
       return ResponseEntity.status(HttpStatus.BAD_REQUEST)
           .body(responseFactory.error("Invalid date format. Expected ISO-8601."));
+    } catch (com.inmobiliaria.operation_service.exception.ResourceNotFoundException e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(responseFactory.error(e.getMessage()));
+    } catch (com.inmobiliaria.operation_service.exception.ValidationException e) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+          .body(responseFactory.error(e.getMessage()));
     } catch (IllegalArgumentException e) {
       log.warn("[ReceiptController] Invalid file upload attempt: {}", e.getMessage());
       return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)

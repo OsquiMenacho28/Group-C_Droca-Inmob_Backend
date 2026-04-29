@@ -189,12 +189,14 @@ public class PropertyController {
   }
 
   @PatchMapping("/{id}/status")
-  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN') or #isInternal")
   public ResponseEntity<ApiResponse<PropertyResponse>> updateStatus(
       @PathVariable String id,
       @Valid @RequestBody UpdateStatusRequest request,
       @RequestHeader("X-Auth-User-Id") String userId,
-      @RequestHeader(value = "X-Internal-Call", defaultValue = "false") boolean isInternal) {
+      @RequestHeader(value = "X-Internal-Call", defaultValue = "false")
+          @org.springframework.security.access.method.P("isInternal")
+          boolean isInternal) {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     List<String> roles =
@@ -249,10 +251,25 @@ public class PropertyController {
   @PostMapping("/{id}/reincorporate")
   @PreAuthorize("hasRole('ADMIN')") // Solo el administrador según la historia de usuario
   public ResponseEntity<ApiResponse<PropertyResponse>> reincorporate(
-      @PathVariable String id, @RequestHeader("X-Auth-User-Id") String adminId) {
+      @PathVariable String id,
+      @RequestHeader("X-Auth-User-Id") String adminId,
+      @RequestHeader("X-Auth-Roles") String rolesHeader) {
 
-    PropertyResponse data = propertyService.reincorporateProperty(id, adminId);
+    List<String> roles = Arrays.asList(rolesHeader.replace("[", "").replace("]", "").split(","));
+    PropertyResponse data = propertyService.reincorporateProperty(id, adminId, roles);
     return ResponseEntity.ok(
         responseFactory.success("Inmueble reincorporado exitosamente al inventario", data));
+  }
+
+  @PatchMapping("/{id}/retirar")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> withdraw(
+      @PathVariable String id,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader("X-Auth-Roles") String rolesHeader) {
+
+    List<String> roles = Arrays.asList(rolesHeader.replace("[", "").replace("]", "").split(","));
+    PropertyResponse data = propertyService.withdrawProperty(id, userId, roles);
+    return ResponseEntity.ok(responseFactory.success("Inmueble retirado exitosamente", data));
   }
 }

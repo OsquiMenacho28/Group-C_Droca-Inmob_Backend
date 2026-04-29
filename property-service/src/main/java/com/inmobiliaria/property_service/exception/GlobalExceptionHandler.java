@@ -32,6 +32,13 @@ public class GlobalExceptionHandler {
         .body(responseFactory.forbidden(ex.getMessage()));
   }
 
+  @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+  public ResponseEntity<ApiResponse<Void>> handleSpringAccessDenied(
+      org.springframework.security.access.AccessDeniedException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(responseFactory.forbidden("Access Denied: " + ex.getMessage()));
+  }
+
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<ApiResponse<Void>> handleValidation(ValidationException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
