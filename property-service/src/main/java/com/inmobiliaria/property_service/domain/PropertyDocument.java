@@ -31,6 +31,8 @@ public class PropertyDocument extends BaseDocument {
   private String ownerId;
   private Double latitude;
   private Double longitude;
+  private RetirementReason motivoRetiro;
+  private String detalleRetiro;
 
   @Builder.Default private List<String> imageUrls = new ArrayList<>();
 

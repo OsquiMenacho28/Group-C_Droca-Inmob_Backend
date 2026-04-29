@@ -1,6 +1,7 @@
 package com.inmobiliaria.property_service.controller;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -230,8 +231,6 @@ public class PropertyController {
     return ResponseEntity.ok(responseFactory.success("Properties found", data));
   }
 
-  // ... (dentro de PropertyController)
-
   @PatchMapping("/{id}/location")
   @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<PropertyResponse>> updateLocation(
@@ -248,8 +247,9 @@ public class PropertyController {
         responseFactory.success("Ubicación geográfica actualizada correctamente", data));
   }
 
+  // REINCORPORATE - Your feature (US-59 relist)
   @PostMapping("/{id}/reincorporate")
-  @PreAuthorize("hasRole('ADMIN')") // Solo el administrador según la historia de usuario
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<PropertyResponse>> reincorporate(
       @PathVariable String id,
       @RequestHeader("X-Auth-User-Id") String adminId,
@@ -261,15 +261,22 @@ public class PropertyController {
         responseFactory.success("Inmueble reincorporado exitosamente al inventario", data));
   }
 
-  @PatchMapping("/{id}/retirar")
-  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
-  public ResponseEntity<ApiResponse<PropertyResponse>> withdraw(
+  // RETIRAR - Their feature (track why listing got down) + Your feature integration
+  @PostMapping("/{id}/retirar")
+  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> retireProperty(
       @PathVariable String id,
+      @Valid @RequestBody RetirePropertyRequest request,
       @RequestHeader("X-Auth-User-Id") String userId,
       @RequestHeader("X-Auth-Roles") String rolesHeader) {
 
-    List<String> roles = Arrays.asList(rolesHeader.replace("[", "").replace("]", "").split(","));
-    PropertyResponse data = propertyService.withdrawProperty(id, userId, roles);
-    return ResponseEntity.ok(responseFactory.success("Inmueble retirado exitosamente", data));
+    // Convertir el header a lista de roles con prefijo ROLE_
+    List<String> roles = Arrays.stream(rolesHeader.split(","))
+        .map(String::trim)
+        .map(role -> "ROLE_" + role)
+        .collect(Collectors.toList());
+
+    PropertyResponse response = propertyService.retireProperty(id, request, userId, roles);
+    return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
   }
 }
