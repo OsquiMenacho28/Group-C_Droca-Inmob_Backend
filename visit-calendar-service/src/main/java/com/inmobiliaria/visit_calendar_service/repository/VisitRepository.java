@@ -21,7 +21,8 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
   List<Visit> findByAgentId(String agentId);
 
   /** Citas de un agente en un rango de fechas */
-  List<Visit> findByAgentIdAndDateRange(String agentId, LocalDateTime start, LocalDateTime end);
+  List<Visit> findByAgentIdAndStartTimeBetween(
+      String agentId, LocalDateTime start, LocalDateTime end);
 
   /** Citas de un cliente */
   List<Visit> findByClientId(String clientId);
@@ -42,7 +43,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
    * @param windowEnd End of the conflict window (newDateTime plus buffer)
    * @param status Only check against SCHEDULED visits
    */
-  boolean existsByAgentIdAndDateRangeAndStatus(
+  boolean existsByAgentIdAndStartTimeBetweenAndStatus(
       String agentId, LocalDateTime windowStart, LocalDateTime windowEnd, EventStatus status);
 
   /**
@@ -50,7 +51,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
    *
    * <p>Used to prevent scheduling two visits to the same property at the same time.
    */
-  boolean existsByPropertyIdAndDateRangeAndStatus(
+  boolean existsByPropertyIdAndStartTimeBetweenAndStatus(
       String propertyId, LocalDateTime windowStart, LocalDateTime windowEnd, EventStatus status);
 
   /**
