@@ -17,6 +17,7 @@ import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.dto.response.ResponsableResponse;
 import com.inmobiliaria.property_service.exception.AccessDeniedException;
+import com.inmobiliaria.property_service.exception.ConflictException;
 import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.exception.ValidationException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
@@ -56,7 +57,15 @@ public class PropertyService {
     Query query = new Query();
     List<Criteria> filters = new ArrayList<>();
 
-    filters.add(Criteria.where("deleted").is(false));
+    if (status != null && status.equalsIgnoreCase("ELIMINADO")) {
+        filters.add(Criteria.where("deleted").is(true)); // Si pide eliminados, buscamos borrados lógicos
+    } else {
+        filters.add(Criteria.where("deleted").is(false)); // Por defecto, solo lo no borrado
+    }
+
+    if (status != null && !status.isBlank()) {
+        filters.add(Criteria.where("status").is(PropertyStatus.valueOf(status.toUpperCase())));
+    };
 
     if (title != null && !title.isBlank()) {
       filters.add(Criteria.where("title").regex(title, "i"));
@@ -639,42 +648,38 @@ public class PropertyService {
     }
   }
 
-  @Auditable(action = "PROPERTY_REINCORPORATE")
-  public PropertyResponse reincorporateProperty(String id, String userId) {
-    PropertyDocument prop1 =
-        propertyRepository
-            .findById(id)
+  @Auditable(action="PROPERTY_REINCORPORATE")
+public PropertyResponse reincorporateProperty(String id, String userId) {
+    // Buscamos la propiedad (importante: si usas findById de un repositorio normal, 
+    // asegúrate de que MongoDB no esté filtrando las 'deleted' automáticamente)
+    PropertyDocument prop = propertyRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inmueble no encontrado"));
+    
+    PropertyStatus currentStatus = prop.getStatus();
 
-    PropertyStatus currentStatus = prop1.getStatus();
-
-    // Validación de estados previos permitidos (VENDIDO o RETIRADO)
-    if (currentStatus != PropertyStatus.VENDIDO && currentStatus != PropertyStatus.RETIRADO) {
-      throw new ValidationException(
-          "Solo se pueden reincorporar inmuebles con estado VENDIDO o RETIRADO. Estado actual: "
-              + currentStatus);
+    // Validamos estados permitidos para reincorporación
+    if (currentStatus != PropertyStatus.ELIMINADO && 
+        currentStatus != PropertyStatus.RETIRADO && 
+        currentStatus != PropertyStatus.VENDIDO) {
+        throw new ConflictException("Solo se pueden reincorporar inmuebles en estado ELIMINADO, RETIRADO o VENDIDO.");
     }
 
-    // Registrar en el historial de estados
-    if (prop1.getStatusHistory() == null) {
-      prop1.setStatusHistory(new ArrayList<>());
-    }
+    // Preparamos el historial de estados
+    if (prop.getStatusHistory() == null) prop.setStatusHistory(new ArrayList<>());
+    
+    prop.getStatusHistory().add(StatusHistory.builder()
+            .oldStatus(currentStatus.name())
+            .newStatus(PropertyStatus.DISPONIBLE.name())
+            .changedAt(Instant.now())
+            .changedBy(userId)
+            .build());
 
-    prop1
-        .getStatusHistory()
-        .add(
-            StatusHistory.builder()
-                .oldStatus(currentStatus.name())
-                .newStatus(PropertyStatus.DISPONIBLE.name())
-                .changedAt(Instant.now())
-                .changedBy(userId)
-                .build());
+    // Acción principal: Reincorporación
+    prop.setStatus(PropertyStatus.DISPONIBLE);
+    prop.setDeleted(false); // <--- Crucial para que vuelva a aparecer en filtros normales
+    prop.setUpdatedAt(Instant.now());
 
-    // Actualizar estado principal
-    prop1.setStatus(PropertyStatus.DISPONIBLE);
-    prop1.setUpdatedAt(Instant.now());
-
-    log.info("Inmueble {} reincorporado al inventario por usuario {}", id, userId);
-    return mapToResponse(propertyRepository.save(prop1));
-  }
+    log.info("Inmueble {} reincorporado por el administrador {}", id, userId);
+    return mapToResponse(propertyRepository.save(prop));
+}
 }

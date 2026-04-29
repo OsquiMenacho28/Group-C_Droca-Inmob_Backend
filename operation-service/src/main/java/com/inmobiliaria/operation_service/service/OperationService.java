@@ -16,6 +16,7 @@ import com.inmobiliaria.operation_service.domain.OperationDocument;
 import com.inmobiliaria.operation_service.dto.OperationRequest;
 import com.inmobiliaria.operation_service.dto.OperationResponse;
 import com.inmobiliaria.operation_service.exception.ResourceNotFoundException;
+import com.inmobiliaria.operation_service.exception.ValidationException;
 import com.inmobiliaria.operation_service.repository.OperationRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -153,6 +154,7 @@ public class OperationService {
 
   public OperationResponse updateStatus(
       String id, String status, String userId, String rolesHeader) {
+    // Buscar la operación una sola vez
     OperationDocument operation =
         operationRepository
             .findById(id)
@@ -160,34 +162,39 @@ public class OperationService {
 
     String oldStatus = operation.getStatus();
 
-    // Permission Check
-    String cleanRoles = rolesHeader.replace("[", "").replace("]", "").replace(" ", "");
-    List<String> roles = Arrays.asList(cleanRoles.split(","));
+    // Normalizar roles - agregar import org.springframework.http.HttpStatus si es necesario
+    if (rolesHeader == null) rolesHeader = "";
+    String cleanRoles =
+        rolesHeader.replace("[", "").replace("]", "").replace(" ", "").toUpperCase();
+    List<String> rawRoles = Arrays.asList(cleanRoles.split(","));
 
-    boolean isAdmin = roles.contains("ROLE_ADMIN");
+    // Normalizar roles (asegurar que tengan prefijo ROLE_)
+    List<String> normalizedRoles =
+        rawRoles.stream()
+            .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+            .collect(Collectors.toList());
+
+    boolean isAdmin = normalizedRoles.contains("ROLE_ADMIN");
     boolean isAssignedAgent = userId.equals(operation.getAgentId());
 
     if (!isAdmin && !isAssignedAgent) {
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+      throw new ValidationException(
           "Only Admins or the assigned Agent can update the operation status.");
     }
 
-    // Bloquear cualquier cambio si la operación ya está CERRADA, excepto para CANCELARLA si es
-    // inválida
+    // Validaciones de estado
     if ("CLOSED".equalsIgnoreCase(oldStatus) && !"CANCELLED".equalsIgnoreCase(status)) {
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+      throw new ValidationException(
           "Esta operación ya ha sido CERRADA de forma definitiva y no puede ser modificada.");
     }
 
-    // Si ya está CANCELADA, no se puede mover a otro estado
     if ("CANCELLED".equalsIgnoreCase(oldStatus)) {
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
-          "La operación ya ha sido cancelada y no puede ser reactivada.");
+      throw new ValidationException("La operación ya ha sido cancelada y no puede ser reactivada.");
     }
 
+    // Actualizar estado
     operation.setStatus(status);
     operation.setUpdatedAt(Instant.now());
-
     OperationDocument saved = operationRepository.save(operation);
 
     try {
@@ -196,7 +203,7 @@ public class OperationService {
       log.error("Failed to sync status, rolling back status update: {}", e.getMessage());
       operation.setStatus(oldStatus);
       operationRepository.save(operation);
-      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+      throw new ValidationException(
           "Failed to update property status. Reverting operation status: " + e.getMessage());
     }
 

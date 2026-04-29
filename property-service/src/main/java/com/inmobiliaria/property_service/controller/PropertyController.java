@@ -247,7 +247,7 @@ public class PropertyController {
   }
 
   @PostMapping("/{id}/reincorporate")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')") // Solo el administrador según la historia de usuario
   public ResponseEntity<ApiResponse<PropertyResponse>> reincorporate(
       @PathVariable String id, @RequestHeader("X-Auth-User-Id") String adminId) {
 
