@@ -654,7 +654,7 @@ public class PropertyService {
               .notes("Operación generada automáticamente por cambio de estado manual a VENDIDO.")
               .build();
 
-      operationClient.createOperation(opRequest, currentUserId, String.join(",", roles));
+      operationClient.createOperation(opRequest, currentUserId, String.join(",", roles), true);
       log.info("Manual closure operation triggered for property {}", prop.getId());
     } catch (Exception e) {
       log.error("Failed to trigger manual closure operation: {}", e.getMessage());
