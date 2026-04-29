@@ -2,8 +2,6 @@ package com.inmobiliaria.property_service.controller;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Arrays;
-import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -266,9 +264,10 @@ public class PropertyController {
           @Valid @RequestBody RetirePropertyRequest request,
           @RequestHeader("X-Auth-User-Id") String userId,
           @RequestHeader("X-Auth-Roles") String roles) {
-      // Convertir la cadena de roles a List<String>
+      // Convertir el header a lista de roles con prefijo ROLE_
       List<String> roleList = Arrays.stream(roles.split(","))
               .map(String::trim)
+              .map(role -> "ROLE_" + role)
               .collect(Collectors.toList());
       PropertyResponse response = propertyService.retireProperty(id, request, userId, roleList);
       return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
