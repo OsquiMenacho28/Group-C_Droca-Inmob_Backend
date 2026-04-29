@@ -150,7 +150,7 @@ public class RescheduleService {
     LocalDateTime windowEnd = dateTime.plusMinutes(AVAILABILITY_BUFFER_MINUTES);
 
     boolean conflict =
-        visitRepository.existsByAgentIdAndDateRangeAndStatus(
+        visitRepository.existsByAgentIdAndStartTimeBetweenAndStatus(
             agentId, windowStart, windowEnd, EventStatus.SCHEDULED);
 
     if (conflict) {
@@ -171,7 +171,7 @@ public class RescheduleService {
     LocalDateTime windowEnd = dateTime.plusMinutes(AVAILABILITY_BUFFER_MINUTES);
 
     boolean conflict =
-        visitRepository.existsByPropertyIdAndDateRangeAndStatus(
+        visitRepository.existsByPropertyIdAndStartTimeBetweenAndStatus(
             propertyId, windowStart, windowEnd, EventStatus.SCHEDULED);
 
     if (conflict) {
