@@ -271,10 +271,11 @@ public class PropertyController {
       @RequestHeader("X-Auth-Roles") String rolesHeader) {
 
     // Convertir el header a lista de roles con prefijo ROLE_
-    List<String> roles = Arrays.stream(rolesHeader.split(","))
-        .map(String::trim)
-        .map(role -> "ROLE_" + role)
-        .collect(Collectors.toList());
+    List<String> roles =
+        Arrays.stream(rolesHeader.split(","))
+            .map(String::trim)
+            .map(role -> "ROLE_" + role)
+            .collect(Collectors.toList());
 
     PropertyResponse response = propertyService.retireProperty(id, request, userId, roles);
     return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
