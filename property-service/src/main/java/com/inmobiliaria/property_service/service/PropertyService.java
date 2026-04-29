@@ -516,7 +516,8 @@ public class PropertyService {
     }
 
     if (targetStatus == PropertyStatus.RETIRADO) {
-        throw new ValidationException("No se puede cambiar el estado a RETIRADO a través de este endpoint. Use el endpoint específico /retirar.");
+      throw new ValidationException(
+          "No se puede cambiar el estado a RETIRADO a través de este endpoint. Use el endpoint específico /retirar.");
     }
 
     // --- Registro de Historial (PA:2) ---
@@ -633,47 +634,56 @@ public class PropertyService {
   }
 
   @Auditable(action = "PROPERTY_RETIRE")
-  public PropertyResponse retireProperty(String id, RetirePropertyRequest request, String userId, List<String> roles) {
-      // Reemplazar findDocumentById(id) por búsqueda directa
-      PropertyDocument property = propertyRepository.findById(id)
-              .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));
+  public PropertyResponse retireProperty(
+      String id, RetirePropertyRequest request, String userId, List<String> roles) {
+    // Reemplazar findDocumentById(id) por búsqueda directa
+    PropertyDocument property =
+        propertyRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + id));
 
-      boolean isAdmin = roles.contains("ROLE_ADMIN");
-      boolean isAssignedAgent = property.getAssignedAgentId() != null && property.getAssignedAgentId().equals(userId);
-      if (!isAdmin && !isAssignedAgent) {
-          throw new AccessDeniedException("No tiene permisos para retirar este inmueble.");
+    boolean isAdmin = roles.contains("ROLE_ADMIN");
+    boolean isAssignedAgent =
+        property.getAssignedAgentId() != null && property.getAssignedAgentId().equals(userId);
+    if (!isAdmin && !isAssignedAgent) {
+      throw new AccessDeniedException("No tiene permisos para retirar este inmueble.");
+    }
+
+    // Validación de estado previo
+    if (property.getStatus() == PropertyStatus.VENDIDO
+        || property.getStatus() == PropertyStatus.ELIMINADO) {
+      throw new ValidationException(
+          "No se puede retirar un inmueble que ya está VENDIDO o ELIMINADO.");
+    }
+    if (property.getStatus() == PropertyStatus.RETIRADO) {
+      throw new ValidationException("El inmueble ya se encuentra retirado.");
+    }
+
+    if (request.getMotivoRetiro() == RetirementReason.OTRO) {
+      if (request.getDetalleRetiro() == null || request.getDetalleRetiro().isBlank()) {
+        throw new ValidationException("Debe proporcionar un detalle cuando el motivo es 'Otro'.");
       }
+    }
 
-      // Validación de estado previo
-      if (property.getStatus() == PropertyStatus.VENDIDO || property.getStatus() == PropertyStatus.ELIMINADO) {
-          throw new ValidationException("No se puede retirar un inmueble que ya está VENDIDO o ELIMINADO.");
-      }
-      if (property.getStatus() == PropertyStatus.RETIRADO) {
-          throw new ValidationException("El inmueble ya se encuentra retirado.");
-      }
+    // Registrar historial de estado
+    if (property.getStatusHistory() == null) property.setStatusHistory(new ArrayList<>());
+    property
+        .getStatusHistory()
+        .add(
+            StatusHistory.builder()
+                .oldStatus(property.getStatus().name())
+                .newStatus(PropertyStatus.RETIRADO.name())
+                .changedAt(Instant.now())
+                .changedBy(userId)
+                .build());
 
-      if (request.getMotivoRetiro() == RetirementReason.OTRO) {
-          if (request.getDetalleRetiro() == null || request.getDetalleRetiro().isBlank()) {
-              throw new ValidationException("Debe proporcionar un detalle cuando el motivo es 'Otro'.");
-          }
-      }
+    // Actualizar campos
+    property.setStatus(PropertyStatus.RETIRADO);
+    property.setMotivoRetiro(request.getMotivoRetiro());
+    property.setDetalleRetiro(request.getDetalleRetiro());
+    property.setUpdatedAt(Instant.now());
 
-      // Registrar historial de estado
-      if (property.getStatusHistory() == null) property.setStatusHistory(new ArrayList<>());
-      property.getStatusHistory().add(StatusHistory.builder()
-              .oldStatus(property.getStatus().name())
-              .newStatus(PropertyStatus.RETIRADO.name())
-              .changedAt(Instant.now())
-              .changedBy(userId)
-              .build());
-
-      // Actualizar campos
-      property.setStatus(PropertyStatus.RETIRADO);
-      property.setMotivoRetiro(request.getMotivoRetiro());
-      property.setDetalleRetiro(request.getDetalleRetiro());
-      property.setUpdatedAt(Instant.now());
-
-      return mapToResponse(propertyRepository.save(property));
+    return mapToResponse(propertyRepository.save(property));
   }
 
   public void validateAvailabilityForAction(String id) {

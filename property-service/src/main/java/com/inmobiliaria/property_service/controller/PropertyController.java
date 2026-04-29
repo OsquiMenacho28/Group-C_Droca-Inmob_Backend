@@ -260,16 +260,17 @@ public class PropertyController {
   @PostMapping("/{id}/retirar")
   @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
   public ResponseEntity<ApiResponse<PropertyResponse>> retireProperty(
-          @PathVariable String id,
-          @Valid @RequestBody RetirePropertyRequest request,
-          @RequestHeader("X-Auth-User-Id") String userId,
-          @RequestHeader("X-Auth-Roles") String roles) {
-      // Convertir el header a lista de roles con prefijo ROLE_
-      List<String> roleList = Arrays.stream(roles.split(","))
-              .map(String::trim)
-              .map(role -> "ROLE_" + role)
-              .collect(Collectors.toList());
-      PropertyResponse response = propertyService.retireProperty(id, request, userId, roleList);
-      return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
+      @PathVariable String id,
+      @Valid @RequestBody RetirePropertyRequest request,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader("X-Auth-Roles") String roles) {
+    // Convertir el header a lista de roles con prefijo ROLE_
+    List<String> roleList =
+        Arrays.stream(roles.split(","))
+            .map(String::trim)
+            .map(role -> "ROLE_" + role)
+            .collect(Collectors.toList());
+    PropertyResponse response = propertyService.retireProperty(id, request, userId, roleList);
+    return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
   }
 }
