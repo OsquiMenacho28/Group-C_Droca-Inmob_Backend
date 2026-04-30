@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
+import com.inmobiliaria.visit_calendar_service.dto.response.PersonResponse;
+import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictException;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
@@ -27,8 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CalendarService {
 
-  private final CalendarEventRepository calendarEventRepository;
-
+    private final CalendarEventRepository calendarEventRepository;
+    private final PropertyServiceClient propertyServiceClient;
+    private final NotificationService notificationService;
+    private final PersonServiceClient personServiceClient;
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
   // =====================================================================
@@ -152,6 +156,14 @@ public class CalendarService {
               + request.getPropertyName()
               + "' en ese horario. "
               + "Por favor selecciona otro horario.");
+    }
+
+    PropertyResponse property = propertyServiceClient.getPropertyById(request.getPropertyId());
+    if (property != null && property.ownerId() != null) {
+        PersonResponse owner = personServiceClient.getPersonByAuthUserId(property.ownerId());
+        if (owner != null && owner.email() != null) {
+            notificationService.notifyPropertyOwner(owner.email(), owner.fullName(), request);
+        }
     }
 
     CalendarEvent event =

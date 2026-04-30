@@ -7,6 +7,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NotificationService {
 
   private final RestTemplate restTemplate;
+  private final PropertyServiceClient propertyServiceClient;
 
   @Value("${notification.service.url:http://localhost:8083}")
   private String notificationServiceUrl;
@@ -92,6 +94,22 @@ public class NotificationService {
         visitRequest.getPreferredDateTime());
 
     return false;
+  }
+
+  private String buildPropertyOwnerMessage(String ownerName, CreateVisitRequest visit) {
+      return String.format(
+          "Estimado/a %s,\n\nSe ha programado una visita a su propiedad '%s'.\n\n" +
+          "Detalles:\n• Dirección: %s\n• Fecha y hora: %s - %s\n• Agente a cargo: %s (%s)\n• Notas: %s\n\n" +
+          "Puede consultar el historial de visitas en el sistema.",
+          ownerName,
+          visit.getPropertyName(),
+          visit.getPropertyAddress() != null ? visit.getPropertyAddress() : "No especificada",
+          visit.getStartTime(),
+          visit.getEndTime(),
+          visit.getAgentName(),
+          visit.getAgentId(),
+          visit.getNotes() != null ? visit.getNotes() : "Sin observaciones"
+      );
   }
 
   private String buildNotificationMessage(VisitRequest r) {
