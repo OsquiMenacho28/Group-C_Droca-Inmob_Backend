@@ -11,12 +11,13 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PersonServiceClient {
-    private final RestTemplate restTemplate;
-    @Value("${person.service.url:http://localhost:8084}")
-    private String personServiceUrl;
+  private final RestTemplate restTemplate;
 
-    public PersonResponse getPersonByAuthUserId(String authUserId) {
-        String url = personServiceUrl + "/persons/by-auth/" + authUserId;
-        return restTemplate.getForObject(url, PersonResponse.class);
-    }
+  @Value("${person.service.url:http://localhost:8084}")
+  private String personServiceUrl;
+
+  public PersonResponse getPersonByAuthUserId(String authUserId) {
+    String url = personServiceUrl + "/persons/by-auth/" + authUserId;
+    return restTemplate.getForObject(url, PersonResponse.class);
+  }
 }

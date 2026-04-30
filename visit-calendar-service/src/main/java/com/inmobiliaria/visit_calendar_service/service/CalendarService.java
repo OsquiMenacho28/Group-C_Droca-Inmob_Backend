@@ -29,10 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CalendarService {
 
-    private final CalendarEventRepository calendarEventRepository;
-    private final PropertyServiceClient propertyServiceClient;
-    private final NotificationService notificationService;
-    private final PersonServiceClient personServiceClient;
+  private final CalendarEventRepository calendarEventRepository;
+  private final PropertyServiceClient propertyServiceClient;
+  private final NotificationService notificationService;
+  private final PersonServiceClient personServiceClient;
+
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
   // =====================================================================
@@ -160,10 +161,10 @@ public class CalendarService {
 
     PropertyResponse property = propertyServiceClient.getPropertyById(request.getPropertyId());
     if (property != null && property.ownerId() != null) {
-        PersonResponse owner = personServiceClient.getPersonByAuthUserId(property.ownerId());
-        if (owner != null && owner.email() != null) {
-            notificationService.notifyPropertyOwner(owner.email(), owner.fullName(), request);
-        }
+      PersonResponse owner = personServiceClient.getPersonByAuthUserId(property.ownerId());
+      if (owner != null && owner.email() != null) {
+        notificationService.notifyPropertyOwner(owner.email(), owner.fullName(), request);
+      }
     }
 
     CalendarEvent event =

@@ -1,13 +1,9 @@
+// backend/visit-calendar-service/src/main/java/.../dto/response/PropertyResponse.java
 package com.inmobiliaria.visit_calendar_service.dto.response;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-
-import com.inmobiliaria.property_service.domain.AssignmentHistory;
-import com.inmobiliaria.property_service.domain.OperationType;
-import com.inmobiliaria.property_service.domain.PriceHistory;
-import com.inmobiliaria.property_service.domain.RetirementReason;
-import com.inmobiliaria.property_service.domain.StatusHistory;
 
 public record PropertyResponse(
     String id,
@@ -16,7 +12,7 @@ public record PropertyResponse(
     String zone,
     Double price,
     String type,
-    OperationType operationType,
+    String operationType, // antes OperationType
     Double m2,
     Integer rooms,
     String status,
@@ -24,11 +20,19 @@ public record PropertyResponse(
     String agentName,
     String ownerId,
     List<String> imageUrls,
-    List<AssignmentHistory> assignmentHistory,
-    List<PriceHistory> priceHistory,
-    List<StatusHistory> statusHistory,
+    List<AssignmentHistoryRecord> assignmentHistory, // record local
+    List<PriceHistoryRecord> priceHistory, // record local
+    List<StatusHistoryRecord> statusHistory, // record local
     Set<String> accessPolicy,
     Double latitude,
     Double longitude,
-    RetirementReason motivoRetiro,
+    String motivoRetiro, // antes RetirementReason
     String detalleRetiro) {}
+
+// Records auxiliares para los históricos (definidos dentro del mismo archivo)
+record AssignmentHistoryRecord(String agentId, Instant assignedAt, String assignedBy) {}
+
+record PriceHistoryRecord(Double oldPrice, Double newPrice, Instant changedAt, String changedBy) {}
+
+record StatusHistoryRecord(
+    String oldStatus, String newStatus, Instant changedAt, String changedBy) {}

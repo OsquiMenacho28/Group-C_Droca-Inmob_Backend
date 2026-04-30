@@ -1,10 +1,8 @@
-// REEMPLAZAR el archivo completo:
+// backend/visit-calendar-service/src/main/java/.../dto/response/PersonResponse.java
 package com.inmobiliaria.visit_calendar_service.dto.response;
 
 import java.time.LocalDate;
 import java.util.List;
-
-import com.inmobiliaria.user_service.domain.PersonType;
 
 public record PersonResponse(
     String id,
@@ -15,7 +13,7 @@ public record PersonResponse(
     LocalDate birthDate,
     String phone,
     String email,
-    PersonType personType,
+    String personType, // antes era PersonType, ahora String
     List<String> roleIds,
     boolean customRole,
 
@@ -33,7 +31,7 @@ public record PersonResponse(
     String preferredContactMethod,
     String budget,
 
-    // Preferencias nuevas
+    // Nuevas preferencias
     String preferredZone,
     String preferredPropertyType,
     Integer preferredRooms) {}

@@ -7,5 +7,5 @@ public record SendNotificationRequest(
     @NotBlank String type,
     @NotBlank String subject,
     @NotBlank String content,
-    String channel  // opcional, por defecto "EMAIL"
-) {}
+    String channel // opcional, por defecto "EMAIL"
+    ) {}

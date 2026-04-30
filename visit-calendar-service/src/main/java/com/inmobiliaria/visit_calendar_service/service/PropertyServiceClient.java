@@ -11,12 +11,13 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PropertyServiceClient {
-    private final RestTemplate restTemplate;
-    @Value("${property.service.url:http://localhost:8085}")
-    private String propertyServiceUrl;
+  private final RestTemplate restTemplate;
 
-    public PropertyResponse getPropertyById(String propertyId) {
-        String url = propertyServiceUrl + "/properties/" + propertyId;
-        return restTemplate.getForObject(url, PropertyResponse.class);
-    }
+  @Value("${property.service.url:http://localhost:8085}")
+  private String propertyServiceUrl;
+
+  public PropertyResponse getPropertyById(String propertyId) {
+    String url = propertyServiceUrl + "/properties/" + propertyId;
+    return restTemplate.getForObject(url, PropertyResponse.class);
+  }
 }

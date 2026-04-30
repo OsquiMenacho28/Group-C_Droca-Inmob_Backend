@@ -12,6 +12,7 @@ public class VisitCalendarServiceApplication {
   public org.springframework.web.client.RestTemplate restTemplate() {
     return new org.springframework.web.client.RestTemplate();
   }
+
   public static void main(String[] args) {
     SpringApplication.run(VisitCalendarServiceApplication.class, args);
   }
