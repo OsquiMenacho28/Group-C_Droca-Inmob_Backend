@@ -6,10 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ClientVisitRequestDTO;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.VisitRequestResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
+import com.inmobiliaria.visit_calendar_service.dto.response.VisitResponse;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.VisitRequestService;
 
 import jakarta.validation.Valid;
@@ -129,5 +132,32 @@ public class VisitRequestController {
     VisitRequestResponse response = visitRequestService.rejectVisitRequest(id, agentId);
 
     return ResponseEntity.ok(responseFactory.success("Solicitud rechazada.", response));
+  }
+
+  @PatchMapping("/visits/{id}/resultado")
+  public ResponseEntity<ApiResponse<VisitResponse>> registrarResultado(
+          @PathVariable String id,
+          @Valid @RequestBody RegistrarResultadoRequest request,
+          @RequestHeader("X-Agent-Id") String agentId) {
+      Visit updated = visitRequestService.registrarResultado(id, request, agentId);
+      return ResponseEntity.ok(responseFactory.success("Resultado registrado", toResponse(updated)));
+  }
+
+  private VisitResponse toResponse(Visit visit) {
+      return new VisitResponse(
+          visit.getId(),
+          visit.getPropertyId(),
+          visit.getPropertyName(),
+          visit.getClientId(),
+          visit.getClientName(),
+          visit.getAgentId(),
+          visit.getAgentName(),
+          visit.getStartTime(),
+          visit.getEndTime(),
+          visit.getStatus(),
+          visit.getResultado(),
+          visit.getObservaciones(),
+          visit.getFechaRegistroResultado()
+      );
   }
 }

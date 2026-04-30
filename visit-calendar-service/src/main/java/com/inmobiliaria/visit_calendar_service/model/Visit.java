@@ -90,8 +90,19 @@ public class Visit {
     SCHEDULED, // Programada, pendiente de confirmación
     CONFIRMED, // Confirmada
     CANCELLED, // Cancelada
-    COMPLETED // Completada
+    COMPLETED, // Completada
+    REALIZADA // Completada (sin resultado registrado)
   }
+
+  // Resultado de la visita. Valores posibles: INTERESADO, NO_INTERESADO, PENDIENTE
+
+  public enum ResultadoVisita {
+      INTERESADO, NO_INTERESADO, PENDIENTE
+  }
+
+  private ResultadoVisita resultado;
+  private String observaciones;
+  private LocalDateTime fechaRegistroResultado;
 
   // ── Constructors ──────────────────────────────────────────────────────────
 
@@ -273,4 +284,14 @@ public class Visit {
   public void setReschedulingHistory(List<ReschedulingHistory> reschedulingHistory) {
     this.reschedulingHistory = reschedulingHistory;
   }
+
+  // Resultado de la visita
+  public ResultadoVisita getResultado() { return resultado; }
+  public void setResultado(ResultadoVisita resultado) { this.resultado = resultado; }
+
+  public String getObservaciones() { return observaciones; }
+  public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+
+  public LocalDateTime getFechaRegistroResultado() { return fechaRegistroResultado; }
+  public void setFechaRegistroResultado(LocalDateTime fechaRegistroResultado) { this.fechaRegistroResultado = fechaRegistroResultado; }
 }
