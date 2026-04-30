@@ -280,4 +280,18 @@ public class PropertyController {
     PropertyResponse response = propertyService.retireProperty(id, request, userId, roles);
     return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
   }
+
+  @GetMapping("/filtrar")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<List<PropertyResponse>>> filterByBuscador(
+      @RequestParam("buscador_id") String buscadorId) {
+    List<PropertyResponse> suggestions = propertyService.findSuggestedProperties(buscadorId);
+
+    String message =
+        suggestions.isEmpty()
+            ? "No se encontraron propiedades que coincidan con las preferencias del cliente."
+            : "Se encontraron " + suggestions.size() + " propiedades sugeridas.";
+
+    return ResponseEntity.ok(responseFactory.success(message, suggestions));
+  }
 }
