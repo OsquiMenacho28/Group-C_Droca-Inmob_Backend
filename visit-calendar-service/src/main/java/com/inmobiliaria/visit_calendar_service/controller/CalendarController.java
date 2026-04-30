@@ -19,13 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarEventResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
-import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.CalendarService;
 import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
@@ -98,11 +96,11 @@ public class CalendarController {
    * <p>Programa una nueva visita. Valida que el inmueble no tenga conflicto de horario (PA2). Al
    * confirmarse, aparece en el calendario compartido (PA1).
    *
-   * <p>Body: CreateVisitRequest Response 201: CalendarEventResponse (la visita creada) Response
-   * 409: ConflictResponse (si hay conflicto de horario)
+   * <p>Body: CreateVisitRequest Response 201: Visit (la visita creada) Response 409:
+   * ConflictResponse (si hay conflicto de horario)
    */
   @PostMapping("/visits")
-  public ResponseEntity<ApiResponse<CalendarEventResponse>> createVisit(
+  public ResponseEntity<ApiResponse<Visit>> createVisit(
       @Valid @RequestBody CreateVisitRequest request) {
 
     log.debug(
@@ -111,7 +109,7 @@ public class CalendarController {
         request.getAgentId(),
         request.getStartTime());
 
-    CalendarEventResponse created = calendarService.createVisit(request);
+    Visit created = calendarService.createVisit(request);
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(responseFactory.created("Visita programada exitosamente", created));
@@ -145,31 +143,31 @@ public class CalendarController {
    * a consultar)
    */
   @GetMapping("/visits/agenda")
-  public ResponseEntity<ApiResponse<List<CalendarEventResponse>>> getDayAgenda(
+  public ResponseEntity<ApiResponse<List<Visit>>> getDayAgenda(
       @RequestParam String agentId,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime day) {
 
-    List<CalendarEventResponse> agenda = calendarService.getAgentDayAgenda(agentId, day);
+    List<Visit> agenda = calendarService.getAgentDayAgenda(agentId, day);
 
     return ResponseEntity.ok(responseFactory.success("Agenda obtenida correctamente", agenda));
   }
 
   /** GET /visits/{id} Detalle de un evento de visita. */
   @GetMapping("/visits/{id}")
-  public ResponseEntity<ApiResponse<CalendarEventResponse>> getVisitById(
+  public ResponseEntity<ApiResponse<Visit>> getVisitById(
       @PathVariable String id,
       @RequestHeader(value = "X-Agent-Id", required = false) String agentId) {
 
-    CalendarEventResponse event = calendarService.getById(id, agentId);
+    Visit event = calendarService.getById(id, agentId);
     return ResponseEntity.ok(responseFactory.success("Evento encontrado", event));
   }
 
   /** PATCH /visits/{id}/cancel Cancela una visita (solo el agente dueño). */
   @PatchMapping("/visits/{id}/cancel")
-  public ResponseEntity<ApiResponse<CalendarEventResponse>> cancelVisit(
+  public ResponseEntity<ApiResponse<Visit>> cancelVisit(
       @PathVariable String id, @RequestHeader("X-Agent-Id") String agentId) {
 
-    CalendarEventResponse cancelled = calendarService.cancelEvent(id, agentId);
+    Visit cancelled = calendarService.cancelEvent(id, agentId);
     return ResponseEntity.ok(responseFactory.success("Visita cancelada", cancelled));
   }
 
@@ -182,9 +180,8 @@ public class CalendarController {
    * tránsito de una visita (evento).
    */
   @GetMapping("/visits/{visitId}/vehicle-assignment")
-  public ResponseEntity<ApiResponse<CalendarEvent>> getVehicleAssignment(
-      @PathVariable String visitId) {
-    CalendarEvent event = vehicleService.getVisitWithAssignment(visitId);
+  public ResponseEntity<ApiResponse<Visit>> getVehicleAssignment(@PathVariable String visitId) {
+    Visit event = vehicleService.getVisitWithAssignment(visitId);
     return ResponseEntity.ok(responseFactory.success("Asignación de vehículo recuperada", event));
   }
 
@@ -193,10 +190,10 @@ public class CalendarController {
    * desplazamiento.
    */
   @PostMapping("/visits/{visitId}/vehicle")
-  public ResponseEntity<ApiResponse<CalendarEvent>> assignVehicle(
+  public ResponseEntity<ApiResponse<Visit>> assignVehicle(
       @PathVariable String visitId, @RequestBody VehicleAssignmentRequest request) {
 
-    CalendarEvent updatedEvent =
+    Visit updatedEvent =
         vehicleService.assignVehicleToVisit(
             visitId,
             request.getVehicleId(),

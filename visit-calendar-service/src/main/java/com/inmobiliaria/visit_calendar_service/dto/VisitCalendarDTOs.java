@@ -3,7 +3,7 @@ package com.inmobiliaria.visit_calendar_service.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 
 import jakarta.validation.constraints.NotBlank;
@@ -53,41 +53,13 @@ public class VisitCalendarDTOs {
     private String notes;
   }
 
-  /** Response para un evento del calendario. */
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class CalendarEventResponse {
-    private String id;
-    private String propertyId;
-    private String propertyName;
-    private String propertyAddress;
-    private String agentId;
-    private String agentName;
-    private String vehicleId;
-    private Integer travelTimeGo;
-    private Integer travelTimeBack;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-    private CalendarEvent.EventType type;
-    private CalendarEvent.EventStatus status;
-    private String notes;
-    private LocalDateTime createdAt;
-    private String clientId;
-    private String clientName;
-
-    /** true si este evento pertenece al agente autenticado (para destacar en el calendario) */
-    private boolean ownEvent;
-  }
-
   /** Response del GET /calendar con lista de eventos y metadatos. */
   @Data
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
   public static class CalendarResponse {
-    private List<CalendarEventResponse> events;
+    private List<Visit> events;
     private LocalDateTime from;
     private LocalDateTime to;
     private int totalEvents;
@@ -102,7 +74,7 @@ public class VisitCalendarDTOs {
   public static class ConflictResponse {
     private boolean hasConflict;
     private String message;
-    private List<CalendarEventResponse> conflictingEvents;
+    private List<Visit> conflictingEvents;
 
     /** Sugerencia de horario alternativo */
     private LocalDateTime suggestedStartTime;

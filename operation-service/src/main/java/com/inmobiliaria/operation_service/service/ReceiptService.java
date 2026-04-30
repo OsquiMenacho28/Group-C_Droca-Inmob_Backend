@@ -47,10 +47,10 @@ public class ReceiptService {
           "You do not have permission to upload receipts for this operation.");
     }
 
-    if (!"PENDING".equalsIgnoreCase(operation.getStatus())) {
-      throw new IllegalArgumentException(
-          "Receipts can only be uploaded while the property is reserved.");
-    }
+    // if (!"PENDING".equalsIgnoreCase(operation.getStatus())) {
+    //   throw new IllegalArgumentException(
+    //       "Receipts can only be uploaded while the property is reserved.");
+    // }
 
     // 1. Upload to MinIO
     String minioPath = minioStorageService.uploadFile(file, operationId);

@@ -126,7 +126,7 @@ public class VehicleService {
   // ─── Asignación de Vehículos ─────────────────────────────────────────────
 
   /** Asigna un vehículo a un CalendarEvent. */
-  public CalendarEvent assignVehicleToVisit(
+  public Visit assignVehicleToVisit(
       String eventId, String vehicleId, Integer travelGo, Integer travelBack) {
     CalendarEvent event =
         calendarEventRepository
@@ -145,7 +145,29 @@ public class VehicleService {
     event.setTravelTimeBack(travelBack);
     event.setStatus(CalendarEvent.EventStatus.CONFIRMED);
 
-    return calendarEventRepository.save(event);
+    CalendarEvent saved = calendarEventRepository.save(event);
+
+    // Convert CalendarEvent to Visit
+    Visit visit = new Visit();
+    visit.setId(saved.getId());
+    visit.setPropertyId(saved.getPropertyId());
+    visit.setPropertyName(saved.getPropertyName());
+    visit.setPropertyAddress(saved.getPropertyAddress());
+    visit.setAgentId(saved.getAgentId());
+    visit.setAgentName(saved.getAgentName());
+    visit.setVehicleId(saved.getVehicleId());
+    visit.setTravelTimeGo(saved.getTravelTimeGo());
+    visit.setTravelTimeBack(saved.getTravelTimeBack());
+    visit.setStartTime(saved.getStartTime());
+    visit.setEndTime(saved.getEndTime());
+    visit.setType(Visit.EventType.valueOf(saved.getType().name()));
+    visit.setStatus(Visit.EventStatus.valueOf(saved.getStatus().name()));
+    visit.setNotes(saved.getNotes());
+    visit.setCreatedAt(saved.getCreatedAt());
+    visit.setClientId(saved.getClientId());
+    visit.setClientName(saved.getClientName());
+
+    return visit;
   }
 
   /**
@@ -174,9 +196,32 @@ public class VehicleService {
     return visitRepository.save(visit);
   }
 
-  public CalendarEvent getVisitWithAssignment(String visitId) {
-    return calendarEventRepository
-        .findById(visitId)
-        .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
+  public Visit getVisitWithAssignment(String visitId) {
+    CalendarEvent event =
+        calendarEventRepository
+            .findById(visitId)
+            .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
+
+    // Convert CalendarEvent to Visit
+    Visit visit = new Visit();
+    visit.setId(event.getId());
+    visit.setPropertyId(event.getPropertyId());
+    visit.setPropertyName(event.getPropertyName());
+    visit.setPropertyAddress(event.getPropertyAddress());
+    visit.setAgentId(event.getAgentId());
+    visit.setAgentName(event.getAgentName());
+    visit.setVehicleId(event.getVehicleId());
+    visit.setTravelTimeGo(event.getTravelTimeGo());
+    visit.setTravelTimeBack(event.getTravelTimeBack());
+    visit.setStartTime(event.getStartTime());
+    visit.setEndTime(event.getEndTime());
+    visit.setType(Visit.EventType.valueOf(event.getType().name()));
+    visit.setStatus(Visit.EventStatus.valueOf(event.getStatus().name()));
+    visit.setNotes(event.getNotes());
+    visit.setCreatedAt(event.getCreatedAt());
+    visit.setClientId(event.getClientId());
+    visit.setClientName(event.getClientName());
+
+    return visit;
   }
 }

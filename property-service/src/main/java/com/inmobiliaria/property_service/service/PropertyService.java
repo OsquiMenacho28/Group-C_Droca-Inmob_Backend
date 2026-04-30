@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.property_service.client.IdentityClient;
 import com.inmobiliaria.property_service.client.OperationClient;
-import com.inmobiliaria.property_service.client.UserClient;
 import com.inmobiliaria.property_service.client.UserPreferencesClient;
 import com.inmobiliaria.property_service.domain.*;
 import com.inmobiliaria.property_service.dto.request.*;
