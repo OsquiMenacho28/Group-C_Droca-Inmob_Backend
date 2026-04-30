@@ -23,7 +23,9 @@ public class RescheduleRequest {
    */
   @NotNull(message = "The new date and time are required.")
   @Future(message = "The new date and time must be in the future.")
-  private LocalDateTime newDateTime;
+  private LocalDateTime newStartTime;
+
+  private LocalDateTime newEndTime;
 
   /**
    * Optional notes for the new visit. If not provided, the original visit's notes are copied over.

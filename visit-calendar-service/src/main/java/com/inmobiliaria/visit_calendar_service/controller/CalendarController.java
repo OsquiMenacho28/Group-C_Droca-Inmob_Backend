@@ -207,7 +207,7 @@ public class CalendarController {
   }
 
   // -----------------------------------------------------------------------
-  // Endpoints de reagendamiento (desde Sprint3_DEV)
+  // Endpoints de reprogramación (desde Sprint3_DEV)
   // -----------------------------------------------------------------------
 
   /**
@@ -229,7 +229,7 @@ public class CalendarController {
     try {
       RescheduleResponse response = rescheduleService.reschedule(id, agentId, request);
       return ResponseEntity.status(HttpStatus.CREATED)
-          .body(responseFactory.created("Visita reagendada exitosamente", response));
+          .body(responseFactory.created("Visita reprogramada exitosamente", response));
     } catch (ResponseStatusException e) {
       return ResponseEntity.status(e.getStatusCode())
           .body(responseFactory.error(e.getReason() != null ? e.getReason() : e.getMessage()));

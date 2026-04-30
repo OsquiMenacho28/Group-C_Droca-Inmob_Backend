@@ -1,6 +1,7 @@
 package com.inmobiliaria.property_service.controller;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -189,17 +190,23 @@ public class PropertyController {
   }
 
   @PatchMapping("/{id}/status")
-  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN') or #isInternal")
   public ResponseEntity<ApiResponse<PropertyResponse>> updateStatus(
       @PathVariable String id,
       @Valid @RequestBody UpdateStatusRequest request,
-      @RequestHeader("X-Auth-User-Id") String userId) {
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader(value = "X-Internal-Call", defaultValue = "false")
+          @org.springframework.security.access.method.P("isInternal")
+          boolean isInternal) {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     List<String> roles =
-        auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+        auth != null
+            ? auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList()
+            : Collections.emptyList();
 
-    PropertyResponse data = propertyService.updateStatus(id, request.status(), userId, roles);
+    PropertyResponse data =
+        propertyService.updateStatus(id, request.status(), userId, roles, isInternal);
     return ResponseEntity.ok(responseFactory.success("Status updated successfully", data));
   }
 
@@ -224,8 +231,6 @@ public class PropertyController {
     return ResponseEntity.ok(responseFactory.success("Properties found", data));
   }
 
-  // ... (dentro de PropertyController)
-
   @PatchMapping("/{id}/location")
   @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<PropertyResponse>> updateLocation(
@@ -240,5 +245,53 @@ public class PropertyController {
     PropertyResponse data = propertyService.updateLocation(id, request, userId, roles);
     return ResponseEntity.ok(
         responseFactory.success("Ubicación geográfica actualizada correctamente", data));
+  }
+
+  // REINCORPORATE - Your feature (US-59 relist)
+  @PostMapping("/{id}/reincorporate")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> reincorporate(
+      @PathVariable String id,
+      @RequestHeader("X-Auth-User-Id") String adminId,
+      @RequestHeader("X-Auth-Roles") String rolesHeader) {
+
+    List<String> roles = Arrays.asList(rolesHeader.replace("[", "").replace("]", "").split(","));
+    PropertyResponse data = propertyService.reincorporateProperty(id, adminId, roles);
+    return ResponseEntity.ok(
+        responseFactory.success("Inmueble reincorporado exitosamente al inventario", data));
+  }
+
+  // RETIRAR - Their feature (track why listing got down) + Your feature integration
+  @PostMapping("/{id}/retirar")
+  @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+  public ResponseEntity<ApiResponse<PropertyResponse>> retireProperty(
+      @PathVariable String id,
+      @Valid @RequestBody RetirePropertyRequest request,
+      @RequestHeader("X-Auth-User-Id") String userId,
+      @RequestHeader("X-Auth-Roles") String rolesHeader) {
+
+    // Convertir el header a lista de roles con prefijo ROLE_
+    List<String> roles =
+        Arrays.stream(rolesHeader.split(","))
+            .map(String::trim)
+            .map(role -> "ROLE_" + role)
+            .collect(Collectors.toList());
+
+    PropertyResponse response = propertyService.retireProperty(id, request, userId, roles);
+    return ResponseEntity.ok(responseFactory.success("Inmueble retirado correctamente", response));
+  }
+
+  @GetMapping("/filtrar")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<List<PropertyResponse>>> filterByBuscador(
+      @RequestParam("buscador_id") String buscadorId) {
+    List<PropertyResponse> suggestions = propertyService.findSuggestedProperties(buscadorId);
+
+    String message =
+        suggestions.isEmpty()
+            ? "No se encontraron propiedades que coincidan con las preferencias del cliente."
+            : "Se encontraron " + suggestions.size() + " propiedades sugeridas.";
+
+    return ResponseEntity.ok(responseFactory.success(message, suggestions));
   }
 }

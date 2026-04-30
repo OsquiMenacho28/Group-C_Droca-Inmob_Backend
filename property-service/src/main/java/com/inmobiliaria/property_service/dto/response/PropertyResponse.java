@@ -6,6 +6,7 @@ import java.util.Set;
 import com.inmobiliaria.property_service.domain.AssignmentHistory;
 import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.PriceHistory;
+import com.inmobiliaria.property_service.domain.RetirementReason;
 import com.inmobiliaria.property_service.domain.StatusHistory;
 
 public record PropertyResponse(
@@ -28,4 +29,6 @@ public record PropertyResponse(
     List<StatusHistory> statusHistory,
     Set<String> accessPolicy,
     Double latitude,
-    Double longitude) {}
+    Double longitude,
+    RetirementReason motivoRetiro,
+    String detalleRetiro) {}

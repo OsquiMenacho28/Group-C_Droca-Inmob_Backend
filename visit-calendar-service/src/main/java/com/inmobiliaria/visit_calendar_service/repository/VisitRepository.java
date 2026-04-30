@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import com.inmobiliaria.visit_calendar_service.model.Visit;
-import com.inmobiliaria.visit_calendar_service.model.Visit.VisitStatus;
+import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 
 /**
  * MongoDB repository for Visit documents.
@@ -21,7 +21,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
   List<Visit> findByAgentId(String agentId);
 
   /** Citas de un agente en un rango de fechas */
-  List<Visit> findByAgentIdAndDateTimeBetween(
+  List<Visit> findByAgentIdAndStartTimeBetween(
       String agentId, LocalDateTime start, LocalDateTime end);
 
   /** Citas de un cliente */
@@ -43,16 +43,16 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
    * @param windowEnd End of the conflict window (newDateTime plus buffer)
    * @param status Only check against SCHEDULED visits
    */
-  boolean existsByAgentIdAndDateTimeBetweenAndStatus(
-      String agentId, LocalDateTime windowStart, LocalDateTime windowEnd, VisitStatus status);
+  boolean existsByAgentIdAndStartTimeBetweenAndStatus(
+      String agentId, LocalDateTime windowStart, LocalDateTime windowEnd, EventStatus status);
 
   /**
    * Checks if the property already has a SCHEDULED visit within a 1-hour window.
    *
    * <p>Used to prevent scheduling two visits to the same property at the same time.
    */
-  boolean existsByPropertyIdAndDateTimeBetweenAndStatus(
-      String propertyId, LocalDateTime windowStart, LocalDateTime windowEnd, VisitStatus status);
+  boolean existsByPropertyIdAndStartTimeBetweenAndStatus(
+      String propertyId, LocalDateTime windowStart, LocalDateTime windowEnd, EventStatus status);
 
   /**
    * Returns all visits linked to a specific origin visit (i.e., all rescheduled visits that
@@ -63,7 +63,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
   List<Visit> findByOriginVisitId(String originVisitId);
 
   /** Returns all visits for an agent with a specific status. */
-  List<Visit> findByAgentIdAndStatus(String agentId, VisitStatus status);
+  List<Visit> findByAgentIdAndStatus(String agentId, EventStatus status);
 
   /**
    * Encuentra visitas que tienen un vehículo asignado y se solapan con el rango de tiempo dado.
@@ -72,8 +72,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
   @org.springframework.data.mongodb.repository.Query(
       "{ 'vehicleId': ?0, 'status': 'SCHEDULED', "
           + "$or: [ "
-          + "  { 'dateTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } "
+          + "  { 'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } "
           + "] }")
-  List<Visit> findConflictingVehicles(
-      String vehicleId, java.time.LocalDateTime start, java.time.LocalDateTime end);
+  List<Visit> findConflictingVehicles(String vehicleId, LocalDateTime start, LocalDateTime end);
 }

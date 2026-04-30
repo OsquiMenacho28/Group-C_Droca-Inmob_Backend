@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -59,9 +60,13 @@ public class AuditAspect {
       if (afterState != null) {
         changes = calculateChanges(beforeState, afterState);
 
+        if (changes.isEmpty()) {
+          return result;
+        }
+
         // Summaries for the main table view
-        previousSummary = beforeState.getStatus();
-        newSummary = afterState.getStatus();
+        previousSummary = beforeState.getStatus() != null ? beforeState.getStatus().name() : "N/A";
+        newSummary = afterState.getStatus() != null ? afterState.getStatus().name() : "N/A";
 
         if (action.equals("PROPERTY_UPDATE")) {
           previousSummary = beforeState.getTitle();
@@ -71,7 +76,8 @@ public class AuditAspect {
     }
 
     // 4. Save the log with details
-    String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    String userId = (auth != null) ? auth.getName() : "SYSTEM_UNKNOWN";
     AuditLog log =
         AuditLog.builder()
             .userId(userId)

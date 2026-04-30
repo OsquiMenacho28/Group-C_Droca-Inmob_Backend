@@ -3,7 +3,8 @@ package com.inmobiliaria.visit_calendar_service.dto;
 import java.time.LocalDateTime;
 
 import com.inmobiliaria.visit_calendar_service.model.Visit;
-import com.inmobiliaria.visit_calendar_service.model.Visit.VisitStatus;
+import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
+import com.inmobiliaria.visit_calendar_service.model.Visit.EventType;
 
 import lombok.Data;
 
@@ -14,7 +15,8 @@ import lombok.Data;
  * frontend can render a link.
  *
  * <p>PA: The new visit keeps the reference to the client, property, and the original cancelled
- * visit (originVisitId).
+ * visit (originVisitId). All fields from the original visit are preserved and included in the
+ * response.
  */
 @Data
 public class RescheduleResponse {
@@ -22,11 +24,18 @@ public class RescheduleResponse {
   // ── New visit data ────────────────────────────────────────────────────
   private String newVisitId;
   private String propertyId;
+  private String propertyName;
+  private String propertyAddress;
   private String clientId;
+  private String clientName;
   private String agentId;
-  private LocalDateTime scheduledDateTime;
-  private VisitStatus status;
+  private String agentName;
+  private LocalDateTime startTime;
+  private LocalDateTime endTime;
+  private EventType type;
+  private EventStatus status;
   private String notes;
+  private Boolean ownEvent;
   private LocalDateTime createdAt;
 
   // ── Link back to the original cancelled visit ─────────────────────────
@@ -42,11 +51,18 @@ public class RescheduleResponse {
     RescheduleResponse dto = new RescheduleResponse();
     dto.newVisitId = newVisit.getId();
     dto.propertyId = newVisit.getPropertyId();
+    dto.propertyName = newVisit.getPropertyName();
+    dto.propertyAddress = newVisit.getPropertyAddress();
     dto.clientId = newVisit.getClientId();
+    dto.clientName = newVisit.getClientName();
     dto.agentId = newVisit.getAgentId();
-    dto.scheduledDateTime = newVisit.getDateTime();
+    dto.agentName = newVisit.getAgentName();
+    dto.startTime = newVisit.getStartTime();
+    dto.endTime = newVisit.getEndTime();
+    dto.type = newVisit.getType();
     dto.status = newVisit.getStatus();
     dto.notes = newVisit.getNotes();
+    dto.ownEvent = newVisit.getOwnEvent();
     dto.createdAt = newVisit.getCreatedAt();
     dto.originVisitId = newVisit.getOriginVisitId();
     dto.message = message;

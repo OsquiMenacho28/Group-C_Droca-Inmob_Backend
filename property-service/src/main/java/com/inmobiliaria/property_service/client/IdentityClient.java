@@ -25,7 +25,8 @@ public interface IdentityClient {
       String lastName,
       String fullName,
       String email,
-      String phone) {}
+      String phone,
+      String department) {}
 
   record UpdateUserRequest(
       String firstName,

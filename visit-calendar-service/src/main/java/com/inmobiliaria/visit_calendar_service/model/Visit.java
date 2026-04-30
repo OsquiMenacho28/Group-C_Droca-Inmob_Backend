@@ -16,8 +16,17 @@ public class Visit {
   /** ID del inmueble al que corresponde la visita */
   private String propertyId;
 
+  /** Nombre descriptivo del inmueble */
+  private String propertyName;
+
+  /** Dirección del inmueble */
+  private String propertyAddress;
+
   /** ID del cliente que solicitó la visita */
   private String clientId;
+
+  /** Nombre del cliente que solicitó la visita */
+  private String clientName;
 
   /**
    * ID del agente actualmente asignado a la visita. Este campo se actualiza cuando se acepta una
@@ -25,11 +34,14 @@ public class Visit {
    */
   private String agentId;
 
+  /** Nombre completo del agente */
+  private String agentName;
+
   /** ID del vehículo asignado a la visita */
   private String vehicleId;
 
   /** Fecha y hora de inicio programada para la visita */
-  private LocalDateTime dateTime;
+  private LocalDateTime startTime;
 
   /** Fecha y hora de fin programada para la visita */
   private LocalDateTime endTime;
@@ -40,28 +52,45 @@ public class Visit {
   /** Tiempo de desplazamiento de vuelta (en minutos) */
   private Integer travelTimeBack;
 
-  /** Estado de la visita: PROGRAMADA, CANCELADA, COMPLETADA */
-  private VisitStatus status;
+  /** Tipo de evento: VISIT (visita de agente), CLIENT_REQUEST (solicitud de cliente) */
+  private EventType type;
+
+  /** Estado de la visita: SCHEDULED, CONFIRMED, CANCELLED, COMPLETED */
+  private EventStatus status;
 
   /** Notas adicionales sobre la visita */
   private String notes;
+
+  /** Indica si esta visita es propiedad del agente autenticado (para UI) */
+  private Boolean ownEvent;
 
   /** Fecha en que se creó la solicitud de visita */
   private LocalDateTime createdAt;
 
   /** Historial de todas las reasignaciones */
-  private List<ReassignmentHistory> reassignmentHistory = new ArrayList<>();
+  private List<ReassignmentHistory> reassignmentHistory;
 
   /** ID de la visita original si fue reprogramada */
   private String originVisitId;
 
   /** Historial de reprogramaciones */
-  private List<ReschedulingHistory> reschedulingHistory = new ArrayList<>();
+  private List<ReschedulingHistory> reschedulingHistory;
 
-  public enum VisitStatus {
-    SCHEDULED,
-    CANCELLED,
-    COMPLETED
+  /**
+   * Tipo de evento. Valores posibles: VISIT (visita de agente), CLIENT_REQUEST (solicitud de
+   * cliente)
+   */
+  public enum EventType {
+    VISIT, // Visita programada por un agente
+    CLIENT_REQUEST // Solicitud de visita iniciada por un cliente
+  }
+
+  /** Estado del evento. Valores posibles: SCHEDULED, CONFIRMED, CANCELLED, COMPLETED */
+  public enum EventStatus {
+    SCHEDULED, // Programada, pendiente de confirmación
+    CONFIRMED, // Confirmada
+    CANCELLED, // Cancelada
+    COMPLETED // Completada
   }
 
   // ── Constructors ──────────────────────────────────────────────────────────
@@ -71,6 +100,8 @@ public class Visit {
     this.reassignmentHistory = new ArrayList<>();
     this.travelTimeGo = 0;
     this.travelTimeBack = 0;
+    this.ownEvent = false;
+    this.reschedulingHistory = new ArrayList<>();
   }
 
   // ── Getters & Setters ─────────────────────────────────────────────────────
@@ -91,12 +122,36 @@ public class Visit {
     this.propertyId = propertyId;
   }
 
+  public String getPropertyName() {
+    return propertyName;
+  }
+
+  public void setPropertyName(String propertyName) {
+    this.propertyName = propertyName;
+  }
+
+  public String getPropertyAddress() {
+    return propertyAddress;
+  }
+
+  public void setPropertyAddress(String propertyAddress) {
+    this.propertyAddress = propertyAddress;
+  }
+
   public String getClientId() {
     return clientId;
   }
 
   public void setClientId(String clientId) {
     this.clientId = clientId;
+  }
+
+  public String getClientName() {
+    return clientName;
+  }
+
+  public void setClientName(String clientName) {
+    this.clientName = clientName;
   }
 
   public String getAgentId() {
@@ -107,6 +162,14 @@ public class Visit {
     this.agentId = agentId;
   }
 
+  public String getAgentName() {
+    return agentName;
+  }
+
+  public void setAgentName(String agentName) {
+    this.agentName = agentName;
+  }
+
   public String getVehicleId() {
     return vehicleId;
   }
@@ -115,12 +178,12 @@ public class Visit {
     this.vehicleId = vehicleId;
   }
 
-  public LocalDateTime getDateTime() {
-    return dateTime;
+  public LocalDateTime getStartTime() {
+    return startTime;
   }
 
-  public void setDateTime(LocalDateTime dateTime) {
-    this.dateTime = dateTime;
+  public void setStartTime(LocalDateTime startTime) {
+    this.startTime = startTime;
   }
 
   public LocalDateTime getEndTime() {
@@ -147,12 +210,28 @@ public class Visit {
     this.travelTimeBack = travelTimeBack;
   }
 
-  public VisitStatus getStatus() {
+  public EventType getType() {
+    return type;
+  }
+
+  public void setType(EventType type) {
+    this.type = type;
+  }
+
+  public EventStatus getStatus() {
     return status;
   }
 
-  public void setStatus(VisitStatus status) {
+  public void setStatus(EventStatus status) {
     this.status = status;
+  }
+
+  public Boolean getOwnEvent() {
+    return ownEvent;
+  }
+
+  public void setOwnEvent(Boolean ownEvent) {
+    this.ownEvent = ownEvent;
   }
 
   public String getNotes() {

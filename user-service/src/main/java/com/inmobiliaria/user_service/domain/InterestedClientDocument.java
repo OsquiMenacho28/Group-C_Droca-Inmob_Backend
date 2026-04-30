@@ -17,15 +17,19 @@ public class InterestedClientDocument extends PersonDocument {
   private List<String> interestedPropertyIds;
 
   // Campos nuevos de preferencias
-  private String preferredZone;
+  private List<String> preferredZones;
+  private Integer minRooms;
+  private Integer maxRooms;
+  private Double maxPrice;
   private String preferredPropertyType;
-  private Integer preferredRooms;
 
   // Campos para baja lógica
   private boolean activo = true;
   private java.time.LocalDate lastActivityDate;
   private java.time.LocalDate fechaBaja;
   private String motivoBaja;
+  private String preferredZone;
+  private Integer preferredRooms;
 
   @Builder
   public InterestedClientDocument(

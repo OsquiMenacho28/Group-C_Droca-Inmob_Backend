@@ -25,10 +25,14 @@ public class ReschedulingHistory {
   private String newVisitId;
 
   /** The date/time that was replaced (the old scheduled date of the cancelled visit) */
-  private LocalDateTime previousDateTime;
+  private LocalDateTime previousStartTime;
+
+  private LocalDateTime previousEndTime;
 
   /** The new date/time assigned to the newly created visit */
-  private LocalDateTime newDateTime;
+  private LocalDateTime newStartTime;
+
+  private LocalDateTime newEndTime;
 
   /** ID of the agent who performed the rescheduling */
   private String rescheduledByAgentId;

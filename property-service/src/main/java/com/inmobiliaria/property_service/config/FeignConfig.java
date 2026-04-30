@@ -20,8 +20,20 @@ public class FeignConfig {
           (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
       if (attributes != null) {
         HttpServletRequest request = attributes.getRequest();
+
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null) {
+          template.header("Authorization", authHeader);
+        }
+
         template.header("X-Auth-User-Id", request.getHeader("X-Auth-User-Id"));
-        template.header("X-Auth-Roles", request.getHeader("X-Auth-Roles"));
+
+        // Propagate roles but strip ROLE_ prefix to maintain a single contract
+        String rolesHeader = request.getHeader("X-Auth-Roles");
+        if (rolesHeader != null) {
+          String cleanRoles = rolesHeader.replace("ROLE_", "");
+          template.header("X-Auth-Roles", cleanRoles);
+        }
       }
     };
   }

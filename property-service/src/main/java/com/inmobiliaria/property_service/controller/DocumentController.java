@@ -46,10 +46,7 @@ public class DocumentController {
     return ResponseEntity.ok(responseFactory.success("Upload URL generated", data));
   }
 
-  /**
-   * US1: Confirm successful upload and register document in MongoDB Updates property status to
-   * "Contracted" for exclusivity contracts
-   */
+  /** US1: Confirm successful upload and register document in MongoDB. */
   @PostMapping("/confirm")
   @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<DocumentResponse>> confirmUpload(

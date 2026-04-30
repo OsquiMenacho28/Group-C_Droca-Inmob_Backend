@@ -26,11 +26,13 @@ public class PropertyDocument extends BaseDocument {
   private OperationType operationType;
   private Double m2;
   private Integer rooms;
-  private String status;
+  private PropertyStatus status;
   private String assignedAgentId;
   private String ownerId;
-  private Double Latitude;
-  private Double Longitude;
+  private Double latitude;
+  private Double longitude;
+  private RetirementReason motivoRetiro;
+  private String detalleRetiro;
 
   @Builder.Default private List<String> imageUrls = new ArrayList<>();
 

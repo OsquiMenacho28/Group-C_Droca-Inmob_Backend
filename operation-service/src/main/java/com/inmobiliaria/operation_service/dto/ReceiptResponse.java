@@ -3,17 +3,15 @@ package com.inmobiliaria.operation_service.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.inmobiliaria.operation_service.model.Receipt;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/**
- * Read-only DTO returned to the client after attaching or listing receipts.
- *
- * <p>The {@code downloadUrl} is a MinIO pre-signed URL valid for 1 hour, generated on-the-fly by
- * {@link com.inmobiliaria.operation_service.service.MinioStorageService}.
- */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ReceiptResponse {
 
   private String id;
@@ -22,34 +20,12 @@ public class ReceiptResponse {
   private String currency;
   private LocalDateTime paymentDate;
   private String concept;
-  private String originalFileName;
+  private String fileName;
   private String contentType;
-  private Long fileSizeBytes;
-  private String uploadedByAgentId;
-  private LocalDateTime uploadedAt;
+  private Long size;
+  private String createdBy;
+  private LocalDateTime createdAt;
 
-  /**
-   * Pre-signed MinIO URL — frontend uses this to download or preview the file. Never expose the raw
-   * object key or internal bucket paths to the client.
-   */
+  /** Pre-signed MinIO URL — frontend uses this to download or preview the file. */
   private String downloadUrl;
-
-  // ── Factory ───────────────────────────────────────────────────────────────
-
-  public static ReceiptResponse from(Receipt receipt, String downloadUrl) {
-    ReceiptResponse dto = new ReceiptResponse();
-    dto.id = receipt.getId();
-    dto.operationId = receipt.getOperationId();
-    dto.amount = receipt.getAmount();
-    dto.currency = receipt.getCurrency();
-    dto.paymentDate = receipt.getPaymentDate();
-    dto.concept = receipt.getConcept();
-    dto.originalFileName = receipt.getOriginalFileName();
-    dto.contentType = receipt.getContentType();
-    dto.fileSizeBytes = receipt.getFileSizeBytes();
-    dto.uploadedByAgentId = receipt.getUploadedByAgentId();
-    dto.uploadedAt = receipt.getUploadedAt();
-    dto.downloadUrl = downloadUrl;
-    return dto;
-  }
 }

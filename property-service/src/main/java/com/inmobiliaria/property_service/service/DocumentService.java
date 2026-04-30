@@ -179,14 +179,6 @@ public class DocumentService {
     }
     property.getDocuments().add(document);
 
-    // US1 AC3: Update property status for exclusivity contract
-    if ("EXCLUSIVITY_CONTRACT".equals(request.getDocumentType())) {
-      property.setStatus("CONTRACTED");
-      log.info(
-          "Property {} status updated to CONTRACTED after exclusivity contract upload",
-          property.getId());
-    }
-
     property.setUpdatedAt(Instant.now());
     PropertyDocument saved = propertyRepository.save(property);
 
