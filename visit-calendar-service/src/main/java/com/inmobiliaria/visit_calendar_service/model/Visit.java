@@ -97,7 +97,9 @@ public class Visit {
   // Resultado de la visita. Valores posibles: INTERESADO, NO_INTERESADO, PENDIENTE
 
   public enum ResultadoVisita {
-      INTERESADO, NO_INTERESADO, PENDIENTE
+    INTERESADO,
+    NO_INTERESADO,
+    PENDIENTE
   }
 
   private ResultadoVisita resultado;
@@ -286,12 +288,27 @@ public class Visit {
   }
 
   // Resultado de la visita
-  public ResultadoVisita getResultado() { return resultado; }
-  public void setResultado(ResultadoVisita resultado) { this.resultado = resultado; }
+  public ResultadoVisita getResultado() {
+    return resultado;
+  }
 
-  public String getObservaciones() { return observaciones; }
-  public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+  public void setResultado(ResultadoVisita resultado) {
+    this.resultado = resultado;
+  }
 
-  public LocalDateTime getFechaRegistroResultado() { return fechaRegistroResultado; }
-  public void setFechaRegistroResultado(LocalDateTime fechaRegistroResultado) { this.fechaRegistroResultado = fechaRegistroResultado; }
+  public String getObservaciones() {
+    return observaciones;
+  }
+
+  public void setObservaciones(String observaciones) {
+    this.observaciones = observaciones;
+  }
+
+  public LocalDateTime getFechaRegistroResultado() {
+    return fechaRegistroResultado;
+  }
+
+  public void setFechaRegistroResultado(LocalDateTime fechaRegistroResultado) {
+    this.fechaRegistroResultado = fechaRegistroResultado;
+  }
 }

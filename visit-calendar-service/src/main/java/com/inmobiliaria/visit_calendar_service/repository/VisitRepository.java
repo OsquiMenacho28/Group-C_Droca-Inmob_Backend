@@ -77,6 +77,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
           + "] }")
   List<Visit> findConflictingVehicles(String vehicleId, LocalDateTime start, LocalDateTime end);
 
-  // Encuentra una visita por ID solo si tiene un estado específico (valida que solo se puedan registrar en visitas COMPLETED)
+  // Encuentra una visita por ID solo si tiene un estado específico (valida que solo se puedan
+  // registrar en visitas COMPLETED)
   Optional<Visit> findByIdAndStatus(String id, EventStatus status);
 }

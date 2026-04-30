@@ -136,28 +136,27 @@ public class VisitRequestController {
 
   @PatchMapping("/visits/{id}/resultado")
   public ResponseEntity<ApiResponse<VisitResponse>> registrarResultado(
-          @PathVariable String id,
-          @Valid @RequestBody RegistrarResultadoRequest request,
-          @RequestHeader("X-Agent-Id") String agentId) {
-      Visit updated = visitRequestService.registrarResultado(id, request, agentId);
-      return ResponseEntity.ok(responseFactory.success("Resultado registrado", toResponse(updated)));
+      @PathVariable String id,
+      @Valid @RequestBody RegistrarResultadoRequest request,
+      @RequestHeader("X-Agent-Id") String agentId) {
+    Visit updated = visitRequestService.registrarResultado(id, request, agentId);
+    return ResponseEntity.ok(responseFactory.success("Resultado registrado", toResponse(updated)));
   }
 
   private VisitResponse toResponse(Visit visit) {
-      return new VisitResponse(
-          visit.getId(),
-          visit.getPropertyId(),
-          visit.getPropertyName(),
-          visit.getClientId(),
-          visit.getClientName(),
-          visit.getAgentId(),
-          visit.getAgentName(),
-          visit.getStartTime(),
-          visit.getEndTime(),
-          visit.getStatus(),
-          visit.getResultado(),
-          visit.getObservaciones(),
-          visit.getFechaRegistroResultado()
-      );
+    return new VisitResponse(
+        visit.getId(),
+        visit.getPropertyId(),
+        visit.getPropertyName(),
+        visit.getClientId(),
+        visit.getClientName(),
+        visit.getAgentId(),
+        visit.getAgentName(),
+        visit.getStartTime(),
+        visit.getEndTime(),
+        visit.getStatus(),
+        visit.getResultado(),
+        visit.getObservaciones(),
+        visit.getFechaRegistroResultado());
   }
 }

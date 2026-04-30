@@ -175,24 +175,28 @@ public class VisitRequestService {
 
   @Transactional
   public Visit registrarResultado(String id, RegistrarResultadoRequest request, String agentId) {
-      Visit visit = visitRepository.findById(id)
-          .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
-      if (visit.getStatus() != Visit.EventStatus.SCHEDULED) {
-          throw new IllegalStateException("Solo se puede registrar resultado en visitas con estado PROGRAMADA");
-      }
-      // validar que el agente autenticado sea el asignado a la visita (seguridad)
-      if (!visit.getAgentId().equals(agentId)) {
-          throw new SecurityException("No tienes permiso para modificar esta visita");
-      }
-      try {
-          visit.setResultado(ResultadoVisita.valueOf(request.resultado()));
-      } catch (IllegalArgumentException e) {
-          throw new ValidationException("Resultado inválido. Use: INTERESADO, NO_INTERESADO, PENDIENTE");
-      }
-      visit.setObservaciones(request.observaciones());
-      visit.setFechaRegistroResultado(LocalDateTime.now());
-      visit.setStatus(Visit.EventStatus.REALIZADA);
-      return visitRepository.save(visit);
+    Visit visit =
+        visitRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
+    if (visit.getStatus() != Visit.EventStatus.SCHEDULED) {
+      throw new IllegalStateException(
+          "Solo se puede registrar resultado en visitas con estado PROGRAMADA");
+    }
+    // validar que el agente autenticado sea el asignado a la visita (seguridad)
+    if (!visit.getAgentId().equals(agentId)) {
+      throw new SecurityException("No tienes permiso para modificar esta visita");
+    }
+    try {
+      visit.setResultado(ResultadoVisita.valueOf(request.resultado()));
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException(
+          "Resultado inválido. Use: INTERESADO, NO_INTERESADO, PENDIENTE");
+    }
+    visit.setObservaciones(request.observaciones());
+    visit.setFechaRegistroResultado(LocalDateTime.now());
+    visit.setStatus(Visit.EventStatus.REALIZADA);
+    return visitRepository.save(visit);
   }
 
   // =====================================================================
