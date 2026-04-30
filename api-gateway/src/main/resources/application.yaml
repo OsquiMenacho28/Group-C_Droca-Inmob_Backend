@@ -18,6 +18,13 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: identity-service-docs
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
         - id: access-control-service
           uri: lb://ACCESS-CONTROL-SERVICE
           predicates:
@@ -25,6 +32,13 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: access-control-service-docs
+          uri: lb://ACCESS-CONTROL-SERVICE
+          predicates:
+            - Path=/access-control-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
         - id: notification-service
           uri: lb://NOTIFICATION-SERVICE
           predicates:
@@ -32,6 +46,13 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: notification-service-docs
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/notification-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
         - id: property-service
           uri: lb://PROPERTY-SERVICE
           predicates:
@@ -39,6 +60,13 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: property-service-docs
+          uri: lb://PROPERTY-SERVICE
+          predicates:
+            - Path=/property-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
@@ -46,6 +74,13 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: user-service-docs
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
         - id: visit-calendar-service
           uri: lb://visit-calendar-service
           predicates:
@@ -53,6 +88,13 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: visit-calendar-service-docs
+          uri: lb://visit-calendar-service
+          predicates:
+            - Path=/visit-calendar-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
         - id: operation-service
           uri: lb://operation-service
           predicates:
@@ -60,6 +102,31 @@ spring:
           filters:
             - AuthenticationFilter
             - StripPrefix=2
+        - id: operation-service-docs
+          uri: lb://operation-service
+          predicates:
+            - Path=/operation-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: identity-service
+        url: /identity-service/v3/api-docs
+      - name: access-control-service
+        url: /access-control-service/v3/api-docs
+      - name: notification-service
+        url: /notification-service/v3/api-docs
+      - name: property-service
+        url: /property-service/v3/api-docs
+      - name: user-service
+        url: /user-service/v3/api-docs
+      - name: visit-calendar-service
+        url: /visit-calendar-service/v3/api-docs
+      - name: operation-service
+        url: /operation-service/v3/api-docs
 
 eureka:
   client:

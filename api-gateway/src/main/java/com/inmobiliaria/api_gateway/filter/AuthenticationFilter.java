@@ -39,7 +39,18 @@ public class AuthenticationFilter
           "/api/v1/auth/refresh",
           "/api/v1/auth/forgot-password",
           "/api/v1/auth/reset-password",
-          "/eureka");
+          "/eureka",
+          "/v3/api-docs",
+          "/swagger-ui",
+          "/swagger-resources",
+          "/webjars",
+          "/identity-service/v3/api-docs",
+          "/access-control-service/v3/api-docs",
+          "/notification-service/v3/api-docs",
+          "/property-service/v3/api-docs",
+          "/user-service/v3/api-docs",
+          "/visit-calendar-service/v3/api-docs",
+          "/operation-service/v3/api-docs");
 
   public AuthenticationFilter() {
     super(Config.class);
