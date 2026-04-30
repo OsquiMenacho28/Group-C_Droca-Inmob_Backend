@@ -5,14 +5,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
+import com.inmobiliaria.visit_calendar_service.model.Visit.ResultadoVisita;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
+import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRequestRepository;
 
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,6 +38,7 @@ public class VisitRequestService {
   private final VisitRequestRepository visitRequestRepository;
   private final CalendarEventRepository calendarEventRepository;
   private final NotificationService notificationService;
+  private final VisitRepository visitRepository;
 
   /**
    * PA1 + PA2 de HU3: El cliente solicita una cita para un inmueble. Se persiste la solicitud y se
@@ -164,6 +171,28 @@ public class VisitRequestService {
   public int getVisitCountForProperty(String propertyId) {
     return calendarEventRepository.findByPropertyId(propertyId).size();
     // return visitRequestRepository.findByPropertyId(propertyId).size();
+  }
+
+  @Transactional
+  public Visit registrarResultado(String id, RegistrarResultadoRequest request, String agentId) {
+      Visit visit = visitRepository.findById(id)
+          .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
+      if (visit.getStatus() != Visit.EventStatus.SCHEDULED) {
+          throw new IllegalStateException("Solo se puede registrar resultado en visitas con estado PROGRAMADA");
+      }
+      // validar que el agente autenticado sea el asignado a la visita (seguridad)
+      if (!visit.getAgentId().equals(agentId)) {
+          throw new SecurityException("No tienes permiso para modificar esta visita");
+      }
+      try {
+          visit.setResultado(ResultadoVisita.valueOf(request.resultado()));
+      } catch (IllegalArgumentException e) {
+          throw new ValidationException("Resultado inválido. Use: INTERESADO, NO_INTERESADO, PENDIENTE");
+      }
+      visit.setObservaciones(request.observaciones());
+      visit.setFechaRegistroResultado(LocalDateTime.now());
+      visit.setStatus(Visit.EventStatus.REALIZADA);
+      return visitRepository.save(visit);
   }
 
   // =====================================================================

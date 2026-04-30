@@ -2,6 +2,7 @@ package com.inmobiliaria.visit_calendar_service.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
@@ -75,4 +76,7 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
           + "  { 'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } "
           + "] }")
   List<Visit> findConflictingVehicles(String vehicleId, LocalDateTime start, LocalDateTime end);
+
+  // Encuentra una visita por ID solo si tiene un estado específico (valida que solo se puedan registrar en visitas COMPLETED)
+  Optional<Visit> findByIdAndStatus(String id, EventStatus status);
 }
