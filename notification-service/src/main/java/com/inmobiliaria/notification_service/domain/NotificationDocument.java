@@ -12,17 +12,20 @@ import lombok.NoArgsConstructor;
 
 // backend/notification-service/src/main/java/.../domain/NotificationDocument.java
 @Document(collection = "notifications")
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class NotificationDocument {
-    @Id private String id;
-    private String recipientId;          // ID del propietario/usuario
-    private String type;                 // ej: "VISIT_SCHEDULED", "CREDENTIALS"
-    private String channel;              // "EMAIL", "PUSH" (futuro)
-    private String subject;
-    private String content;
-    private NotificationStatus status;   // PENDING, SENT, FAILED
-    private String errorMessage;
-    private Integer retryCount;
-    private LocalDateTime createdAt;
-    private LocalDateTime sentAt;
+  @Id private String id;
+  private String recipientId; // ID del propietario/usuario
+  private String type; // ej: "VISIT_SCHEDULED", "CREDENTIALS"
+  private String channel; // "EMAIL", "PUSH" (futuro)
+  private String subject;
+  private String content;
+  private NotificationStatus status; // PENDING, SENT, FAILED
+  private String errorMessage;
+  private Integer retryCount;
+  private LocalDateTime createdAt;
+  private LocalDateTime sentAt;
 }

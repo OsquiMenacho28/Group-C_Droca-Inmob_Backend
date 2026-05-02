@@ -22,50 +22,50 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class NotificationDispatcher {
-    private final JavaMailSender mailSender;
-    private final MailPropertiesConfig mailProps;
-    private final NotificationRepository notificationRepo;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+  private final JavaMailSender mailSender;
+  private final MailPropertiesConfig mailProps;
+  private final NotificationRepository notificationRepo;
+  private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-    @Async
-    public void send(NotificationDocument notif) {
-        notif.setStatus(NotificationStatus.PENDING);
-        notificationRepo.save(notif);
-        try {
-            // Intento 1
-            sendByChannel(notif);
-            notif.setStatus(NotificationStatus.SENT);
-            notif.setSentAt(LocalDateTime.now());
-        } catch (Exception e) {
-            log.warn("Fallo envío, reintentando en 5s...", e);
-            scheduler.schedule(() -> retry(notif), 5, TimeUnit.SECONDS);
-        }
-        notificationRepo.save(notif);
+  @Async
+  public void send(NotificationDocument notif) {
+    notif.setStatus(NotificationStatus.PENDING);
+    notificationRepo.save(notif);
+    try {
+      // Intento 1
+      sendByChannel(notif);
+      notif.setStatus(NotificationStatus.SENT);
+      notif.setSentAt(LocalDateTime.now());
+    } catch (Exception e) {
+      log.warn("Fallo envío, reintentando en 5s...", e);
+      scheduler.schedule(() -> retry(notif), 5, TimeUnit.SECONDS);
     }
+    notificationRepo.save(notif);
+  }
 
-    private void retry(NotificationDocument notif) {
-        try {
-            sendByChannel(notif);
-            notif.setStatus(NotificationStatus.SENT);
-            notif.setSentAt(LocalDateTime.now());
-        } catch (Exception e) {
-            notif.setStatus(NotificationStatus.FAILED);
-            notif.setErrorMessage(e.getMessage());
-            log.error("Reintento fallido para notif {}", notif.getId(), e);
-        }
-        notificationRepo.save(notif);
+  private void retry(NotificationDocument notif) {
+    try {
+      sendByChannel(notif);
+      notif.setStatus(NotificationStatus.SENT);
+      notif.setSentAt(LocalDateTime.now());
+    } catch (Exception e) {
+      notif.setStatus(NotificationStatus.FAILED);
+      notif.setErrorMessage(e.getMessage());
+      log.error("Reintento fallido para notif {}", notif.getId(), e);
     }
+    notificationRepo.save(notif);
+  }
 
-    private void sendByChannel(NotificationDocument notif) {
-        if ("EMAIL".equalsIgnoreCase(notif.getChannel())) {
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom(mailProps.getFrom());
-            msg.setTo(notif.getRecipientId()); // asumiendo que recipientId es email
-            msg.setSubject(notif.getSubject());
-            msg.setText(notif.getContent());
-            mailSender.send(msg);
-        } else {
-            throw new UnsupportedOperationException("Canal no implementado: " + notif.getChannel());
-        }
+  private void sendByChannel(NotificationDocument notif) {
+    if ("EMAIL".equalsIgnoreCase(notif.getChannel())) {
+      SimpleMailMessage msg = new SimpleMailMessage();
+      msg.setFrom(mailProps.getFrom());
+      msg.setTo(notif.getRecipientId()); // asumiendo que recipientId es email
+      msg.setSubject(notif.getSubject());
+      msg.setText(notif.getContent());
+      mailSender.send(msg);
+    } else {
+      throw new UnsupportedOperationException("Canal no implementado: " + notif.getChannel());
     }
+  }
 }

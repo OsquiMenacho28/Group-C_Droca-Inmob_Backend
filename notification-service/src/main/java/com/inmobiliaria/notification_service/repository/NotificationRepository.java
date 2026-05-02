@@ -7,5 +7,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import com.inmobiliaria.notification_service.domain.NotificationDocument;
 
 public interface NotificationRepository extends MongoRepository<NotificationDocument, String> {
-    Page<NotificationDocument> findByRecipientId(String recipientId, Pageable pageable);
+  Page<NotificationDocument> findByRecipientId(String recipientId, Pageable pageable);
 }
