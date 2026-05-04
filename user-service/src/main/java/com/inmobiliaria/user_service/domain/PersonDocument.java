@@ -39,6 +39,8 @@ public abstract class PersonDocument extends BaseDocument {
 
   private List<AuditEntry> auditLog = new ArrayList<>();
 
+  private PersonPreferences preferences;
+
   // Constructor explícito con los 12 campos que usan las subclases en super(...)
   // auditLog queda fuera — se inicializa solo con new ArrayList<>()
   public PersonDocument(

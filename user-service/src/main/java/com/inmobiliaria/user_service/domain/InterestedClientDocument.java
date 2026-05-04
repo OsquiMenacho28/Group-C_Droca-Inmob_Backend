@@ -1,4 +1,3 @@
-// REEMPLAZAR el archivo completo:
 package com.inmobiliaria.user_service.domain;
 
 import java.util.List;
@@ -15,17 +14,17 @@ public class InterestedClientDocument extends PersonDocument {
   private String preferredContactMethod;
   private String budget;
   private List<String> interestedPropertyIds;
-
-  // Campos nuevos de preferencias
   private String preferredZone;
   private String preferredPropertyType;
   private Integer preferredRooms;
-
-  // Campos para baja lógica
   private boolean activo = true;
   private java.time.LocalDate lastActivityDate;
   private java.time.LocalDate fechaBaja;
   private String motivoBaja;
+  private List<String> preferredZones;
+  private Integer minRooms;
+  private Integer maxRooms;
+  private Double maxPrice;
 
   @Builder
   public InterestedClientDocument(

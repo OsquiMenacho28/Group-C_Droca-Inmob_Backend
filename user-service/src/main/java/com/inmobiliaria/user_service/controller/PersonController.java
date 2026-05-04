@@ -132,7 +132,6 @@ public class PersonController {
     return ResponseEntity.status(204).body(responseFactory.deleted("Person deleted successfully"));
   }
 
-  // Obtener clientes asignados al agente autenticado
   @GetMapping("/agents/clients")
   public ResponseEntity<ApiResponse<List<PersonResponse>>> getClientsForAgent(
       HttpServletRequest request) {
@@ -144,7 +143,6 @@ public class PersonController {
     return ResponseEntity.ok(responseFactory.success("Clients retrieved successfully", data));
   }
 
-  // Obtener propietarios asignados al agente autenticado
   @GetMapping("/agents/owners")
   public ResponseEntity<ApiResponse<List<PersonResponse>>> getOwnersForAgent(
       HttpServletRequest request) {
@@ -156,7 +154,6 @@ public class PersonController {
     return ResponseEntity.ok(responseFactory.success("Owners retrieved successfully", data));
   }
 
-  // Crear un cliente y asignarlo al agente autenticado
   @PostMapping("/agents/clients")
   public ResponseEntity<ApiResponse<PersonResponse>> createClientForAgent(
       HttpServletRequest request, @RequestBody @Valid CreateInterestedClientRequest clientRequest) {
@@ -169,7 +166,6 @@ public class PersonController {
         .body(responseFactory.created("Client created and assigned to agent successfully", data));
   }
 
-  // Actualizar un cliente asignado al agente autenticado
   @PutMapping("/agents/clients/{clientId}")
   public ResponseEntity<ApiResponse<PersonResponse>> updateClientForAgent(
       HttpServletRequest request,
@@ -183,7 +179,6 @@ public class PersonController {
     return ResponseEntity.ok(responseFactory.success("Client updated successfully", data));
   }
 
-  // Dar de baja (lógico, no físico)
   @PutMapping("/{id}/deactivate")
   public ResponseEntity<ApiResponse<PersonResponse>> darDeBaja(
       @PathVariable String id,
@@ -193,7 +188,6 @@ public class PersonController {
     return ResponseEntity.ok(responseFactory.success("Person deactivated successfully", data));
   }
 
-  // Clientes inactivos por N días
   @GetMapping("/inactivos")
   public ResponseEntity<ApiResponse<List<PersonResponse>>> findInactivos(
       @RequestParam(defaultValue = "90") int diasSinActividad) {
@@ -203,41 +197,28 @@ public class PersonController {
         responseFactory.success("Inactive clients retrieved successfully", data));
   }
 
-  // @PostMapping("/{id}/preferencias")
-  // @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
-  // public ResponseEntity<ApiResponse<PersonPreferences>> savePrefs(
-  //     @PathVariable String id, @Valid @RequestBody PersonPreferences prefs) {
-  //   if (prefs.getMinRooms() != null
-  //       && prefs.getMaxRooms() != null
-  //       && prefs.getMinRooms() > prefs.getMaxRooms()) {
-  //     throw new ValidationException("El mínimo de cuartos no puede ser mayor al máximo");
-  //   }
-  //   PersonPreferences saved = personService.savePreferences(id, prefs);
-  //   return ResponseEntity.ok(ResponseFactory.success("Preferencias registradas", saved));
-  // }
-
-  @RestController
-  @RequestMapping("/persons")
-  @RequiredArgsConstructor
-  public class PersonController {
-
-    private final PersonService personService;
-    private final ResponseFactory responseFactory; // Add this
-
-    // ... other methods ...
-
-    @PostMapping("/{id}/preferences")
-    public ResponseEntity<ApiResponse<PersonPreferences>> savePreferences(
-        @PathVariable String id, @Valid @RequestBody PersonPreferences preferences) {
-
-      PersonPreferences saved = personService.savePreferences(id, preferences);
-      return ResponseEntity.ok(responseFactory.success("Preferences saved successfully", saved));
+  @PostMapping("/{id}/preferencias")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PersonPreferences>> savePrefs(
+      @PathVariable String id, @Valid @RequestBody PersonPreferences prefs) {
+    if (prefs.getMinRooms() != null
+        && prefs.getMaxRooms() != null
+        && prefs.getMinRooms() > prefs.getMaxRooms()) {
+      throw new ValidationException("El mínimo de cuartos no puede ser mayor al máximo");
     }
+    PersonPreferences saved = personService.savePreferences(id, prefs);
+    return ResponseEntity.ok(responseFactory.success("Preferencias registradas", saved));
   }
 
   @PutMapping("/{id}/preferencias")
   public ResponseEntity<ApiResponse<PersonPreferences>> updatePrefs(
       @PathVariable String id, @Valid @RequestBody PersonPreferences prefs) {
-    return savePrefs(id, prefs); // Reutiliza lógica de validación
+    if (prefs.getMinRooms() != null
+        && prefs.getMaxRooms() != null
+        && prefs.getMinRooms() > prefs.getMaxRooms()) {
+      throw new ValidationException("El mínimo de cuartos no puede ser mayor al máximo");
+    }
+    PersonPreferences saved = personService.savePreferences(id, prefs);
+    return ResponseEntity.ok(responseFactory.success("Preferencias actualizadas", saved));
   }
 }
