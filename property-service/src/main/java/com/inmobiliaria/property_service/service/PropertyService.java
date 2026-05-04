@@ -37,6 +37,9 @@ public class PropertyService {
   private final MongoTemplate mongoTemplate;
   private final ImageService imageService;
 
+  private final UserPreferencesClient userPreferencesClient;
+  private final UserClient userClient;
+
   /** Búsqueda avanzada con filtros dinámicos y seguridad por rol. */
   public Map<String, Object> findWithFilters(
       String title,
@@ -774,5 +777,41 @@ public class PropertyService {
 
     log.info("Inmueble {} reincorporado al inventario por usuario {}", id, userId);
     return mapToResponse(propertyRepository.save(prop));
+  }
+
+  public List<PropertyResponse> findSuggestedProperties(String buscadorId) {
+    // 1. Obtener preferencias del user-service
+    UserClient.UserPreferenceResponse prefs = userClient.getPersonPreferences(buscadorId);
+
+    if (prefs == null) return Collections.emptyList();
+
+    // 2. Construir Query dinámica para MongoDB
+    Query query = new Query();
+    query.addCriteria(Criteria.where("status").is("DISPONIBLE"));
+    query.addCriteria(Criteria.where("deleted").is(false));
+
+    if (prefs.preferredZones() != null && !prefs.preferredZones().isEmpty()) {
+      query.addCriteria(Criteria.where("zone").in(prefs.preferredZones()));
+    }
+
+    if (prefs.minRooms() != null) {
+      query.addCriteria(Criteria.where("rooms").gte(prefs.minRooms()));
+    }
+
+    if (prefs.maxRooms() != null) {
+      query.addCriteria(Criteria.where("rooms").lte(prefs.maxRooms()));
+    }
+
+    if (prefs.maxPrice() != null) {
+      query.addCriteria(Criteria.where("price").lte(prefs.maxPrice()));
+    }
+
+    if (prefs.preferredPropertyType() != null && !prefs.preferredPropertyType().isBlank()) {
+      query.addCriteria(Criteria.where("type").is(prefs.preferredPropertyType()));
+    }
+
+    return mongoTemplate.find(query, PropertyDocument.class).stream()
+        .map(this::mapToResponse)
+        .collect(Collectors.toList());
   }
 }

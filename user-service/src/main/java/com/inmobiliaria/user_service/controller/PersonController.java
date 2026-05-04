@@ -5,8 +5,10 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.inmobiliaria.user_service.domain.PersonPreferences;
 import com.inmobiliaria.user_service.dto.request.CreateEmployeeRequest;
 import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
 import com.inmobiliaria.user_service.dto.request.CreateOwnerRequest;
@@ -15,6 +17,7 @@ import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.ApiResponse;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.dto.response.ResponseFactory;
+import com.inmobiliaria.user_service.exception.ValidationException;
 import com.inmobiliaria.user_service.service.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -198,5 +201,43 @@ public class PersonController {
     List<PersonResponse> data = personService.findClientesInactivos(fechaLimite);
     return ResponseEntity.ok(
         responseFactory.success("Inactive clients retrieved successfully", data));
+  }
+
+  // @PostMapping("/{id}/preferencias")
+  // @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  // public ResponseEntity<ApiResponse<PersonPreferences>> savePrefs(
+  //     @PathVariable String id, @Valid @RequestBody PersonPreferences prefs) {
+  //   if (prefs.getMinRooms() != null
+  //       && prefs.getMaxRooms() != null
+  //       && prefs.getMinRooms() > prefs.getMaxRooms()) {
+  //     throw new ValidationException("El mínimo de cuartos no puede ser mayor al máximo");
+  //   }
+  //   PersonPreferences saved = personService.savePreferences(id, prefs);
+  //   return ResponseEntity.ok(ResponseFactory.success("Preferencias registradas", saved));
+  // }
+
+  @RestController
+  @RequestMapping("/persons")
+  @RequiredArgsConstructor
+  public class PersonController {
+
+    private final PersonService personService;
+    private final ResponseFactory responseFactory; // Add this
+
+    // ... other methods ...
+
+    @PostMapping("/{id}/preferences")
+    public ResponseEntity<ApiResponse<PersonPreferences>> savePreferences(
+        @PathVariable String id, @Valid @RequestBody PersonPreferences preferences) {
+
+      PersonPreferences saved = personService.savePreferences(id, preferences);
+      return ResponseEntity.ok(responseFactory.success("Preferences saved successfully", saved));
+    }
+  }
+
+  @PutMapping("/{id}/preferencias")
+  public ResponseEntity<ApiResponse<PersonPreferences>> updatePrefs(
+      @PathVariable String id, @Valid @RequestBody PersonPreferences prefs) {
+    return savePrefs(id, prefs); // Reutiliza lógica de validación
   }
 }

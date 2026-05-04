@@ -612,4 +612,37 @@ public class PersonService {
         preferredPropertyType,
         preferredRooms);
   }
+
+  public PersonResponse updateSearchPreferences(String personId, SearchPreferencesRequest request) {
+    PersonDocument person =
+        personRepository
+            .findById(personId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+
+    if (!(person instanceof InterestedClientDocument client)) {
+      throw new IllegalArgumentException(
+          "Solo se pueden registrar preferencias para clientes buscadores");
+    }
+
+    client.setPreferredZones(request.preferredZones());
+    client.setMinRooms(request.minRooms());
+    client.setMaxRooms(request.maxRooms());
+    client.setMaxPrice(request.maxPrice());
+    client.setPreferredPropertyType(request.preferredPropertyType());
+    client.setUpdatedAt(Instant.now());
+
+    return mapToResponse(personRepository.save(client));
+  }
+
+  public PersonPreferences savePreferences(String personId, PersonPreferences preferences) {
+    Person person =
+        personRepository
+            .findById(personId)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Person not found with id: " + personId));
+
+    person.setPreferences(preferences);
+    Person savedPerson = personRepository.save(person);
+    return savedPerson.getPreferences();
+  }
 }
