@@ -8,6 +8,7 @@ import com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictExcepti
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
+import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class CalendarService {
   private final PropertyServiceClient propertyServiceClient;
   private final NotificationService notificationService;
   private final PersonServiceClient personServiceClient;
+  private final VisitRepository visitRepository;
 
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
