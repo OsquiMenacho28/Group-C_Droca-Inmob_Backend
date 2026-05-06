@@ -16,7 +16,7 @@ foreach ($service in $services) {
     $path = Join-Path $root $service
     Write-Host "`n==> Formatting: $service" -ForegroundColor Cyan
     Push-Location $path
-    mvn spotless:apply
+    mvn spotless:apply -o
     Pop-Location
 }
 

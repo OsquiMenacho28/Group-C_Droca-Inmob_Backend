@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.13</version>
+		<version>3.5.14</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.inmobiliaria</groupId>
@@ -147,20 +147,22 @@
 				<artifactId>spotless-maven-plugin</artifactId>
 				<version>${spotless.version}</version>
 				<configuration>
+					<lineEndings>UNIX</lineEndings>
 					<java>
 						<googleJavaFormat>
 							<version>${google-java-format.version}</version>
 							<style>GOOGLE</style>
 						</googleJavaFormat>
-						<removeUnusedImports/>
-						<trimTrailingWhitespace/>
-						<endWithNewline/>
-						<importOrder>
-							<order>java,javax,org,com</order>
-						</importOrder>
 					</java>
 				</configuration>
 				<executions>
+					<execution>
+						<id>spotless-apply</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>apply</goal>
+						</goals>
+					</execution>
 					<execution>
 						<id>spotless-check</id>
 						<phase>verify</phase>
