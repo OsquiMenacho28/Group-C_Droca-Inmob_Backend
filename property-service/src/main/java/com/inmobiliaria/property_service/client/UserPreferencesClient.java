@@ -14,11 +14,10 @@ import com.inmobiliaria.property_service.config.FeignConfig;
     configuration = FeignConfig.class)
 public interface UserPreferencesClient {
 
-  @GetMapping("/persons/{id}")
-  UserPrefResponse getPreferences(@PathVariable("id") String id);
+  @GetMapping("/persons/{personId}/preferencias")
+  UserPreferenceResponse getPreferences(@PathVariable("personId") String personId);
 
-  record UserPrefResponse(
-      String id,
+  record UserPreferenceResponse(
       List<String> preferredZones,
       Integer minRooms,
       Integer maxRooms,

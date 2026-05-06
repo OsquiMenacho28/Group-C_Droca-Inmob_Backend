@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.inmobiliaria.property_service.client.IdentityClient;
 import com.inmobiliaria.property_service.client.OperationClient;
+import com.inmobiliaria.property_service.client.UserClient;
 import com.inmobiliaria.property_service.client.UserPreferencesClient;
 import com.inmobiliaria.property_service.domain.*;
 import com.inmobiliaria.property_service.dto.request.*;
@@ -39,6 +40,7 @@ public class PropertyService {
   private final ImageService imageService;
 
   private final UserPreferencesClient userPreferencesClient;
+  private final UserClient userClient;
 
   /** Búsqueda avanzada con filtros dinámicos y seguridad por rol. */
   public Map<String, Object> findWithFilters(
@@ -780,32 +782,34 @@ public class PropertyService {
   }
 
   public List<PropertyResponse> findSuggestedProperties(String buscadorId) {
-    // 1. Obtener preferencias desde user-service
-    var pref = userPreferencesClient.getPreferences(buscadorId);
+    // 1. Obtener preferencias del user-service
+    UserClient.UserPreferenceResponse prefs = userClient.getPersonPreferences(buscadorId);
 
-    // 2. Construir Query dinámica de MongoDB
+    if (prefs == null) return Collections.emptyList();
+
+    // 2. Construir Query dinámica para MongoDB
     Query query = new Query();
+    query.addCriteria(Criteria.where("status").is("DISPONIBLE"));
     query.addCriteria(Criteria.where("deleted").is(false));
-    query.addCriteria(Criteria.where("status").is(PropertyStatus.DISPONIBLE));
 
-    if (pref.preferredZones() != null && !pref.preferredZones().isEmpty()) {
-      query.addCriteria(Criteria.where("zone").in(pref.preferredZones()));
+    if (prefs.preferredZones() != null && !prefs.preferredZones().isEmpty()) {
+      query.addCriteria(Criteria.where("zone").in(prefs.preferredZones()));
     }
 
-    // Filtro por rango de cuartos
-    if (pref.minRooms() != null) {
-      query.addCriteria(Criteria.where("rooms").gte(pref.minRooms()));
-    }
-    if (pref.maxRooms() != null) {
-      query.addCriteria(Criteria.where("rooms").lte(pref.maxRooms()));
+    if (prefs.minRooms() != null) {
+      query.addCriteria(Criteria.where("rooms").gte(prefs.minRooms()));
     }
 
-    if (pref.maxPrice() != null) {
-      query.addCriteria(Criteria.where("price").lte(pref.maxPrice()));
+    if (prefs.maxRooms() != null) {
+      query.addCriteria(Criteria.where("rooms").lte(prefs.maxRooms()));
     }
 
-    if (pref.preferredPropertyType() != null && !pref.preferredPropertyType().isBlank()) {
-      query.addCriteria(Criteria.where("type").is(pref.preferredPropertyType()));
+    if (prefs.maxPrice() != null) {
+      query.addCriteria(Criteria.where("price").lte(prefs.maxPrice()));
+    }
+
+    if (prefs.preferredPropertyType() != null && !prefs.preferredPropertyType().isBlank()) {
+      query.addCriteria(Criteria.where("type").is(prefs.preferredPropertyType()));
     }
 
     return mongoTemplate.find(query, PropertyDocument.class).stream()

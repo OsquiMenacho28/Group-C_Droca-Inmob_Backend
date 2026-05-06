@@ -17,6 +17,7 @@ import com.inmobiliaria.user_service.domain.*;
 import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
 import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
+import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
 import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
@@ -633,5 +634,17 @@ public class PersonService {
     client.setUpdatedAt(Instant.now());
 
     return mapToResponse(personRepository.save(client));
+  }
+
+  public PersonPreferences savePreferences(String personId, PersonPreferences preferences) {
+    PersonDocument person =
+        personRepository
+            .findById(personId)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Person not found with id: " + personId));
+
+    person.setPreferences(preferences);
+    PersonDocument savedPerson = personRepository.save(person);
+    return savedPerson.getPreferences();
   }
 }

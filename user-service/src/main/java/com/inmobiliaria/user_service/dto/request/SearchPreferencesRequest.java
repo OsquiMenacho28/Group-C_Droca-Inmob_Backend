@@ -2,18 +2,12 @@ package com.inmobiliaria.user_service.dto.request;
 
 import java.util.List;
 
-import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 
 public record SearchPreferencesRequest(
     List<String> preferredZones,
-    @Min(0) Integer minRooms,
-    @Min(0) Integer maxRooms,
-    Double maxPrice,
-    String preferredPropertyType) {
-  @AssertTrue(message = "El número mínimo de cuartos no puede ser mayor al máximo")
-  public boolean isValidRoomRange() {
-    if (minRooms == null || maxRooms == null) return true;
-    return minRooms <= maxRooms;
-  }
-}
+    @Min(value = 0, message = "Min rooms must be at least 0") Integer minRooms,
+    @Min(value = 0, message = "Max rooms must be at least 0") Integer maxRooms,
+    @DecimalMin(value = "0.0", message = "Max price must be at least 0") Double maxPrice,
+    String preferredPropertyType) {}
