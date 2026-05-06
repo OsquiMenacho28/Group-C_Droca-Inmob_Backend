@@ -17,6 +17,7 @@ import com.inmobiliaria.user_service.domain.*;
 import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
 import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
+import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
 import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
