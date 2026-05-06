@@ -1,18 +1,15 @@
 package com.inmobiliaria.user_service.service;
 
-import java.time.LocalDate;
-
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.user_service.domain.PersonType;
 import com.inmobiliaria.user_service.dto.request.CreateOwnerRequest;
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
 import com.inmobiliaria.user_service.repository.PersonRepository;
-
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service

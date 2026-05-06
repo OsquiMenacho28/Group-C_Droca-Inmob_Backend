@@ -1,8 +1,14 @@
 package com.inmobiliaria.identity_service.security;
 
+import com.inmobiliaria.identity_service.domain.AuditLog;
+import com.inmobiliaria.identity_service.domain.UserDocument;
+import com.inmobiliaria.identity_service.repository.AuditLogRepository;
+import com.inmobiliaria.identity_service.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.Optional;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -11,15 +17,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import com.inmobiliaria.identity_service.domain.AuditLog;
-import com.inmobiliaria.identity_service.domain.UserDocument;
-import com.inmobiliaria.identity_service.repository.AuditLogRepository;
-import com.inmobiliaria.identity_service.repository.UserRepository;
-
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Aspect
 @Component

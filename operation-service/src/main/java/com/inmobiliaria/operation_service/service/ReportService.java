@@ -1,19 +1,16 @@
 package com.inmobiliaria.operation_service.service;
 
+import com.inmobiliaria.operation_service.domain.OperationDocument;
+import com.inmobiliaria.operation_service.dto.AgentRankingResponse;
+import com.inmobiliaria.operation_service.repository.OperationRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
-import com.inmobiliaria.operation_service.domain.OperationDocument;
-import com.inmobiliaria.operation_service.dto.AgentRankingResponse;
-import com.inmobiliaria.operation_service.repository.OperationRepository;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor

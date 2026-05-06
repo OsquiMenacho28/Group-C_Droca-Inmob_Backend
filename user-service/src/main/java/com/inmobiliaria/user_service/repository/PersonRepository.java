@@ -1,16 +1,14 @@
 package com.inmobiliaria.user_service.repository;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
-import org.springframework.stereotype.Repository;
-
 import com.inmobiliaria.user_service.domain.EmployeeDocument;
 import com.inmobiliaria.user_service.domain.InterestedClientDocument;
 import com.inmobiliaria.user_service.domain.PersonDocument;
 import com.inmobiliaria.user_service.domain.PersonType;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PersonRepository extends MongoRepository<PersonDocument, String> {

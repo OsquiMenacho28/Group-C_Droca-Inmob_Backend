@@ -1,7 +1,6 @@
 package com.inmobiliaria.property_service.domain;
 
 import java.time.Instant;
-
 import lombok.*;
 
 @Data

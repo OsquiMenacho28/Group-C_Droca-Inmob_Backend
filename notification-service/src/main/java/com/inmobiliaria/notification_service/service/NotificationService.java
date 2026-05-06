@@ -1,11 +1,5 @@
 package com.inmobiliaria.notification_service.service;
 
-import java.time.Instant;
-
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.notification_service.config.MailPropertiesConfig;
 import com.inmobiliaria.notification_service.domain.EmailLogDocument;
 import com.inmobiliaria.notification_service.domain.NotificationStatus;
@@ -13,8 +7,11 @@ import com.inmobiliaria.notification_service.dto.request.SendCredentialsEmailReq
 import com.inmobiliaria.notification_service.dto.response.NotificationResponse;
 import com.inmobiliaria.notification_service.exception.EmailSendException;
 import com.inmobiliaria.notification_service.repository.EmailLogRepository;
-
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor

@@ -1,14 +1,12 @@
 package com.inmobiliaria.identity_service.repository;
 
+import com.inmobiliaria.identity_service.domain.UserDocument;
+import com.inmobiliaria.identity_service.domain.UserStatus;
 import java.util.Optional;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
-
-import com.inmobiliaria.identity_service.domain.UserDocument;
-import com.inmobiliaria.identity_service.domain.UserStatus;
 
 public interface UserRepository extends MongoRepository<UserDocument, String> {
 

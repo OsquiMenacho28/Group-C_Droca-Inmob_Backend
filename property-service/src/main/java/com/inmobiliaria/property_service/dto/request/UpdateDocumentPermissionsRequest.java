@@ -1,9 +1,8 @@
 package com.inmobiliaria.property_service.dto.request;
 
-import java.util.Set;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Set;
 import lombok.Data;
 
 @Data

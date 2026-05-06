@@ -1,11 +1,10 @@
 package com.inmobiliaria.identity_service.client;
 
+import lombok.Builder;
+import lombok.Data;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import lombok.Builder;
-import lombok.Data;
 
 @FeignClient(name = "notification-service")
 public interface NotificationClient {

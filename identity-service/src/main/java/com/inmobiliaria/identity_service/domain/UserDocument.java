@@ -3,12 +3,10 @@ package com.inmobiliaria.identity_service.domain;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import lombok.*;
 
 @Document(collection = "users")
 @Getter

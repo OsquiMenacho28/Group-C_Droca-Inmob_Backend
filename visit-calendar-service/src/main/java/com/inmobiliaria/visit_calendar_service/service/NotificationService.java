@@ -1,18 +1,15 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.dto.SendNotificationRequest;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
+import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import com.inmobiliaria.visit_calendar_service.dto.SendNotificationRequest;
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
-import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor

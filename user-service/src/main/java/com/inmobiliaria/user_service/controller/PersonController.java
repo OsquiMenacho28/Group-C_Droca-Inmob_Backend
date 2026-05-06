@@ -1,13 +1,5 @@
 package com.inmobiliaria.user_service.controller;
 
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.user_service.domain.PersonPreferences;
 import com.inmobiliaria.user_service.dto.request.CreateEmployeeRequest;
 import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
@@ -19,10 +11,15 @@ import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.dto.response.ResponseFactory;
 import com.inmobiliaria.user_service.exception.ValidationException;
 import com.inmobiliaria.user_service.service.*;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/persons")

@@ -3,13 +3,11 @@ package com.inmobiliaria.user_service.domain;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import lombok.*;
 
 @Document(collection = "persons")
 @TypeAlias("person")

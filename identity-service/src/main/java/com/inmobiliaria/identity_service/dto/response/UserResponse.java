@@ -1,10 +1,9 @@
 package com.inmobiliaria.identity_service.dto.response;
 
-import java.time.Instant;
-import java.util.List;
-
 import com.inmobiliaria.identity_service.domain.UserStatus;
 import com.inmobiliaria.identity_service.domain.UserType;
+import java.time.Instant;
+import java.util.List;
 
 public record UserResponse(
     String id,

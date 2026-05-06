@@ -1,12 +1,10 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
-
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

@@ -1,15 +1,13 @@
 package com.inmobiliaria.identity_service.config;
 
-import java.io.IOException;
-import java.lang.reflect.Type;
-
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inmobiliaria.identity_service.dto.response.ApiResponse;
-
 import feign.Response;
 import feign.Util;
 import feign.codec.Decoder;
+import java.io.IOException;
+import java.lang.reflect.Type;
 
 /**
  * Custom Feign Decoder that automatically unwraps the "data" field from the standardized

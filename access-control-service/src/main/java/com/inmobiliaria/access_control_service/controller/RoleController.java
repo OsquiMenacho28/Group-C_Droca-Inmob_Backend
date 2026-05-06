@@ -1,23 +1,20 @@
 package com.inmobiliaria.access_control_service.controller;
 
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.access_control_service.dto.request.CreateRoleRequest;
 import com.inmobiliaria.access_control_service.dto.request.UpdateRoleRequest;
 import com.inmobiliaria.access_control_service.dto.response.ApiResponse;
 import com.inmobiliaria.access_control_service.dto.response.ResponseFactory;
 import com.inmobiliaria.access_control_service.dto.response.RoleResponse;
 import com.inmobiliaria.access_control_service.service.RoleService;
-
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/roles")

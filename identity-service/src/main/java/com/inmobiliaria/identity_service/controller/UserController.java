@@ -1,14 +1,5 @@
 package com.inmobiliaria.identity_service.controller;
 
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.identity_service.dto.request.AssignRoleRequest;
 import com.inmobiliaria.identity_service.dto.request.CreateUserRequest;
 import com.inmobiliaria.identity_service.dto.request.UpdateUserRequest;
@@ -16,9 +7,15 @@ import com.inmobiliaria.identity_service.dto.response.ApiResponse;
 import com.inmobiliaria.identity_service.dto.response.ResponseFactory;
 import com.inmobiliaria.identity_service.dto.response.UserResponse;
 import com.inmobiliaria.identity_service.service.UserService;
-
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")

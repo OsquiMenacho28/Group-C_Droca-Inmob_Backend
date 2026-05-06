@@ -1,14 +1,12 @@
 package com.inmobiliaria.visit_calendar_service.repository;
 
+import com.inmobiliaria.visit_calendar_service.model.Visit;
+import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-
-import com.inmobiliaria.visit_calendar_service.model.Visit;
-import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 
 /**
  * MongoDB repository for Visit documents.

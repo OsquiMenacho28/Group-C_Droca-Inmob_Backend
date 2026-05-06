@@ -1,12 +1,10 @@
 package com.inmobiliaria.property_service.client;
 
+import com.inmobiliaria.property_service.config.FeignConfig;
 import java.util.List;
-
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
-import com.inmobiliaria.property_service.config.FeignConfig;
 
 @FeignClient(
     name = "user-service",

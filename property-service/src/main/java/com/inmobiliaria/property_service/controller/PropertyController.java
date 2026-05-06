@@ -1,16 +1,5 @@
 package com.inmobiliaria.property_service.controller;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.StatusHistory;
 import com.inmobiliaria.property_service.dto.request.*;
@@ -19,9 +8,17 @@ import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.dto.response.ResponsableResponse;
 import com.inmobiliaria.property_service.dto.response.ResponseFactory;
 import com.inmobiliaria.property_service.service.PropertyService;
-
 import jakarta.validation.Valid;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/properties")

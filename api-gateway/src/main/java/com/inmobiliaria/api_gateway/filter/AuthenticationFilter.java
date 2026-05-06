@@ -1,7 +1,12 @@
 package com.inmobiliaria.api_gateway.filter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inmobiliaria.api_gateway.dto.ApiResponse;
+import com.inmobiliaria.api_gateway.util.JwtUtil;
+import io.jsonwebtoken.Claims;
 import java.util.List;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -12,14 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inmobiliaria.api_gateway.dto.ApiResponse;
-import com.inmobiliaria.api_gateway.util.JwtUtil;
-
-import io.jsonwebtoken.Claims;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Slf4j

@@ -1,16 +1,13 @@
 package com.inmobiliaria.identity_service.service;
 
+import com.mongodb.client.MongoClient;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
+import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import com.mongodb.client.MongoClient;
-
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

@@ -1,8 +1,7 @@
 package com.inmobiliaria.identity_service.dto.request;
 
-import java.time.LocalDate;
-
 import com.inmobiliaria.identity_service.domain.UserType;
+import java.time.LocalDate;
 
 public record UpdateUserRequest(
     String firstName,

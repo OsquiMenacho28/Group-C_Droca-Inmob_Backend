@@ -1,15 +1,5 @@
 package com.inmobiliaria.operation_service.service;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.inmobiliaria.operation_service.domain.OperationDocument;
 import com.inmobiliaria.operation_service.domain.ReceiptDocument;
 import com.inmobiliaria.operation_service.dto.ReceiptResponse;
@@ -17,9 +7,16 @@ import com.inmobiliaria.operation_service.dto.ReceiptUploadRequest;
 import com.inmobiliaria.operation_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.operation_service.repository.OperationRepository;
 import com.inmobiliaria.operation_service.repository.ReceiptRepository;
-
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor

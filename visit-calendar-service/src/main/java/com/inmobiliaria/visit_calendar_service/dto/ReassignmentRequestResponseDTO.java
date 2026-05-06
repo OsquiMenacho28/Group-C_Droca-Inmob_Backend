@@ -1,8 +1,7 @@
 package com.inmobiliaria.visit_calendar_service.dto;
 
-import java.time.LocalDateTime;
-
 import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
+import java.time.LocalDateTime;
 
 /** DTO de respuesta con los datos de una SolicitudReasignacion. */
 public class ReassignmentRequestResponseDTO {

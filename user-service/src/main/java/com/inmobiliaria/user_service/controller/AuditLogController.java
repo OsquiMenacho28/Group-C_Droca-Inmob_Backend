@@ -1,8 +1,11 @@
 package com.inmobiliaria.user_service.controller;
 
+import com.inmobiliaria.user_service.domain.AuditLogDocument;
+import com.inmobiliaria.user_service.dto.response.ApiResponse;
+import com.inmobiliaria.user_service.dto.response.ResponseFactory;
 import java.time.Instant;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -14,12 +17,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import com.inmobiliaria.user_service.domain.AuditLogDocument;
-import com.inmobiliaria.user_service.dto.response.ApiResponse;
-import com.inmobiliaria.user_service.dto.response.ResponseFactory;
-
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/persons/audit")

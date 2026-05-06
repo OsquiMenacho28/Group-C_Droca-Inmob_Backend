@@ -1,14 +1,12 @@
 // REEMPLAZAR el archivo completo:
 package com.inmobiliaria.user_service.dto.request;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import com.inmobiliaria.user_service.domain.PersonType;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.util.List;
 
 public record CreatePersonRequest(
     @NotBlank String authUserId,

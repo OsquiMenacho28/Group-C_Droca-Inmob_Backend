@@ -1,19 +1,16 @@
 package com.inmobiliaria.property_service.controller;
 
+import com.inmobiliaria.property_service.domain.AuditLog;
+import com.inmobiliaria.property_service.dto.response.ApiResponse;
+import com.inmobiliaria.property_service.dto.response.ResponseFactory;
+import com.inmobiliaria.property_service.repository.AuditLogRepository;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import com.inmobiliaria.property_service.domain.AuditLog;
-import com.inmobiliaria.property_service.dto.response.ApiResponse;
-import com.inmobiliaria.property_service.dto.response.ResponseFactory;
-import com.inmobiliaria.property_service.repository.AuditLogRepository;
-
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/properties/audit")

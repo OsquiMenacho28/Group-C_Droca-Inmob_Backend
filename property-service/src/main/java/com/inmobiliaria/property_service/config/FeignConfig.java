@@ -1,15 +1,13 @@
 package com.inmobiliaria.property_service.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.RequestInterceptor;
+import feign.codec.Decoder;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import feign.RequestInterceptor;
-import feign.codec.Decoder;
-import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
 public class FeignConfig {

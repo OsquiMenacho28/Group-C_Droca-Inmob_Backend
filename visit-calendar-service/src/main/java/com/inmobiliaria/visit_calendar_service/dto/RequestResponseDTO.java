@@ -1,7 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.dto;
 
 import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
-
 import jakarta.validation.constraints.NotNull;
 
 /**

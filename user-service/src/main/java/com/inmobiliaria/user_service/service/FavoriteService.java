@@ -1,19 +1,16 @@
 package com.inmobiliaria.user_service.service;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.user_service.domain.FavoriteDocument;
 import com.inmobiliaria.user_service.domain.FavoriteHistoryDocument;
 import com.inmobiliaria.user_service.repository.FavoriteHistoryRepository;
 import com.inmobiliaria.user_service.repository.FavoriteRepository;
-
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service

@@ -1,13 +1,11 @@
 package com.inmobiliaria.user_service.domain;
 
 import java.time.Instant;
-
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import lombok.*;
 
 @Document(collection = "favorites")
 @Getter

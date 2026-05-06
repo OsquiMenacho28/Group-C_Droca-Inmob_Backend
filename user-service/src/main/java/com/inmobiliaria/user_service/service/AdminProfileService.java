@@ -1,11 +1,9 @@
 package com.inmobiliaria.user_service.service;
 
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor

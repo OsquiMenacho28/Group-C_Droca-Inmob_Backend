@@ -1,14 +1,12 @@
 package com.inmobiliaria.identity_service.dto.request;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import com.inmobiliaria.identity_service.domain.UserType;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.util.List;
 
 public record CreateUserRequest(
     @NotBlank String firstName,

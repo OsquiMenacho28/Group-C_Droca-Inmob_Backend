@@ -1,17 +1,13 @@
 package com.inmobiliaria.identity_service.security;
 
+import com.inmobiliaria.identity_service.config.JwtProperties;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
-
 import javax.crypto.SecretKey;
-
 import org.springframework.stereotype.Service;
-
-import com.inmobiliaria.identity_service.config.JwtProperties;
-
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 
 @Service
 public class JwtService {

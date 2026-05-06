@@ -1,13 +1,5 @@
 package com.inmobiliaria.property_service.controller;
 
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.property_service.dto.request.ConfirmUploadRequest;
 import com.inmobiliaria.property_service.dto.request.GenerateUploadUrlRequest;
 import com.inmobiliaria.property_service.dto.request.UpdateDocumentPermissionsRequest;
@@ -15,10 +7,15 @@ import com.inmobiliaria.property_service.dto.response.ApiResponse;
 import com.inmobiliaria.property_service.dto.response.DocumentResponse;
 import com.inmobiliaria.property_service.dto.response.ResponseFactory;
 import com.inmobiliaria.property_service.service.DocumentService;
-
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController

@@ -1,10 +1,9 @@
 package com.inmobiliaria.access_control_service.domain;
 
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import lombok.*;
 
 @Document(collection = "permissions_catalog")
 @CompoundIndex(

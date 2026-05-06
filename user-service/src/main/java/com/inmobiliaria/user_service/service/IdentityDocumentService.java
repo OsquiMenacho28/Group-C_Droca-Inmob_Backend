@@ -1,19 +1,16 @@
 package com.inmobiliaria.user_service.service;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.inmobiliaria.user_service.domain.DocumentType;
 import com.inmobiliaria.user_service.domain.IdentityDocument;
 import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
 import com.inmobiliaria.user_service.repository.IdentityDocumentRepository;
-
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor

@@ -1,7 +1,9 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
+import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
 import java.util.Map;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -9,11 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
-import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Notification service for appointment reassignment events.

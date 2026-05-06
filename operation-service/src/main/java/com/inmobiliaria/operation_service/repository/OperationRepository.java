@@ -1,12 +1,10 @@
 package com.inmobiliaria.operation_service.repository;
 
+import com.inmobiliaria.operation_service.domain.OperationDocument;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-
-import com.inmobiliaria.operation_service.domain.OperationDocument;
 
 @Repository
 public interface OperationRepository extends MongoRepository<OperationDocument, String> {

@@ -1,14 +1,11 @@
 package com.inmobiliaria.user_service.client;
 
+import com.inmobiliaria.user_service.config.FeignConfig;
 import java.util.List;
-
+import lombok.Builder;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
-import com.inmobiliaria.user_service.config.FeignConfig;
-
-import lombok.Builder;
 
 @FeignClient(name = "identity-service", configuration = FeignConfig.class)
 public interface IdentityClient {

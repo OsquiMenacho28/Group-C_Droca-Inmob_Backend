@@ -1,24 +1,21 @@
 package com.inmobiliaria.property_service.security;
 
+import com.inmobiliaria.property_service.domain.AuditLog;
+import com.inmobiliaria.property_service.domain.PropertyDocument;
+import com.inmobiliaria.property_service.dto.response.PropertyResponse;
+import com.inmobiliaria.property_service.repository.AuditLogRepository;
+import com.inmobiliaria.property_service.repository.PropertyRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
+import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-
-import com.inmobiliaria.property_service.domain.AuditLog;
-import com.inmobiliaria.property_service.domain.PropertyDocument;
-import com.inmobiliaria.property_service.dto.response.PropertyResponse;
-import com.inmobiliaria.property_service.repository.AuditLogRepository;
-import com.inmobiliaria.property_service.repository.PropertyRepository;
-
-import lombok.RequiredArgsConstructor;
 
 @Aspect
 @Component

@@ -1,11 +1,9 @@
 package com.inmobiliaria.user_service.repository;
 
+import com.inmobiliaria.user_service.domain.FavoriteHistoryDocument;
 import java.util.List;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-
-import com.inmobiliaria.user_service.domain.FavoriteHistoryDocument;
 
 public interface FavoriteHistoryRepository
     extends MongoRepository<FavoriteHistoryDocument, String> {

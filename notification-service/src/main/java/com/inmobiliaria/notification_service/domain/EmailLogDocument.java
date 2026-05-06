@@ -1,11 +1,9 @@
 package com.inmobiliaria.notification_service.domain;
 
 import java.time.Instant;
-
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import lombok.*;
 
 @Document(collection = "email_logs")
 @Getter

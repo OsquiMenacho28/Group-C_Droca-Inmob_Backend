@@ -1,13 +1,11 @@
 package com.inmobiliaria.visit_calendar_service.dto;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

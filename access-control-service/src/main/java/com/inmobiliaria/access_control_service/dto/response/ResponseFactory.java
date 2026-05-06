@@ -1,7 +1,6 @@
 package com.inmobiliaria.access_control_service.dto.response;
 
 import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 

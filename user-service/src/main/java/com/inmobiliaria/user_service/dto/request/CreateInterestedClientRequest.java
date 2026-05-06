@@ -1,9 +1,8 @@
 package com.inmobiliaria.user_service.dto.request;
 
-import java.time.LocalDate;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 
 public record CreateInterestedClientRequest(
     @NotBlank String authUserId,

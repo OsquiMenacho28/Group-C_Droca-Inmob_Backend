@@ -1,11 +1,9 @@
 package com.inmobiliaria.visit_calendar_service.dto;
 
-import java.time.LocalDateTime;
-
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 import com.inmobiliaria.visit_calendar_service.model.Visit.EventType;
-
+import java.time.LocalDateTime;
 import lombok.Data;
 
 /**

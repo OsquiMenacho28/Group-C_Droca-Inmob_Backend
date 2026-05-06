@@ -1,13 +1,5 @@
 package com.inmobiliaria.identity_service.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.identity_service.client.NotificationClient;
 import com.inmobiliaria.identity_service.client.UserServiceClient;
 import com.inmobiliaria.identity_service.domain.UserDocument;
@@ -23,9 +15,14 @@ import com.inmobiliaria.identity_service.exception.UnauthorizedException;
 import com.inmobiliaria.identity_service.security.Auditable;
 import com.inmobiliaria.identity_service.security.JwtService;
 import com.inmobiliaria.identity_service.security.UserPrincipal;
-
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service

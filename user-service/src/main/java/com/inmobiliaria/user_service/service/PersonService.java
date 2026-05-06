@@ -1,22 +1,9 @@
 package com.inmobiliaria.user_service.service;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.user_service.client.AccessControlClient;
 import com.inmobiliaria.user_service.domain.*;
 import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
-import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
 import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
 import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
@@ -24,9 +11,18 @@ import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
 import com.inmobiliaria.user_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.user_service.repository.AuditLogRepository;
 import com.inmobiliaria.user_service.repository.PersonRepository;
-
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service

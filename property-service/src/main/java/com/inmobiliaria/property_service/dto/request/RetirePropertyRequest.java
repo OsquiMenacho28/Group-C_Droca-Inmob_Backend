@@ -1,7 +1,6 @@
 package com.inmobiliaria.property_service.dto.request;
 
 import com.inmobiliaria.property_service.domain.RetirementReason;
-
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

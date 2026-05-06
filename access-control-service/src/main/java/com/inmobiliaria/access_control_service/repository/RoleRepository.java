@@ -1,10 +1,8 @@
 package com.inmobiliaria.access_control_service.repository;
 
-import java.util.Optional;
-
-import org.springframework.data.mongodb.repository.MongoRepository;
-
 import com.inmobiliaria.access_control_service.domain.RoleDocument;
+import java.util.Optional;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface RoleRepository extends MongoRepository<RoleDocument, String> {
 

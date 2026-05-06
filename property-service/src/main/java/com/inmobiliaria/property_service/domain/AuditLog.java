@@ -2,11 +2,9 @@ package com.inmobiliaria.property_service.domain;
 
 import java.time.Instant;
 import java.util.List;
-
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import lombok.*;
 
 @Document(collection = "property_audit_logs")
 @Getter

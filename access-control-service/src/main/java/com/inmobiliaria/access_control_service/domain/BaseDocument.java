@@ -1,7 +1,6 @@
 package com.inmobiliaria.access_control_service.domain;
 
 import java.time.Instant;
-
 import lombok.Getter;
 import lombok.Setter;
 

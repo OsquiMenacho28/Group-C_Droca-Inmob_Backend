@@ -1,14 +1,12 @@
 package com.inmobiliaria.notification_service.domain;
 
 import java.time.LocalDateTime;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 // backend/notification-service/src/main/java/.../domain/NotificationDocument.java
 @Document(collection = "notifications")

@@ -1,12 +1,11 @@
 package com.inmobiliaria.visit_calendar_service.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /** Entidad que representa un Vehículo utilizado para las visitas inmobiliarias. */
 @Data

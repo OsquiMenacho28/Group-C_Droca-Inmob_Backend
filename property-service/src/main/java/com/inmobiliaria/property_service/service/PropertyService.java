@@ -1,15 +1,5 @@
 package com.inmobiliaria.property_service.service;
 
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.property_service.client.IdentityClient;
 import com.inmobiliaria.property_service.client.OperationClient;
 import com.inmobiliaria.property_service.client.UserClient;
@@ -24,9 +14,16 @@ import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.exception.ValidationException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
 import com.inmobiliaria.property_service.security.Auditable;
-
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service

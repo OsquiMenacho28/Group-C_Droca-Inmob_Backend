@@ -1,13 +1,11 @@
 package com.inmobiliaria.property_service.dto.request;
 
-import java.util.Set;
-
 import com.inmobiliaria.property_service.domain.OperationType;
-
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.util.Set;
 
 /**
  * DTO para la creación de un nuevo inmueble. Contiene las validaciones necesarias para las pruebas

@@ -1,11 +1,9 @@
 package com.inmobiliaria.visit_calendar_service.repository;
 
+import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import java.util.List;
-
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-
-import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 
 /** Repositorio MongoDB para VisitRequest. Cubre HU3: solicitudes de visita de clientes. */
 @Repository

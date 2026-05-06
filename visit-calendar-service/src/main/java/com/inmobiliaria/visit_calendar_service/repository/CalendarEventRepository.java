@@ -1,13 +1,11 @@
 package com.inmobiliaria.visit_calendar_service.repository;
 
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
-
-import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 
 /**
  * Repositorio MongoDB para CalendarEvent. Contiene queries para el calendario compartido, filtros y

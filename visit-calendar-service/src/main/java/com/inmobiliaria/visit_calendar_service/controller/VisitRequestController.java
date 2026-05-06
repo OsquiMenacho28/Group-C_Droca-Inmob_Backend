@@ -1,11 +1,5 @@
 package com.inmobiliaria.visit_calendar_service.controller;
 
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ClientVisitRequestDTO;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.VisitRequestResponse;
@@ -14,10 +8,13 @@ import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
 import com.inmobiliaria.visit_calendar_service.dto.response.VisitResponse;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.VisitRequestService;
-
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Controlador REST para solicitudes de visita de clientes buscadores.

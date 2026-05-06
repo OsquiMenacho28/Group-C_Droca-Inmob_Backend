@@ -1,9 +1,8 @@
 package com.inmobiliaria.visit_calendar_service.dto;
 
-import java.time.LocalDateTime;
-
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 /**

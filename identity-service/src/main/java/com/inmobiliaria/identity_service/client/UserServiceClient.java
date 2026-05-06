@@ -1,12 +1,10 @@
 package com.inmobiliaria.identity_service.client;
 
-import java.util.Map;
-
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.identity_service.client.dto.CreatePersonRequest;
 import com.inmobiliaria.identity_service.client.dto.UpdatePersonRequest;
+import java.util.Map;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "user-service")
 public interface UserServiceClient {

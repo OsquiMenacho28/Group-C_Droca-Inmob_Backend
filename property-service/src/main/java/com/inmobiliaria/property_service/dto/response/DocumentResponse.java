@@ -1,10 +1,8 @@
 package com.inmobiliaria.property_service.dto.response;
 
+import com.inmobiliaria.property_service.domain.DocumentMetadata;
 import java.time.Instant;
 import java.util.Set;
-
-import com.inmobiliaria.property_service.domain.DocumentMetadata;
-
 import lombok.Builder;
 import lombok.Data;
 

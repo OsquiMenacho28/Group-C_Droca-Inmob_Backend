@@ -1,9 +1,8 @@
 package com.inmobiliaria.access_control_service.dto.response;
 
-import java.util.List;
-
 import com.inmobiliaria.access_control_service.domain.PermissionEntry;
 import com.inmobiliaria.access_control_service.domain.RoleType;
+import java.util.List;
 
 public record RoleResponse(
     String id,

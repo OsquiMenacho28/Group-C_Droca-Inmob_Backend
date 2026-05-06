@@ -1,9 +1,8 @@
 package com.inmobiliaria.user_service.dto.request;
 
-import java.util.List;
-
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
+import java.util.List;
 
 public record SearchPreferencesRequest(
     List<String> preferredZones,

@@ -1,14 +1,5 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import com.inmobiliaria.visit_calendar_service.dto.ReassignmentRequestRequestDTO;
 import com.inmobiliaria.visit_calendar_service.dto.ReassignmentRequestResponseDTO;
 import com.inmobiliaria.visit_calendar_service.dto.RequestResponseDTO;
@@ -18,8 +9,14 @@ import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.ReassignmentRequestRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Servicio que contiene toda la lógica de negocio para la reasignación de citas.

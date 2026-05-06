@@ -1,19 +1,5 @@
 package com.inmobiliaria.identity_service.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.identity_service.client.NotificationClient;
 import com.inmobiliaria.identity_service.client.UserServiceClient;
 import com.inmobiliaria.identity_service.client.dto.CreatePersonRequest;
@@ -31,9 +17,20 @@ import com.inmobiliaria.identity_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.identity_service.exception.UnauthorizedException;
 import com.inmobiliaria.identity_service.repository.UserRepository;
 import com.inmobiliaria.identity_service.security.Auditable;
-
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service

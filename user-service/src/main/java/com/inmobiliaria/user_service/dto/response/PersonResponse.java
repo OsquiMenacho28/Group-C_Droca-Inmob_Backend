@@ -1,10 +1,9 @@
 // REEMPLAZAR el archivo completo:
 package com.inmobiliaria.user_service.dto.response;
 
+import com.inmobiliaria.user_service.domain.PersonType;
 import java.time.LocalDate;
 import java.util.List;
-
-import com.inmobiliaria.user_service.domain.PersonType;
 
 public record PersonResponse(
     String id,

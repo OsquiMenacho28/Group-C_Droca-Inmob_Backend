@@ -1,18 +1,15 @@
 package com.inmobiliaria.user_service.controller;
 
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.inmobiliaria.user_service.domain.DocumentType;
 import com.inmobiliaria.user_service.domain.IdentityDocument;
 import com.inmobiliaria.user_service.dto.response.ApiResponse;
 import com.inmobiliaria.user_service.dto.response.ResponseFactory;
 import com.inmobiliaria.user_service.service.IdentityDocumentService;
-
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Controller for handling identity documents of persons. (Future Swagger Documentation will be

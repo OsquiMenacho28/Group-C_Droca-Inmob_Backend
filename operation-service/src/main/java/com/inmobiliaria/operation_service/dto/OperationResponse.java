@@ -1,10 +1,8 @@
 package com.inmobiliaria.operation_service.dto;
 
+import com.inmobiliaria.operation_service.domain.OperationStatusHistory;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import com.inmobiliaria.operation_service.domain.OperationStatusHistory;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

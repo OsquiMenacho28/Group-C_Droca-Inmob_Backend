@@ -1,11 +1,10 @@
 package com.inmobiliaria.identity_service;
 
+import com.inmobiliaria.identity_service.config.JwtProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-
-import com.inmobiliaria.identity_service.config.JwtProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties(JwtProperties.class)

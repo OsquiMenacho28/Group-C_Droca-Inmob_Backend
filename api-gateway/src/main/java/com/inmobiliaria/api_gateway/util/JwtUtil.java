@@ -1,12 +1,10 @@
 package com.inmobiliaria.api_gateway.util;
 
-import java.security.Key;
-
-import org.springframework.stereotype.Component;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.security.Key;
+import org.springframework.stereotype.Component;
 
 @Component
 public class JwtUtil {

@@ -1,12 +1,5 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
@@ -17,10 +10,14 @@ import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRequestRepository;
-
 import jakarta.validation.ValidationException;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Servicio de lógica de negocio para solicitudes de visita de clientes.

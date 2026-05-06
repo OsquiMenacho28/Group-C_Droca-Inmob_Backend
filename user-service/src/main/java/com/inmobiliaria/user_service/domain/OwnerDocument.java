@@ -1,10 +1,8 @@
 package com.inmobiliaria.user_service.domain;
 
 import java.util.List;
-
-import org.springframework.data.annotation.TypeAlias;
-
 import lombok.*;
+import org.springframework.data.annotation.TypeAlias;
 
 @TypeAlias("owner")
 @Getter

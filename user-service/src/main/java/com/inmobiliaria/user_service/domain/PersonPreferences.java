@@ -1,7 +1,6 @@
 package com.inmobiliaria.user_service.domain;
 
 import java.util.List;
-
 import lombok.*;
 
 @Data

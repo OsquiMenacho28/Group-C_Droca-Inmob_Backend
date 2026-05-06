@@ -1,18 +1,15 @@
 package com.inmobiliaria.property_service.controller;
 
+import com.inmobiliaria.property_service.domain.RetirementReason;
+import com.inmobiliaria.property_service.dto.response.ApiResponse;
+import com.inmobiliaria.property_service.dto.response.ResponseFactory;
 import java.util.Arrays;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.inmobiliaria.property_service.domain.RetirementReason;
-import com.inmobiliaria.property_service.dto.response.ApiResponse;
-import com.inmobiliaria.property_service.dto.response.ResponseFactory;
-
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/catalogos")

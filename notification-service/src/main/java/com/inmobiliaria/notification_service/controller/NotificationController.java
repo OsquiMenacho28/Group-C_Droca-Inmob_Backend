@@ -1,13 +1,5 @@
 package com.inmobiliaria.notification_service.controller;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.notification_service.domain.NotificationDocument;
 import com.inmobiliaria.notification_service.domain.NotificationStatus;
 import com.inmobiliaria.notification_service.dto.request.SendCredentialsEmailRequest;
@@ -19,9 +11,14 @@ import com.inmobiliaria.notification_service.dto.response.ResponseFactory;
 import com.inmobiliaria.notification_service.repository.NotificationRepository;
 import com.inmobiliaria.notification_service.service.NotificationDispatcher;
 import com.inmobiliaria.notification_service.service.NotificationService;
-
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/notifications")

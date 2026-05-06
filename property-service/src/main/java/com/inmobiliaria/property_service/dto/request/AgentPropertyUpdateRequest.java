@@ -1,7 +1,6 @@
 package com.inmobiliaria.property_service.dto.request;
 
 import com.inmobiliaria.property_service.domain.OperationType;
-
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -1,14 +1,5 @@
 package com.inmobiliaria.operation_service.controller;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.operation_service.dto.AgentRankingResponse;
 import com.inmobiliaria.operation_service.dto.OperationRequest;
 import com.inmobiliaria.operation_service.dto.OperationResponse;
@@ -16,9 +7,15 @@ import com.inmobiliaria.operation_service.dto.response.ApiResponse;
 import com.inmobiliaria.operation_service.dto.response.ResponseFactory;
 import com.inmobiliaria.operation_service.service.OperationService;
 import com.inmobiliaria.operation_service.service.ReportService;
-
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/operations")

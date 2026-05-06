@@ -1,16 +1,13 @@
 package com.inmobiliaria.user_service.controller;
 
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.user_service.dto.response.ApiResponse;
 import com.inmobiliaria.user_service.dto.response.ResponseFactory;
 import com.inmobiliaria.user_service.service.FavoriteService;
-
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/favoritos")

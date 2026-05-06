@@ -1,9 +1,5 @@
 package com.inmobiliaria.identity_service.controller;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
 import com.inmobiliaria.identity_service.dto.request.ChangePasswordRequest;
 import com.inmobiliaria.identity_service.dto.request.LoginRequest;
 import com.inmobiliaria.identity_service.dto.request.RefreshTokenRequest;
@@ -12,9 +8,11 @@ import com.inmobiliaria.identity_service.dto.response.ApiResponse;
 import com.inmobiliaria.identity_service.dto.response.AuthResponse;
 import com.inmobiliaria.identity_service.dto.response.ResponseFactory;
 import com.inmobiliaria.identity_service.service.AuthService;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")

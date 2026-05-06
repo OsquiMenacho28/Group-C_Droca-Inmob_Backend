@@ -1,10 +1,5 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Vehicle;
@@ -12,9 +7,11 @@ import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VehicleRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
  * Servicio agnóstico para la gestión de flota y asignación de vehículos. Implementa un patrón de
