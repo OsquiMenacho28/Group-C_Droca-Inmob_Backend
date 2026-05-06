@@ -2,16 +2,21 @@ package com.inmobiliaria.visit_calendar_service.service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictException;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
+import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CalendarService {
 
   private final CalendarEventRepository calendarEventRepository;
+  private final VisitRepository visitRepository;
 
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
@@ -71,12 +77,12 @@ public class CalendarService {
       events = calendarEventRepository.findByDateRange(from, to);
     }
 
-    List<CalendarEventResponse> responses =
+    List<Visit> responses =
         events.stream()
             .map(event -> toResponse(event, requestingAgentId))
             .collect(Collectors.toList());
 
-    long myEventsCount = responses.stream().filter(CalendarEventResponse::isOwnEvent).count();
+    long myEventsCount = responses.stream().filter(v -> v.getOwnEvent()).count();
 
     return CalendarResponse.builder()
         .events(responses)
@@ -138,7 +144,7 @@ public class CalendarService {
    * ScheduleConflictException si ya existe un conflicto de horario. La visita aparece
    * automáticamente en el calendario compartido (PA1).
    */
-  public CalendarEventResponse createVisit(CreateVisitRequest request) {
+  public Visit createVisit(CreateVisitRequest request) {
     validateDateRange(request.getStartTime(), request.getEndTime());
 
     // Verificar conflictos de horario (PA2)
@@ -181,7 +187,7 @@ public class CalendarService {
   }
 
   /** PA3 de HU2: Obtiene la agenda del día para un agente específico. */
-  public List<CalendarEventResponse> getAgentDayAgenda(String agentId, LocalDateTime day) {
+  public List<Visit> getAgentDayAgenda(String agentId, LocalDateTime day) {
     LocalDateTime dayStart = day.toLocalDate().atStartOfDay();
     LocalDateTime dayEnd = dayStart.plusDays(1).minusNanos(1);
     List<CalendarEvent> events =
@@ -190,7 +196,7 @@ public class CalendarService {
   }
 
   /** Obtiene un evento por ID. */
-  public CalendarEventResponse getById(String id, String requestingAgentId) {
+  public Visit getById(String id, String requestingAgentId) {
     CalendarEvent event =
         calendarEventRepository
             .findById(id)
@@ -199,7 +205,7 @@ public class CalendarService {
   }
 
   /** Cancela un evento (solo el agente dueño puede cancelar el suyo). */
-  public CalendarEventResponse cancelEvent(String id, String agentId) {
+  public Visit cancelEvent(String id, String agentId) {
     CalendarEvent event =
         calendarEventRepository
             .findById(id)
@@ -231,27 +237,32 @@ public class CalendarService {
     }
   }
 
-  private CalendarEventResponse toResponse(CalendarEvent event, String requestingAgentId) {
-    return CalendarEventResponse.builder()
-        .id(event.getId())
-        .propertyId(event.getPropertyId())
-        .propertyName(event.getPropertyName())
-        .propertyAddress(event.getPropertyAddress())
-        .agentId(event.getAgentId())
-        .agentName(event.getAgentName())
-        .vehicleId(event.getVehicleId())
-        .travelTimeGo(event.getTravelTimeGo())
-        .travelTimeBack(event.getTravelTimeBack())
-        .startTime(event.getStartTime())
-        .endTime(event.getEndTime())
-        .type(event.getType())
-        .status(event.getStatus())
-        .notes(event.getNotes())
-        .createdAt(event.getCreatedAt())
-        .clientId(event.getClientId())
-        .clientName(event.getClientName())
-        // PA1 de HU1: marca visualmente los eventos del agente autenticado
-        .ownEvent(requestingAgentId != null && requestingAgentId.equals(event.getAgentId()))
-        .build();
+  private Visit toResponse(CalendarEvent event, String requestingAgentId) {
+    Visit visit = new Visit();
+    visit.setId(event.getId());
+    visit.setPropertyId(event.getPropertyId());
+    visit.setPropertyName(event.getPropertyName());
+    visit.setPropertyAddress(event.getPropertyAddress());
+    visit.setAgentId(event.getAgentId());
+    visit.setAgentName(event.getAgentName());
+    visit.setVehicleId(event.getVehicleId());
+    visit.setTravelTimeGo(event.getTravelTimeGo());
+    visit.setTravelTimeBack(event.getTravelTimeBack());
+    visit.setStartTime(event.getStartTime());
+    visit.setEndTime(event.getEndTime());
+    visit.setType(Visit.EventType.valueOf(event.getType().name()));
+    visit.setStatus(Visit.EventStatus.valueOf(event.getStatus().name()));
+    visit.setNotes(event.getNotes());
+    visit.setCreatedAt(event.getCreatedAt());
+    visit.setClientId(event.getClientId());
+    visit.setClientName(event.getClientName());
+    // PA1 de HU1: marca visualmente los eventos del agente autenticado
+    visit.setOwnEvent(requestingAgentId != null && requestingAgentId.equals(event.getAgentId()));
+    // Inicializar históricos vacíos
+    visit.setReassignmentHistory(new ArrayList<>());
+    visit.setReschedulingHistory(new ArrayList<>());
+    visit.setOriginVisitId(null);
+    visitRepository.save(visit);
+    return visit;
   }
 }

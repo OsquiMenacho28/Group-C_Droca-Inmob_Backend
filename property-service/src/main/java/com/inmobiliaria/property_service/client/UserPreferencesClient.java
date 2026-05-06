@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.inmobiliaria.property_service.config.FeignConfig;
 
-@FeignClient(name = "user-service", configuration = FeignConfig.class)
+@FeignClient(
+    name = "user-service",
+    contextId = "userPreferencesClient",
+    configuration = FeignConfig.class)
 public interface UserPreferencesClient {
 
   @GetMapping("/persons/{id}")
