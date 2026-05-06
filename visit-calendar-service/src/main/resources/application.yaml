@@ -29,6 +29,10 @@ person:
   service:
     url: http://localhost:8084  # Ajusta según el puerto real de person-service
 
+property:
+  service:
+    url: http://localhost:8085  # Ajusta según el puerto real de property-service
+
 notification:
   service:
     url: http://localhost:8083  # Puerto del notification-service
