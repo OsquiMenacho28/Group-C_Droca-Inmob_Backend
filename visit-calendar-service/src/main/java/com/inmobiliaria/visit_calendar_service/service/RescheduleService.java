@@ -9,9 +9,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
+import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.ReschedulingHistory;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
+import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 
 import lombok.extern.slf4j.Slf4j;
@@ -38,9 +40,12 @@ public class RescheduleService {
   private static final long AVAILABILITY_BUFFER_MINUTES = 60L;
 
   private final VisitRepository visitRepository;
+  private final CalendarEventRepository calendarEventRepository;
 
-  public RescheduleService(VisitRepository visitRepository) {
+  public RescheduleService(
+      VisitRepository visitRepository, CalendarEventRepository calendarEventRepository) {
     this.visitRepository = visitRepository;
+    this.calendarEventRepository = calendarEventRepository;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -93,6 +98,14 @@ public class RescheduleService {
     log.info(
         "[RescheduleService] New visit created: id='{}', origin='{}'",
         newVisit.getId(),
+        originalVisitId);
+
+    // Save to CalendarEventRepository
+    CalendarEvent calendarEvent = convertVisitToCalendarEvent(newVisit);
+    calendarEventRepository.save(calendarEvent);
+    log.info(
+        "[RescheduleService] Calendar event saved: id='{}', originVisitId='{}'",
+        calendarEvent.getId(),
         originalVisitId);
 
     // 6. Append rescheduling record to the original visit's history
@@ -187,6 +200,21 @@ public class RescheduleService {
    * from the original visit (propertyId, clientId, agentId, propertyName, agentName, clientName,
    * type) (PA2). Sets: originVisitId to link back to the original (PA2), status to SCHEDULED, and
    * createdAt to now.
+   *
+   * <p>[CalendarEventRepository] This method creates calendar events that will be persisted via
+   * {@link VisitRepository#save(Visit)}. The resulting Visit is a calendar event with:
+   *
+   * <ul>
+   *   <li>EventStatus.SCHEDULED status
+   *   <li>originVisitId linking to the cancelled event
+   *   <li>Agent, property, and client context preserved
+   *   <li>New start/end times for the rescheduled slot
+   * </ul>
+   *
+   * @param original The cancelled Visit being rescheduled
+   * @param request New datetime details (newStartTime, newEndTime, notes)
+   * @param agentId Agent performing the reschedule action
+   * @return New Visit entity ready for persistence
    */
   private Visit buildNewVisit(Visit original, RescheduleRequest request, String agentId) {
     Visit newVisit = new Visit();
@@ -211,5 +239,34 @@ public class RescheduleService {
     newVisit.setReschedulingHistory(new java.util.ArrayList<>());
     newVisit.setOwnEvent(original.getOwnEvent());
     return newVisit;
+  }
+
+  /**
+   * Converts a Visit entity to a CalendarEvent for storage in the calendar repository. Maps all
+   * relevant fields from the Visit to create a corresponding calendar event entry.
+   *
+   * @param visit The Visit to convert
+   * @return CalendarEvent entity ready for persistence in CalendarEventRepository
+   */
+  private CalendarEvent convertVisitToCalendarEvent(Visit visit) {
+    return CalendarEvent.builder()
+        .id(visit.getId())
+        .propertyId(visit.getPropertyId())
+        .propertyName(visit.getPropertyName())
+        .propertyAddress(visit.getPropertyAddress())
+        .agentId(visit.getAgentId())
+        .agentName(visit.getAgentName())
+        .clientId(visit.getClientId())
+        .clientName(visit.getClientName())
+        .vehicleId(visit.getVehicleId())
+        .travelTimeGo(visit.getTravelTimeGo())
+        .travelTimeBack(visit.getTravelTimeBack())
+        .startTime(visit.getStartTime())
+        .endTime(visit.getEndTime())
+        .type(CalendarEvent.EventType.valueOf(visit.getType().name()))
+        .status(CalendarEvent.EventStatus.valueOf(visit.getStatus().name()))
+        .notes(visit.getNotes())
+        .createdAt(visit.getCreatedAt())
+        .build();
   }
 }

@@ -134,7 +134,7 @@ public class VisitRequestController {
     return ResponseEntity.ok(responseFactory.success("Solicitud rechazada.", response));
   }
 
-  @PatchMapping("/visits/{id}/resultado")
+  @PatchMapping(value = {"/visits/{id}/resultado", "/visits/{id}/result"})
   public ResponseEntity<ApiResponse<VisitResponse>> registrarResultado(
       @PathVariable String id,
       @Valid @RequestBody RegistrarResultadoRequest request,

@@ -16,6 +16,7 @@ import com.inmobiliaria.user_service.client.AccessControlClient;
 import com.inmobiliaria.user_service.domain.*;
 import com.inmobiliaria.user_service.dto.request.CreateInterestedClientRequest;
 import com.inmobiliaria.user_service.dto.request.CreatePersonRequest;
+import com.inmobiliaria.user_service.dto.request.SearchPreferencesRequest;
 import com.inmobiliaria.user_service.dto.request.UpdatePersonRequest;
 import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.exception.ResourceAlreadyExistsException;
@@ -611,5 +612,26 @@ public class PersonService {
         preferredZone,
         preferredPropertyType,
         preferredRooms);
+  }
+
+  public PersonResponse updateSearchPreferences(String personId, SearchPreferencesRequest request) {
+    PersonDocument person =
+        personRepository
+            .findById(personId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+
+    if (!(person instanceof InterestedClientDocument client)) {
+      throw new IllegalArgumentException(
+          "Solo se pueden registrar preferencias para clientes buscadores");
+    }
+
+    client.setPreferredZones(request.preferredZones());
+    client.setMinRooms(request.minRooms());
+    client.setMaxRooms(request.maxRooms());
+    client.setMaxPrice(request.maxPrice());
+    client.setPreferredPropertyType(request.preferredPropertyType());
+    client.setUpdatedAt(Instant.now());
+
+    return mapToResponse(personRepository.save(client));
   }
 }
