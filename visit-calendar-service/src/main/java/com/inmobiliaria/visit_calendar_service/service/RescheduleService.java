@@ -8,7 +8,8 @@ import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -114,7 +115,7 @@ public class RescheduleService {
             .newStartTime(request.getNewStartTime())
             .newEndTime(request.getNewEndTime())
             .rescheduledByAgentId(agentId)
-            .rescheduledAt(LocalDateTime.now())
+            .rescheduledAt(Instant.now())
             .build();
 
     if (original.getReschedulingHistory() == null) {
@@ -155,9 +156,9 @@ public class RescheduleService {
    * @param dateTime Proposed datetime
    * @param excludeId Visit ID to exclude from the check (null = no exclusion)
    */
-  private void validateAgentAvailability(String agentId, LocalDateTime dateTime, String excludeId) {
-    LocalDateTime windowStart = dateTime.minusMinutes(AVAILABILITY_BUFFER_MINUTES);
-    LocalDateTime windowEnd = dateTime.plusMinutes(AVAILABILITY_BUFFER_MINUTES);
+  private void validateAgentAvailability(String agentId, Instant dateTime, String excludeId) {
+    Instant windowStart = dateTime.minus(AVAILABILITY_BUFFER_MINUTES, ChronoUnit.MINUTES);
+    Instant windowEnd = dateTime.plus(AVAILABILITY_BUFFER_MINUTES, ChronoUnit.MINUTES);
 
     boolean conflict =
         visitRepository.existsByAgentIdAndStartTimeBetweenAndStatus(
@@ -175,10 +176,9 @@ public class RescheduleService {
    * Validates that the property has no SCHEDULED visit within the conflict window. Throws 422 if
    * unavailable.
    */
-  private void validatePropertyAvailability(
-      String propertyId, LocalDateTime dateTime, String excludeId) {
-    LocalDateTime windowStart = dateTime.minusMinutes(AVAILABILITY_BUFFER_MINUTES);
-    LocalDateTime windowEnd = dateTime.plusMinutes(AVAILABILITY_BUFFER_MINUTES);
+  private void validatePropertyAvailability(String propertyId, Instant dateTime, String excludeId) {
+    Instant windowStart = dateTime.minus(AVAILABILITY_BUFFER_MINUTES, ChronoUnit.MINUTES);
+    Instant windowEnd = dateTime.plus(AVAILABILITY_BUFFER_MINUTES, ChronoUnit.MINUTES);
 
     boolean conflict =
         visitRepository.existsByPropertyIdAndStartTimeBetweenAndStatus(
@@ -232,7 +232,7 @@ public class RescheduleService {
     newVisit.setStatus(EventStatus.SCHEDULED);
     newVisit.setNotes(request.getNotes() != null ? request.getNotes() : original.getNotes());
     newVisit.setOriginVisitId(original.getId());
-    newVisit.setCreatedAt(LocalDateTime.now());
+    newVisit.setCreatedAt(Instant.now());
     newVisit.setReschedulingHistory(new java.util.ArrayList<>());
     newVisit.setOwnEvent(original.getOwnEvent());
     return newVisit;

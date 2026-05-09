@@ -1,6 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.annotation.Id;
@@ -40,10 +40,10 @@ public class Visit {
   private String vehicleId;
 
   /** Fecha y hora de inicio programada para la visita */
-  private LocalDateTime startTime;
+  private Instant startTime;
 
   /** Fecha y hora de fin programada para la visita */
-  private LocalDateTime endTime;
+  private Instant endTime;
 
   /** Tiempo de desplazamiento de ida (en minutos) */
   private Integer travelTimeGo;
@@ -64,7 +64,7 @@ public class Visit {
   private Boolean ownEvent;
 
   /** Fecha en que se creó la solicitud de visita */
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   /** Historial de todas las reasignaciones */
   private List<ReassignmentHistory> reassignmentHistory;
@@ -103,12 +103,12 @@ public class Visit {
 
   private ResultadoVisita resultado;
   private String observaciones;
-  private LocalDateTime fechaRegistroResultado;
+  private Instant fechaRegistroResultado;
 
   // ── Constructors ──────────────────────────────────────────────────────────
 
   public Visit() {
-    this.createdAt = LocalDateTime.now();
+    this.createdAt = Instant.now();
     this.reassignmentHistory = new ArrayList<>();
     this.travelTimeGo = 0;
     this.travelTimeBack = 0;
@@ -190,19 +190,19 @@ public class Visit {
     this.vehicleId = vehicleId;
   }
 
-  public LocalDateTime getStartTime() {
+  public Instant getStartTime() {
     return startTime;
   }
 
-  public void setStartTime(LocalDateTime startTime) {
+  public void setStartTime(Instant startTime) {
     this.startTime = startTime;
   }
 
-  public LocalDateTime getEndTime() {
+  public Instant getEndTime() {
     return endTime;
   }
 
-  public void setEndTime(LocalDateTime endTime) {
+  public void setEndTime(Instant endTime) {
     this.endTime = endTime;
   }
 
@@ -254,11 +254,11 @@ public class Visit {
     this.notes = notes;
   }
 
-  public LocalDateTime getCreatedAt() {
+  public Instant getCreatedAt() {
     return createdAt;
   }
 
-  public void setCreatedAt(LocalDateTime createdAt) {
+  public void setCreatedAt(Instant createdAt) {
     this.createdAt = createdAt;
   }
 
@@ -303,11 +303,11 @@ public class Visit {
     this.observaciones = observaciones;
   }
 
-  public LocalDateTime getFechaRegistroResultado() {
+  public Instant getFechaRegistroResultado() {
     return fechaRegistroResultado;
   }
 
-  public void setFechaRegistroResultado(LocalDateTime fechaRegistroResultado) {
+  public void setFechaRegistroResultado(Instant fechaRegistroResultado) {
     this.fechaRegistroResultado = fechaRegistroResultado;
   }
 }

@@ -1,5 +1,7 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.client.PersonClient;
+import com.inmobiliaria.visit_calendar_service.client.PropertyClient;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
 import com.inmobiliaria.visit_calendar_service.dto.response.PersonResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
@@ -9,7 +11,7 @@ import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,9 +32,9 @@ import org.springframework.stereotype.Service;
 public class CalendarService {
 
   private final CalendarEventRepository calendarEventRepository;
-  private final PropertyServiceClient propertyServiceClient;
+  private final PropertyClient propertyClient;
   private final NotificationService notificationService;
-  private final PersonServiceClient personServiceClient;
+  private final PersonClient personClient;
   private final VisitRepository visitRepository;
 
   // =====================================================================
@@ -51,11 +53,7 @@ public class CalendarService {
    * @param propertyId Filtro opcional por propiedad específica
    */
   public CalendarResponse getCalendar(
-      String requestingAgentId,
-      LocalDateTime from,
-      LocalDateTime to,
-      String agentId,
-      String propertyId) {
+      String requestingAgentId, Instant from, Instant to, String agentId, String propertyId) {
 
     log.debug(
         "Obteniendo calendario: agenteFiltro={}, propiedadFiltro={}, desde={}, hasta={}",
@@ -101,8 +99,7 @@ public class CalendarService {
    * PA2: Valida si existe conflicto de horario ANTES de crear el evento. Retorna detalles del
    * conflicto y una sugerencia de horario alternativo.
    */
-  public ConflictResponse checkConflict(
-      String propertyId, LocalDateTime startTime, LocalDateTime endTime) {
+  public ConflictResponse checkConflict(String propertyId, Instant startTime, Instant endTime) {
     validateDateRange(startTime, endTime);
 
     List<CalendarEvent> conflicts =
@@ -117,15 +114,15 @@ public class CalendarService {
     }
 
     // Sugerir horario después del último evento conflictivo
-    LocalDateTime suggestedStart =
+    Instant suggestedStart =
         conflicts.stream()
             .map(CalendarEvent::getEndTime)
-            .max(LocalDateTime::compareTo)
+            .max(Instant::compareTo)
             .orElse(endTime)
-            .plusMinutes(30);
+            .plus(30, ChronoUnit.MINUTES);
 
     long durationMinutes = ChronoUnit.MINUTES.between(startTime, endTime);
-    LocalDateTime suggestedEnd = suggestedStart.plusMinutes(durationMinutes);
+    Instant suggestedEnd = suggestedStart.plus(durationMinutes, ChronoUnit.MINUTES);
 
     return ConflictResponse.builder()
         .hasConflict(true)
@@ -160,9 +157,9 @@ public class CalendarService {
               + "Por favor selecciona otro horario.");
     }
 
-    PropertyResponse property = propertyServiceClient.getPropertyById(request.getPropertyId());
+    PropertyResponse property = propertyClient.getPropertyById(request.getPropertyId());
     if (property != null && property.ownerId() != null) {
-      PersonResponse owner = personServiceClient.getPersonByAuthUserId(property.ownerId());
+      PersonResponse owner = personClient.getPersonByAuthUserId(property.ownerId());
       if (owner != null && owner.email() != null) {
         notificationService.notifyPropertyOwner(owner.email(), owner.fullName(), request);
       }
@@ -180,7 +177,7 @@ public class CalendarService {
             .type(CalendarEvent.EventType.VISIT)
             .status(CalendarEvent.EventStatus.SCHEDULED)
             .notes(request.getNotes())
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .build();
 
     CalendarEvent saved = calendarEventRepository.save(event);
@@ -195,9 +192,9 @@ public class CalendarService {
   }
 
   /** PA3 de HU2: Obtiene la agenda del día para un agente específico. */
-  public List<Visit> getAgentDayAgenda(String agentId, LocalDateTime day) {
-    LocalDateTime dayStart = day.toLocalDate().atStartOfDay();
-    LocalDateTime dayEnd = dayStart.plusDays(1).minusNanos(1);
+  public List<Visit> getAgentDayAgenda(String agentId, Instant day) {
+    Instant dayStart = day.truncatedTo(ChronoUnit.DAYS);
+    Instant dayEnd = dayStart.plus(1, ChronoUnit.DAYS).minus(1, ChronoUnit.NANOS);
     List<CalendarEvent> events =
         calendarEventRepository.findByDayAndAgent(dayStart, dayEnd, agentId);
     return events.stream().map(e -> toResponse(e, agentId)).collect(Collectors.toList());
@@ -233,14 +230,14 @@ public class CalendarService {
   // Helpers
   // =====================================================================
 
-  private void validateDateRange(LocalDateTime start, LocalDateTime end) {
+  private void validateDateRange(Instant start, Instant end) {
     if (start == null || end == null) {
       throw new IllegalArgumentException("Las fechas de inicio y fin son obligatorias");
     }
     if (!start.isBefore(end)) {
       throw new IllegalArgumentException("La fecha de inicio debe ser anterior a la fecha de fin");
     }
-    if (start.isBefore(LocalDateTime.now())) {
+    if (start.isBefore(Instant.now())) {
       throw new IllegalArgumentException("No se puede programar una visita en el pasado");
     }
   }

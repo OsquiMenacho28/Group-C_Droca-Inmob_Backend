@@ -7,7 +7,8 @@ import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VehicleRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,7 @@ public class VehicleService {
     vehicleRepository.deleteById(id);
   }
 
-  public List<Vehicle> getAvailableVehicles(LocalDateTime dateTime) {
+  public List<Vehicle> getAvailableVehicles(Instant dateTime) {
     List<Vehicle> allVehicles = vehicleRepository.findAll();
     return allVehicles.stream()
         .filter(v -> v.getStatus() != Vehicle.VehicleStatus.MAINTENANCE)
@@ -68,16 +69,17 @@ public class VehicleService {
         .toList();
   }
 
-  private boolean isVehicleAvailableAt(String vehicleId, LocalDateTime dateTime) {
+  private boolean isVehicleAvailableAt(String vehicleId, Instant dateTime) {
     // Check conflicts at this specific time.
     // We use dateTime as both start and end to find any occupancy that contains this point.
     List<CalendarEvent> eventConflicts =
         calendarEventRepository.findConflictingVehicles(
-            vehicleId, dateTime, dateTime.plusSeconds(1));
+            vehicleId, dateTime, dateTime.plus(1, ChronoUnit.SECONDS));
     if (!eventConflicts.isEmpty()) return false;
 
     List<Visit> visitConflicts =
-        visitRepository.findConflictingVehicles(vehicleId, dateTime, dateTime.plusSeconds(1));
+        visitRepository.findConflictingVehicles(
+            vehicleId, dateTime, dateTime.plus(1, ChronoUnit.SECONDS));
     if (!visitConflicts.isEmpty()) return false;
 
     return true;
@@ -90,7 +92,7 @@ public class VehicleService {
    * asegura que un vehículo no sea reservado doblemente si existe en CalendarEvent o en Visit.
    */
   public void checkVehicleAvailability(
-      String vehicleId, LocalDateTime start, LocalDateTime end, String excludeId) {
+      String vehicleId, Instant start, Instant end, String excludeId) {
     Vehicle vehicle =
         vehicleRepository
             .findById(vehicleId)
@@ -130,10 +132,10 @@ public class VehicleService {
             .findById(eventId)
             .orElseThrow(() -> new ResourceNotFoundException("Evento de calendario no encontrado"));
 
-    LocalDateTime occupancyStart =
-        event.getStartTime().minusMinutes(travelGo != null ? travelGo : 0);
-    LocalDateTime occupancyEnd =
-        event.getEndTime().plusMinutes(travelBack != null ? travelBack : 0);
+    Instant occupancyStart =
+        event.getStartTime().minus(travelGo != null ? travelGo : 0, ChronoUnit.MINUTES);
+    Instant occupancyEnd =
+        event.getEndTime().plus(travelBack != null ? travelBack : 0, ChronoUnit.MINUTES);
 
     checkVehicleAvailability(vehicleId, occupancyStart, occupancyEnd, eventId);
 
@@ -178,10 +180,10 @@ public class VehicleService {
             .findById(visitId)
             .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
 
-    LocalDateTime occupancyStart =
-        visit.getStartTime().minusMinutes(travelGo != null ? travelGo : 0);
-    LocalDateTime occupancyEnd =
-        visit.getEndTime().plusMinutes(travelBack != null ? travelBack : 0);
+    Instant occupancyStart =
+        visit.getStartTime().minus(travelGo != null ? travelGo : 0, ChronoUnit.MINUTES);
+    Instant occupancyEnd =
+        visit.getEndTime().plus(travelBack != null ? travelBack : 0, ChronoUnit.MINUTES);
 
     checkVehicleAvailability(vehicleId, occupancyStart, occupancyEnd, visitId);
 

@@ -11,7 +11,7 @@ import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepositor
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRequestRepository;
 import jakarta.validation.ValidationException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -61,8 +61,8 @@ public class VisitRequestService {
             .alternativeDateTime(dto.getAlternativeDateTime())
             .message(dto.getMessage())
             .status(VisitRequest.RequestStatus.PENDING)
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
+            .createdAt(Instant.now())
+            .updatedAt(Instant.now())
             .notificationSent(false)
             .build();
 
@@ -109,11 +109,11 @@ public class VisitRequestService {
             .clientId(request.getClientId())
             .clientName(request.getClientName())
             .startTime(request.getPreferredDateTime())
-            .endTime(request.getPreferredDateTime().plusHours(1))
+            .endTime(request.getPreferredDateTime().plus(1, java.time.temporal.ChronoUnit.HOURS))
             .type(CalendarEvent.EventType.CLIENT_REQUEST)
             .status(CalendarEvent.EventStatus.CONFIRMED)
             .notes("Visita solicitada por el cliente: " + request.getClientName())
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .build();
 
     CalendarEvent savedEvent = calendarEventRepository.save(event);
@@ -121,7 +121,7 @@ public class VisitRequestService {
     // Actualizar solicitud
     request.setStatus(VisitRequest.RequestStatus.ACCEPTED);
     request.setCalendarEventId(savedEvent.getId());
-    request.setUpdatedAt(LocalDateTime.now());
+    request.setUpdatedAt(Instant.now());
     VisitRequest updated = visitRequestRepository.save(request);
 
     log.info("Solicitud aceptada: requestId={}, calendarEventId={}", requestId, savedEvent.getId());
@@ -142,7 +142,7 @@ public class VisitRequestService {
     }
 
     request.setStatus(VisitRequest.RequestStatus.REJECTED);
-    request.setUpdatedAt(LocalDateTime.now());
+    request.setUpdatedAt(Instant.now());
     VisitRequest updated = visitRequestRepository.save(request);
 
     log.info("Solicitud rechazada: requestId={}", requestId);
@@ -191,7 +191,7 @@ public class VisitRequestService {
           "Resultado inválido. Use: INTERESADO, NO_INTERESADO, PENDIENTE");
     }
     visit.setObservaciones(request.observaciones());
-    visit.setFechaRegistroResultado(LocalDateTime.now());
+    visit.setFechaRegistroResultado(Instant.now());
     visit.setStatus(Visit.EventStatus.REALIZADA);
     return visitRepository.save(visit);
   }

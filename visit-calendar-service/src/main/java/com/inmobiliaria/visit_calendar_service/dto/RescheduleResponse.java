@@ -3,7 +3,7 @@ package com.inmobiliaria.visit_calendar_service.dto;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.Visit.EventStatus;
 import com.inmobiliaria.visit_calendar_service.model.Visit.EventType;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.Data;
 
 /**
@@ -28,13 +28,13 @@ public class RescheduleResponse {
   private String clientName;
   private String agentId;
   private String agentName;
-  private LocalDateTime startTime;
-  private LocalDateTime endTime;
+  private Instant startTime;
+  private Instant endTime;
   private EventType type;
   private EventStatus status;
   private String notes;
   private Boolean ownEvent;
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   // ── Link back to the original cancelled visit ─────────────────────────
   /** ID of the original cancelled visit that was rescheduled */

@@ -12,11 +12,10 @@ import com.inmobiliaria.visit_calendar_service.service.CalendarService;
 import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
 import com.inmobiliaria.visit_calendar_service.service.VehicleService;
 import jakarta.validation.Valid;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -69,8 +68,8 @@ public class CalendarController {
   @GetMapping("/calendar")
   public ResponseEntity<ApiResponse<CalendarResponse>> getCalendar(
       @RequestHeader(value = "X-Agent-Id", required = false) String requestingAgentId,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+      @RequestParam Instant from,
+      @RequestParam Instant to,
       @RequestParam(required = false) String agentId,
       @RequestParam(required = false) String propertyId) {
 
@@ -123,8 +122,8 @@ public class CalendarController {
   @GetMapping("/visits/conflict-check")
   public ResponseEntity<ApiResponse<ConflictResponse>> checkConflict(
       @RequestParam String propertyId,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+      @RequestParam Instant startTime,
+      @RequestParam Instant endTime) {
 
     ConflictResponse result = calendarService.checkConflict(propertyId, startTime, endTime);
 
@@ -141,8 +140,7 @@ public class CalendarController {
    */
   @GetMapping("/visits/agenda")
   public ResponseEntity<ApiResponse<List<Visit>>> getDayAgenda(
-      @RequestParam String agentId,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime day) {
+      @RequestParam String agentId, @RequestParam Instant day) {
 
     List<Visit> agenda = calendarService.getAgentDayAgenda(agentId, day);
 
