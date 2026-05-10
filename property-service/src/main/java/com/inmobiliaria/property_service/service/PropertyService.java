@@ -391,6 +391,16 @@ public class PropertyService {
     if (doc.getImages() != null && !doc.getImages().isEmpty()) {
       urls =
           doc.getImages().stream()
+              .sorted(
+                  (a, b) -> {
+                    if (Boolean.TRUE.equals(a.getIsPrimary())
+                        && !Boolean.TRUE.equals(b.getIsPrimary())) return -1;
+                    if (!Boolean.TRUE.equals(a.getIsPrimary())
+                        && Boolean.TRUE.equals(b.getIsPrimary())) return 1;
+                    int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 999;
+                    int orderB = b.getDisplayOrder() != null ? b.getDisplayOrder() : 999;
+                    return Integer.compare(orderA, orderB);
+                  })
               .map(img -> imageService.generateTemporaryImageUrl(img))
               .collect(Collectors.toList());
     } else if (doc.getImageUrls() != null) {

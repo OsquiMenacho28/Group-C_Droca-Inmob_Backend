@@ -2,20 +2,17 @@ package com.inmobiliaria.property_service.service;
 
 import com.inmobiliaria.property_service.domain.ImageMetadata;
 import com.inmobiliaria.property_service.domain.PropertyDocument;
+import com.inmobiliaria.property_service.domain.PropertyStatus;
 import com.inmobiliaria.property_service.dto.request.GenerateImageUploadUrlRequest;
 import com.inmobiliaria.property_service.dto.response.ImageResponse;
+import com.inmobiliaria.property_service.dto.response.ImageUploadPolicyResponse;
 import com.inmobiliaria.property_service.exception.AccessDeniedException;
 import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.exception.ValidationException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.StatObjectArgs;
-import io.minio.http.Method;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ImageService {
 
-  private final MinioClient minioClient;
+  private final StorageService storageService;
   private final PropertyRepository propertyRepository;
 
   @Value("${minio.presigned.expiry-minutes:15}")
@@ -46,16 +43,10 @@ public class ImageService {
   private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;
   private static final int MAX_IMAGES_PER_PROPERTY = 20;
 
-  public Map<String, String> generatePresignedUploadUrl(GenerateImageUploadUrlRequest request) {
+  public ImageUploadPolicyResponse generateUploadPolicy(GenerateImageUploadUrlRequest request) {
     if (!isValidImageType(request.getMimeType(), request.getFileName())) {
       throw new ValidationException(
           "Invalid image type. Only JPG, PNG, WebP, and HEIC are allowed.");
-    }
-
-    if (request.getFileSize() > MAX_IMAGE_SIZE) {
-      throw new ValidationException(
-          String.format(
-              "Image size exceeds limit. Maximum: %d MB", MAX_IMAGE_SIZE / (1024 * 1024)));
     }
 
     PropertyDocument property =
@@ -83,33 +74,39 @@ public class ImageService {
           "You don't have permission to upload images for this property");
     }
 
-    ensureImagesBucketExists();
+    String objectKey = buildImageObjectKey(request.getPropertyId(), request.getFileName(), true);
 
-    String objectKey = buildImageObjectKey(request.getPropertyId(), request.getFileName());
+    Map<String, Object> policyData =
+        storageService.generateUploadPolicy(
+            imagesBucket, objectKey, request.getMimeType(), MAX_IMAGE_SIZE, presignedExpiryMinutes);
 
-    try {
-      String uploadUrl =
-          minioClient.getPresignedObjectUrl(
-              GetPresignedObjectUrlArgs.builder()
-                  .method(Method.PUT)
-                  .bucket(imagesBucket)
-                  .object(objectKey)
-                  .expiry(presignedExpiryMinutes, TimeUnit.MINUTES)
-                  .build());
+    @SuppressWarnings("unchecked")
+    Map<String, String> formData = (Map<String, String>) policyData.get("formData");
 
-      return Map.of(
-          "uploadUrl",
-          uploadUrl,
-          "objectKey",
-          objectKey,
-          "publicUrl",
-          getPublicUrl(objectKey),
-          "expiresInSeconds",
-          String.valueOf(presignedExpiryMinutes * 60));
-    } catch (Exception e) {
-      log.error("Error generating presigned URL: {}", e.getMessage());
-      throw new RuntimeException("Failed to generate upload URL", e);
+    return ImageUploadPolicyResponse.builder()
+        .url((String) policyData.get("url"))
+        .objectKey(objectKey)
+        .formData(formData)
+        .expiresInSeconds(presignedExpiryMinutes * 60)
+        .build();
+  }
+
+  public Map<String, String> generatePresignedUploadUrl(GenerateImageUploadUrlRequest request) {
+    if (!isValidImageType(request.getMimeType(), request.getFileName())) {
+      throw new ValidationException(
+          "Invalid image type. Only JPG, PNG, WebP, and HEIC are allowed.");
     }
+
+    String objectKey = buildImageObjectKey(request.getPropertyId(), request.getFileName(), true);
+    String uploadUrl =
+        storageService.generatePresignedPutUrl(imagesBucket, objectKey, presignedExpiryMinutes);
+
+    Map<String, String> data = new HashMap<>();
+    data.put("uploadUrl", uploadUrl);
+    data.put("objectKey", objectKey);
+    data.put("publicUrl", getPublicUrl(objectKey));
+    data.put("expiresInSeconds", String.valueOf(presignedExpiryMinutes * 60));
+    return data;
   }
 
   public Map<String, String> generatePresignedUploadUrl(String propertyId, String fileName) {
@@ -129,11 +126,8 @@ public class ImageService {
       String objectKey = buildImageObjectKey(propertyId, safeFileName);
 
       try (InputStream inputStream = file.getInputStream()) {
-        minioClient.putObject(
-            io.minio.PutObjectArgs.builder().bucket(imagesBucket).object(objectKey).stream(
-                    inputStream, file.getSize(), -1)
-                .contentType(file.getContentType())
-                .build());
+        storageService.uploadObject(
+            imagesBucket, objectKey, inputStream, file.getSize(), file.getContentType());
       }
 
       String publicUrl = getPublicUrl(objectKey);
@@ -153,18 +147,32 @@ public class ImageService {
       Long fileSize,
       String mimeType,
       Boolean isPrimary) {
+
+    // Strict key scoping validation
+    String expectedPrefix = String.format("properties/%s/images/pending/", propertyId);
+    if (!objectKey.startsWith(expectedPrefix)) {
+      throw new ValidationException(
+          "Invalid object key for this property or file already confirmed");
+    }
+
     PropertyDocument property =
         propertyRepository
             .findById(propertyId)
             .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + propertyId));
 
-    try {
-      minioClient.statObject(
-          StatObjectArgs.builder().bucket(imagesBucket).object(objectKey).build());
-    } catch (Exception e) {
-      log.error("Image not found in MinIO: {}", objectKey);
-      throw new ValidationException("Image upload not confirmed. Please try uploading again.");
+    // Retrieve true metadata from storage instead of trusting client
+    Map<String, Object> metadata = storageService.getObjectMetadata(imagesBucket, objectKey);
+    Long trueSize = (Long) metadata.get("size");
+    String trueMimeType = (String) metadata.get("contentType");
+
+    if (trueSize > MAX_IMAGE_SIZE) {
+      storageService.deleteObject(imagesBucket, objectKey);
+      throw new ValidationException("Uploaded file exceeds size limit");
     }
+
+    // Move from pending to confirmed folder
+    String finalObjectKey = objectKey.replace("/pending/", "/");
+    storageService.moveObject(imagesBucket, objectKey, finalObjectKey);
 
     String currentUserId = getCurrentUserId();
     String currentUserName = getCurrentUserName();
@@ -183,10 +191,10 @@ public class ImageService {
         ImageMetadata.builder()
             .id(UUID.randomUUID().toString())
             .originalFileName(originalFileName)
-            .objectKey(objectKey)
-            .publicUrl(getPublicUrl(objectKey))
-            .fileSize(fileSize)
-            .mimeType(mimeType)
+            .objectKey(finalObjectKey)
+            .publicUrl(getPublicUrl(finalObjectKey))
+            .fileSize(trueSize)
+            .mimeType(trueMimeType)
             .isPrimary(isPrimary != null ? isPrimary : false)
             .displayOrder(nextOrder)
             .uploadedAt(Instant.now())
@@ -283,12 +291,18 @@ public class ImageService {
       ImageMetadata img = imageMap.get(id);
       if (img != null) {
         img.setDisplayOrder(i);
+        img.setIsPrimary(i == 0); // The first image becomes primary
         reordered.add(img);
         imageMap.remove(id);
       }
     }
 
-    reordered.addAll(imageMap.values());
+    int remainingIndex = reordered.size();
+    for (ImageMetadata img : imageMap.values()) {
+      img.setDisplayOrder(remainingIndex++);
+      img.setIsPrimary(reordered.isEmpty());
+      reordered.add(img);
+    }
     property.setImages(reordered);
     property.setUpdatedAt(Instant.now());
     propertyRepository.save(property);
@@ -313,14 +327,10 @@ public class ImageService {
             .orElseThrow(() -> new ResourceNotFoundException("Image not found: " + imageId));
 
     try {
-      minioClient.removeObject(
-          io.minio.RemoveObjectArgs.builder()
-              .bucket(imagesBucket)
-              .object(toDelete.getObjectKey())
-              .build());
-      log.info("Deleted image file from MinIO: {}", toDelete.getObjectKey());
+      storageService.deleteObject(imagesBucket, toDelete.getObjectKey());
+      log.info("Deleted image file from storage: {}", toDelete.getObjectKey());
     } catch (Exception e) {
-      log.error("Failed to delete image from MinIO: {}", e.getMessage());
+      log.error("Failed to delete image from storage: {}", e.getMessage());
     }
 
     property.getImages().removeIf(i -> i.getId().equals(imageId));
@@ -346,15 +356,7 @@ public class ImageService {
 
     if (property != null && property.getImages() != null) {
       for (ImageMetadata image : property.getImages()) {
-        try {
-          minioClient.removeObject(
-              io.minio.RemoveObjectArgs.builder()
-                  .bucket(imagesBucket)
-                  .object(image.getObjectKey())
-                  .build());
-        } catch (Exception e) {
-          log.error("Error deleting image {}: {}", image.getObjectKey(), e.getMessage());
-        }
+        storageService.deleteObject(imagesBucket, image.getObjectKey());
       }
       log.info("Deleted {} images for property {}", property.getImages().size(), propertyId);
     }
@@ -366,13 +368,8 @@ public class ImageService {
 
   public String generateTemporaryImageUrl(ImageMetadata image) {
     try {
-      return minioClient.getPresignedObjectUrl(
-          GetPresignedObjectUrlArgs.builder()
-              .method(Method.GET)
-              .bucket(imagesBucket)
-              .object(image.getObjectKey())
-              .expiry(presignedExpiryMinutes, TimeUnit.MINUTES)
-              .build());
+      return storageService.generateTemporaryUrl(
+          imagesBucket, image.getObjectKey(), presignedExpiryMinutes);
     } catch (Exception e) {
       log.error("Error generating image URL: {}", e.getMessage());
       return image.getPublicUrl();
@@ -403,7 +400,18 @@ public class ImageService {
       return;
     }
 
-    if (roles.contains("ROLE_AGENT") || roles.contains("ROLE_CLIENT")) {
+    if (roles.contains("ROLE_AGENT")
+        || roles.contains("ROLE_CLIENT")
+        || roles.contains("ROLE_USER")) {
+      return;
+    }
+
+    // Public visibility: if the property is in an active state, images are accessible to all
+    // authenticated users
+    PropertyStatus status = property.getStatus();
+    if (status == PropertyStatus.DISPONIBLE
+        || status == PropertyStatus.RESERVADO
+        || status == PropertyStatus.EN_NEGOCIACION) {
       return;
     }
 
@@ -418,10 +426,16 @@ public class ImageService {
     return Set.of("jpg", "jpeg", "png", "webp", "heic", "heif").contains(ext);
   }
 
-  private String buildImageObjectKey(String propertyId, String fileName) {
+  private String buildImageObjectKey(String propertyId, String fileName, boolean isPending) {
     String timestamp = String.valueOf(Instant.now().toEpochMilli());
     String safeFileName = fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
-    return String.format("properties/%s/images/%s_%s", propertyId, timestamp, safeFileName);
+    String folder = isPending ? "pending/" : "";
+    return String.format(
+        "properties/%s/images/%s%s_%s", propertyId, folder, timestamp, safeFileName);
+  }
+
+  private String buildImageObjectKey(String propertyId, String fileName) {
+    return buildImageObjectKey(propertyId, fileName, false);
   }
 
   private String getPublicUrl(String objectKey) {
@@ -429,17 +443,7 @@ public class ImageService {
   }
 
   private void ensureImagesBucketExists() {
-    try {
-      boolean found =
-          minioClient.bucketExists(
-              io.minio.BucketExistsArgs.builder().bucket(imagesBucket).build());
-      if (!found) {
-        minioClient.makeBucket(io.minio.MakeBucketArgs.builder().bucket(imagesBucket).build());
-        log.info("Created images bucket: {}", imagesBucket);
-      }
-    } catch (Exception e) {
-      log.error("Error ensuring images bucket exists: {}", e.getMessage());
-    }
+    storageService.ensureBucketExists(imagesBucket);
   }
 
   private String getCurrentUserId() {

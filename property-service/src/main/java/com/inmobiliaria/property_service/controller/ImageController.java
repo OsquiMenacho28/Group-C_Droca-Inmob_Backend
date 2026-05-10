@@ -4,6 +4,7 @@ import com.inmobiliaria.property_service.dto.request.ConfirmImageUploadRequest;
 import com.inmobiliaria.property_service.dto.request.GenerateImageUploadUrlRequest;
 import com.inmobiliaria.property_service.dto.response.ApiResponse;
 import com.inmobiliaria.property_service.dto.response.ImageResponse;
+import com.inmobiliaria.property_service.dto.response.ImageUploadPolicyResponse;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.dto.response.ResponseFactory;
 import com.inmobiliaria.property_service.service.ImageService;
@@ -28,7 +29,17 @@ public class ImageController {
   private final PropertyService propertyService;
   private final ResponseFactory responseFactory;
 
-  /** Step 1: Get Presigned URL for uploading */
+  /** Step 1 (Enhanced): Get Presigned POST Policy for secure uploading */
+  @PostMapping("/upload-policy")
+  @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<ImageUploadPolicyResponse>> generateUploadPolicy(
+      @PathVariable String propertyId, @Valid @RequestBody GenerateImageUploadUrlRequest request) {
+    request.setPropertyId(propertyId);
+    ImageUploadPolicyResponse data = imageService.generateUploadPolicy(request);
+    return ResponseEntity.ok(responseFactory.success("Upload policy generated", data));
+  }
+
+  /** Step 1 (Legacy): Get Presigned URL for uploading */
   @PostMapping("/upload-url")
   @PreAuthorize("hasRole('AGENT') or hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<Map<String, String>>> generateUploadUrl(
