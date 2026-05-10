@@ -157,6 +157,14 @@ public class CalendarController {
     return ResponseEntity.ok(responseFactory.success("Evento encontrado", event));
   }
 
+  /** GET /visits/property/{propertyId} Devuelve el historial de visitas de un inmueble. */
+  @GetMapping("/visits/property/{propertyId}")
+  public ResponseEntity<ApiResponse<List<Visit>>> getVisitsByProperty(
+      @PathVariable String propertyId) {
+    List<Visit> visits = calendarService.getVisitsByProperty(propertyId);
+    return ResponseEntity.ok(responseFactory.success("Historial de visitas obtenido", visits));
+  }
+
   /** PATCH /visits/{id}/cancel Cancela una visita (solo el agente dueño). */
   @PatchMapping("/visits/{id}/cancel")
   public ResponseEntity<ApiResponse<Visit>> cancelVisit(

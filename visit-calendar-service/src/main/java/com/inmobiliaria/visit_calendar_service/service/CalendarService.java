@@ -200,6 +200,15 @@ public class CalendarService {
     return events.stream().map(e -> toResponse(e, agentId)).collect(Collectors.toList());
   }
 
+  /**
+   * Obtiene todas las visitas de una propiedad específica. Usado por el frontend para mostrar el
+   * historial de visitas en el detalle del inmueble.
+   */
+  public List<Visit> getVisitsByProperty(String propertyId) {
+    log.debug("Obteniendo historial de visitas para la propiedad: {}", propertyId);
+    return visitRepository.findByPropertyId(propertyId);
+  }
+
   /** Obtiene un evento por ID. */
   public Visit getById(String id, String requestingAgentId) {
     CalendarEvent event =
