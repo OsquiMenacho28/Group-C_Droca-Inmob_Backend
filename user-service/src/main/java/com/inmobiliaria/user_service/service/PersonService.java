@@ -558,24 +558,28 @@ public class PersonService {
   }
 
   private PersonResponse mapToResponse(PersonDocument document) {
-    String dept = null,
-        pos = null,
-        tax = null,
+    String department = null,
+        position = null,
+        taxId = null,
         address = null,
         contact = null,
         budget = null,
         preferredZone = null,
         preferredPropertyType = null;
     List<String> propertyIds = null;
-    LocalDate hire = null;
+    LocalDate hireDate = null;
     Integer preferredRooms = null;
+    List<String> preferredZones = null;
+    Integer minRooms = null;
+    Integer maxRooms = null;
+    Double maxPrice = null;
 
-    if (document instanceof EmployeeDocument emp) {
-      dept = emp.getDepartment();
-      pos = emp.getPosition();
-      hire = emp.getHireDate();
+    if (document instanceof EmployeeDocument employee) {
+      department = employee.getDepartment();
+      position = employee.getPosition();
+      hireDate = employee.getHireDate();
     } else if (document instanceof OwnerDocument owner) {
-      tax = owner.getTaxId();
+      taxId = owner.getTaxId();
       address = owner.getAddress();
       propertyIds = owner.getPropertyIds();
     } else if (document instanceof InterestedClientDocument client) {
@@ -584,6 +588,28 @@ public class PersonService {
       preferredZone = client.getPreferredZone();
       preferredPropertyType = client.getPreferredPropertyType();
       preferredRooms = client.getPreferredRooms();
+
+      // Si existe el objeto de preferencias estructurado, priorizarlo para la respuesta
+      if (client.getPreferences() != null) {
+        preferredZones = client.getPreferences().getPreferredZones();
+        if (preferredZones != null && !preferredZones.isEmpty()) {
+          preferredZone = preferredZones.get(0);
+        }
+        if (client.getPreferences().getPreferredPropertyType() != null) {
+          preferredPropertyType = client.getPreferences().getPreferredPropertyType();
+        }
+        if (client.getPreferences().getMinRooms() != null) {
+          preferredRooms = client.getPreferences().getMinRooms();
+          minRooms = client.getPreferences().getMinRooms();
+        }
+        if (client.getPreferences().getMaxRooms() != null) {
+          maxRooms = client.getPreferences().getMaxRooms();
+        }
+        if (client.getPreferences().getMaxPrice() != null) {
+          maxPrice = client.getPreferences().getMaxPrice();
+          budget = maxPrice.toString();
+        }
+      }
     }
 
     return new PersonResponse(
@@ -598,17 +624,21 @@ public class PersonService {
         document.getPersonType(),
         document.getRoleIds(),
         document.isCustomRole(),
-        dept,
-        pos,
-        hire,
-        tax,
+        department,
+        position,
+        hireDate,
+        taxId,
         address,
         propertyIds,
         contact,
         budget,
         preferredZone,
         preferredPropertyType,
-        preferredRooms);
+        preferredRooms,
+        preferredZones,
+        minRooms,
+        maxRooms,
+        maxPrice);
   }
 
   public PersonResponse updateSearchPreferences(String personId, SearchPreferencesRequest request) {
@@ -622,11 +652,14 @@ public class PersonService {
           "Solo se pueden registrar preferencias para clientes buscadores");
     }
 
-    client.setPreferredZones(request.preferredZones());
-    client.setMinRooms(request.minRooms());
-    client.setMaxRooms(request.maxRooms());
-    client.setMaxPrice(request.maxPrice());
-    client.setPreferredPropertyType(request.preferredPropertyType());
+    client.setPreferences(
+        PersonPreferences.builder()
+            .preferredZones(request.preferredZones())
+            .minRooms(request.minRooms())
+            .maxRooms(request.maxRooms())
+            .maxPrice(request.maxPrice())
+            .preferredPropertyType(request.preferredPropertyType())
+            .build());
     client.setUpdatedAt(Instant.now());
 
     return mapToResponse(personRepository.save(client));
@@ -636,11 +669,34 @@ public class PersonService {
     PersonDocument person =
         personRepository
             .findById(personId)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Person not found with id: " + personId));
+            .orElseGet(
+                () ->
+                    personRepository
+                        .findByAuthUserId(personId)
+                        .orElseThrow(
+                            () ->
+                                new ResourceNotFoundException(
+                                    "Person not found with id or authUserId: " + personId)));
+
+    person.setPreferences(preferences);
 
     person.setPreferences(preferences);
     PersonDocument savedPerson = personRepository.save(person);
     return savedPerson.getPreferences();
+  }
+
+  public PersonPreferences getPreferences(String personId) {
+    PersonDocument person =
+        personRepository
+            .findById(personId)
+            .orElseGet(
+                () ->
+                    personRepository
+                        .findByAuthUserId(personId)
+                        .orElseThrow(
+                            () ->
+                                new ResourceNotFoundException(
+                                    "Person not found with id or authUserId: " + personId)));
+    return person.getPreferences();
   }
 }

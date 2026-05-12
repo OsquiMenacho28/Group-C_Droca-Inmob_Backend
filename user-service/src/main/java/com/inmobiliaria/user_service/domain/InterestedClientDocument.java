@@ -19,10 +19,6 @@ public class InterestedClientDocument extends PersonDocument {
   private java.time.LocalDate lastActivityDate;
   private java.time.LocalDate fechaBaja;
   private String motivoBaja;
-  private List<String> preferredZones;
-  private Integer minRooms;
-  private Integer maxRooms;
-  private Double maxPrice;
 
   @Builder
   public InterestedClientDocument(

@@ -9,15 +9,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "user-service", configuration = FeignConfig.class)
 public interface UserClient {
 
-  @GetMapping("/persons/by-auth/{authUserId}")
-  UserPreferenceResponse getPersonPreferences(@PathVariable("authUserId") String authUserId);
+  @GetMapping("/persons/{id}/preferencias")
+  UserPreferenceResponse getPersonPreferences(@PathVariable("id") String id);
 
   record UserPreferenceResponse(
-      String id,
-      String authUserId,
-      String firstName,
-      String lastName,
-      String fullName,
       List<String> preferredZones,
       Integer minRooms,
       Integer maxRooms,

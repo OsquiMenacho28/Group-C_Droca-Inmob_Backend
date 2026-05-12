@@ -31,6 +31,12 @@ public class GlobalExceptionHandler {
         .body(responseFactory.notFound(ex.getMessage()));
   }
 
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleValidationCustom(ValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(responseFactory.error(ex.getMessage()));
+  }
+
   @ExceptionHandler(ResourceAlreadyExistsException.class)
   public ResponseEntity<ApiResponse<Void>> handleConflict(ResourceAlreadyExistsException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT)

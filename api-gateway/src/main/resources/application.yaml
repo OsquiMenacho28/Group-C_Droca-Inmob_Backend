@@ -70,7 +70,7 @@ spring:
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/api/v1/persons/**, /api/v1/persons, /api/v1/favoritos/**, /api/v1/favoritos
+            - Path=/api/v1/persons/**, /api/v1/persons, /api/v1/favoritos/**, /api/v1/favoritos, /api/v1/buscadores/**, /api/v1/buscadores
           filters:
             - AuthenticationFilter
             - StripPrefix=2
