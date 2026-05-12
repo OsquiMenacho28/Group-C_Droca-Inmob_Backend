@@ -9,6 +9,7 @@ import com.inmobiliaria.property_service.dto.response.ResponsableResponse;
 import com.inmobiliaria.property_service.dto.response.ResponseFactory;
 import com.inmobiliaria.property_service.service.PropertyService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,8 @@ public class PropertyController {
       @RequestParam(required = false) OperationType operationType,
       @RequestParam(required = false) Double minPrice,
       @RequestParam(required = false) Double maxPrice,
+      @RequestParam(required = false) @Positive Double minM2,
+      @RequestParam(required = false) @Positive Double maxM2,
       @RequestParam(required = false) String agentId,
       @RequestParam(required = false, defaultValue = "price") String sortBy,
       @RequestParam(required = false, defaultValue = "ASC") String sortOrder,
@@ -81,6 +84,8 @@ public class PropertyController {
             operationType,
             minPrice,
             maxPrice,
+            minM2,
+            maxM2,
             agentId,
             currentUserId,
             roles,

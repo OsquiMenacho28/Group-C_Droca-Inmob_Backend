@@ -48,6 +48,8 @@ public class PropertyService {
       OperationType operationType,
       Double minPrice,
       Double maxPrice,
+      Double minM2,
+      Double maxM2,
       String agentId,
       String currentUserId,
       List<String> roles,
@@ -106,6 +108,12 @@ public class PropertyService {
     }
     if (maxPrice != null) {
       filters.add(Criteria.where("price").lte(maxPrice));
+    }
+    if (minM2 != null) {
+      filters.add(Criteria.where("m2").gte(minM2));
+    }
+    if (maxM2 != null) {
+      filters.add(Criteria.where("m2").lte(maxM2));
     }
     if (agentId != null && !agentId.isBlank()) {
       filters.add(Criteria.where("assignedAgentId").is(agentId));
