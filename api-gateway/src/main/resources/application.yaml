@@ -109,6 +109,20 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: contract-service
+          uri: lb://contract-service
+          predicates:
+            - Path=/api/v1/contracts/**
+          filters:
+            - AuthenticationFilter
+            - StripPrefix=2
+        - id: contract-service-docs
+          uri: lb://contract-service
+          predicates:
+            - Path=/contract-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -127,6 +141,8 @@ springdoc:
         url: /visit-calendar-service/v3/api-docs
       - name: operation-service
         url: /operation-service/v3/api-docs
+      - name: contract-service
+        url: /contract-service/v3/api-docs
 
 eureka:
   client:

@@ -1,6 +1,7 @@
 $services = @(
     "access-control-service",
     "api-gateway",
+    "contract-service",
     "identity-service",
     "notification-service",
     "operation-service",
