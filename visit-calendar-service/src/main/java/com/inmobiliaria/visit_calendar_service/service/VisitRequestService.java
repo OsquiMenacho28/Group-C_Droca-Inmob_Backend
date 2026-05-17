@@ -44,6 +44,7 @@ public class VisitRequestService {
   private final CalendarEventRepository calendarEventRepository;
   private final NotificationService notificationService;
   private final VisitRepository visitRepository;
+  private final VehicleUsageService vehicleUsageService;
 
   /**
    * PA1 + PA2 de HU3: El cliente solicita una cita para un inmueble. Se persiste la solicitud y se
@@ -201,11 +202,14 @@ public class VisitRequestService {
     visit.setObservaciones(request.observaciones());
     visit.setFechaRegistroResultado(Instant.now());
     visit.setStatus(Visit.EventStatus.REALIZADA);
-    Visit updated = visitRepository.save(visit);
+    Visit saved = visitRepository.save(visit);
 
-    notifyOwnerAboutVisitOutcome(updated, request.resultado());
+    notifyOwnerAboutVisitOutcome(saved, request.resultado());
 
-    return visitRepository.save(visit);
+    // Registrar uso del vehículo si aplica
+    vehicleUsageService.recordUsage(saved, request.mileage());
+
+    return saved;
   }
 
   // =====================================================================

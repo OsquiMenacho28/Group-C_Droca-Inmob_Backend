@@ -4,4 +4,5 @@ import jakarta.validation.constraints.NotBlank;
 
 public record RegistrarResultadoRequest(
     @NotBlank String resultado, // "INTERESADO", "NO_INTERESADO", "PENDIENTE"
-    String observaciones) {}
+    String observaciones,
+    Double mileage) {}
