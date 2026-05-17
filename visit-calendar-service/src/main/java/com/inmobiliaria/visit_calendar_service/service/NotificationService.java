@@ -1,8 +1,10 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
 import com.inmobiliaria.visit_calendar_service.client.NotificationClient;
+import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
 import com.inmobiliaria.visit_calendar_service.dto.SendNotificationRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
+import com.inmobiliaria.visit_calendar_service.dto.request.SendInAppNotificationRequest;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +73,31 @@ public class NotificationService {
             buildPropertyOwnerMessage(ownerName, visit),
             "EMAIL");
     notificationClient.sendNotification(req);
+  }
+
+  public void sendInAppNotificationToOwner(
+      String ownerId,
+      String ownerName,
+      String propertyName,
+      String subject,
+      String content,
+      InteractionType interactionType,
+      Map<String, Object> details) {
+    try {
+      SendInAppNotificationRequest request =
+          new SendInAppNotificationRequest(
+              ownerId, // recipientId
+              "VISIT_" + interactionType.name(), // type
+              interactionType,
+              null, // involvedUserIds
+              subject,
+              content,
+              details);
+      notificationClient.sendInAppNotification(request);
+      log.info("In-app notification sent to owner {}: {}", ownerId, subject);
+    } catch (Exception e) {
+      log.warn("Failed to send in-app notification to owner {}: {}", ownerId, e.getMessage());
+    }
   }
 
   private String buildPropertyOwnerMessage(String ownerName, CreateVisitRequest visit) {

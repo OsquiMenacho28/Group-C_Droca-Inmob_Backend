@@ -2,6 +2,7 @@ package com.inmobiliaria.visit_calendar_service.service;
 
 import com.inmobiliaria.visit_calendar_service.client.PersonClient;
 import com.inmobiliaria.visit_calendar_service.client.PropertyClient;
+import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
 import com.inmobiliaria.visit_calendar_service.dto.response.PersonResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -188,6 +190,8 @@ public class CalendarService {
         saved.getAgentName(),
         saved.getStartTime());
 
+    notifyOwnerAboutVisit(saved, "schedule");
+
     return toResponse(saved, request.getAgentId());
   }
 
@@ -232,12 +236,66 @@ public class CalendarService {
     event.setStatus(CalendarEvent.EventStatus.CANCELLED);
     CalendarEvent saved = calendarEventRepository.save(event);
     log.info("Visita cancelada: id={}", id);
+
+    notifyOwnerAboutVisit(saved, "cancel");
+
     return toResponse(saved, agentId);
   }
 
   // =====================================================================
   // Helpers
   // =====================================================================
+
+  private void notifyOwnerAboutVisit(CalendarEvent event, String action) {
+    try {
+      // Obtener la propiedad para saber el ownerId
+      PropertyResponse property = propertyClient.getPropertyById(event.getPropertyId());
+      if (property == null || property.ownerId() == null) {
+        log.debug("Property or owner not found for notification: {}", event.getPropertyId());
+        return;
+      }
+      String ownerId = property.ownerId();
+      // Obtener nombre del propietario
+      PersonResponse owner = personClient.getPersonByAuthUserId(ownerId);
+      String ownerName =
+          (owner != null && owner.fullName() != null) ? owner.fullName() : "Propietario";
+
+      String subject;
+      String content;
+      InteractionType type;
+      Map<String, Object> details =
+          Map.of(
+              "propertyId", event.getPropertyId(),
+              "propertyName", event.getPropertyName(),
+              "visitId", event.getId(),
+              "visitStartTime", event.getStartTime().toString(),
+              "agentName", event.getAgentName());
+
+      if ("schedule".equals(action)) {
+        subject = "Nueva visita agendada para tu propiedad";
+        content =
+            String.format(
+                "El agente %s ha agendado una visita para tu propiedad '%s' el día %s.",
+                event.getAgentName(), event.getPropertyName(), event.getStartTime());
+        type = InteractionType.PROPIEDAD_MOD;
+      } else {
+        subject = "Visita cancelada para tu propiedad";
+        content =
+            String.format(
+                "El agente %s ha cancelado la visita programada para tu propiedad '%s' el día %s.",
+                event.getAgentName(), event.getPropertyName(), event.getStartTime());
+        type = InteractionType.PROPIEDAD_MOD;
+      }
+
+      notificationService.sendInAppNotificationToOwner(
+          ownerId, ownerName, event.getPropertyName(), subject, content, type, details);
+    } catch (Exception e) {
+      log.warn(
+          "Could not send in-app notification to owner for visit {}: {}",
+          event.getId(),
+          e.getMessage());
+    }
+  }
 
   private void validateDateRange(Instant start, Instant end) {
     if (start == null || end == null) {
