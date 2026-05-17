@@ -831,4 +831,89 @@ public class PropertyService {
         .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
+
+  /**
+   * Genera un reporte detallado del inventario actual con un resumen ejecutivo de totales y cálculo
+   * de días en inventario vigentes a la fecha actual para inmuebles activos.
+   */
+  public com.inmobiliaria.property_service.dto.response.InventoryReportResponse
+      generateInventoryReport(String status, OperationType operationType) {
+
+    // Obtener todos los inmuebles que no sufrieron un borrado lógico
+    List<PropertyDocument> allActiveInventory = propertyRepository.findByDeletedFalse();
+
+    // 1. Calcular totales globales para el Resumen Ejecutivo (Dashboard Indicators)
+    Map<String, Long> totalsByStatus =
+        allActiveInventory.stream()
+            .collect(
+                Collectors.groupingBy(
+                    p -> p.getStatus() != null ? p.getStatus().name() : "SIN_ESPECIFICAR",
+                    Collectors.counting()));
+
+    Map<String, Long> totalsByOperationType =
+        allActiveInventory.stream()
+            .collect(
+                Collectors.groupingBy(
+                    p ->
+                        p.getOperationType() != null
+                            ? p.getOperationType().name()
+                            : "SIN_ESPECIFICAR",
+                    Collectors.counting()));
+
+    // 2. Filtrar y transformar el listado detallado para la tabla del reporte
+    List<com.inmobiliaria.property_service.dto.response.InventoryReportResponse.PropertyReportItem>
+        reportItems =
+            allActiveInventory.stream()
+                .filter(
+                    p ->
+                        status == null
+                            || status.isBlank()
+                            || (p.getStatus() != null
+                                && p.getStatus().name().equalsIgnoreCase(status)))
+                .filter(p -> operationType == null || p.getOperationType() == operationType)
+                .map(
+                    p -> {
+                      long days = 0;
+                      if (p.getCreatedAt() != null) {
+                        Instant endDate =
+                            Instant.now(); // Por defecto: fecha actual para inmuebles activos (PA3)
+
+                        // Si el inmueble ya fue consolidado o retirado, calcular hasta su evento de
+                        // cambio
+                        if (p.getStatus() == PropertyStatus.VENDIDO
+                            || p.getStatus() == PropertyStatus.RETIRADO) {
+                          if (p.getStatusHistory() != null && !p.getStatusHistory().isEmpty()) {
+                            endDate =
+                                p.getStatusHistory().stream()
+                                    .filter(sh -> sh.getNewStatus().equals(p.getStatus().name()))
+                                    .max(Comparator.comparing(StatusHistory::getChangedAt))
+                                    .map(StatusHistory::getChangedAt)
+                                    .orElse(
+                                        p.getUpdatedAt() != null
+                                            ? p.getUpdatedAt()
+                                            : Instant.now());
+                          } else {
+                            endDate = p.getUpdatedAt() != null ? p.getUpdatedAt() : Instant.now();
+                          }
+                        }
+                        days =
+                            java.time.temporal.ChronoUnit.DAYS.between(p.getCreatedAt(), endDate);
+                        if (days < 0) days = 0;
+                      }
+
+                      return new com.inmobiliaria.property_service.dto.response
+                          .InventoryReportResponse.PropertyReportItem(
+                          p.getId(),
+                          p.getTitle(),
+                          p.getStatus() != null ? p.getStatus().name() : "N/A",
+                          p.getOperationType() != null ? p.getOperationType().name() : "N/A",
+                          p.getPrice(),
+                          p.getZone() != null ? p.getZone() : "No especificada",
+                          days);
+                    })
+                .collect(Collectors.toList());
+
+    return new com.inmobiliaria.property_service.dto.response.InventoryReportResponse(
+        totalsByStatus, totalsByOperationType, reportItems);
+  }
 }

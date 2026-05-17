@@ -1,29 +1,5 @@
 package com.inmobiliaria.property_service.controller;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.StatusHistory;
 import com.inmobiliaria.property_service.dto.request.AgentPropertyUpdateRequest;
@@ -42,10 +18,31 @@ import com.inmobiliaria.property_service.dto.response.ResponsableResponse;
 import com.inmobiliaria.property_service.dto.response.ResponseFactory;
 import com.inmobiliaria.property_service.service.PropertyMetricsService;
 import com.inmobiliaria.property_service.service.PropertyService;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/properties")
@@ -322,6 +319,21 @@ public class PropertyController {
             : "Se encontraron " + suggestions.size() + " propiedades sugeridas.";
 
     return ResponseEntity.ok(responseFactory.success(message, suggestions));
+  }
+
+  @GetMapping("/reporte-gerencial")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<
+          ApiResponse<com.inmobiliaria.property_service.dto.response.InventoryReportResponse>>
+      getInventoryReport(
+          @RequestParam(required = false) String status,
+          @RequestParam(required = false) OperationType operationType) {
+
+    com.inmobiliaria.property_service.dto.response.InventoryReportResponse report =
+        propertyService.generateInventoryReport(status, operationType);
+
+    return ResponseEntity.ok(
+        responseFactory.success("Reporte de inventario generado exitosamente", report));
   }
 
   // --- METRICS ENDPOINTS ---

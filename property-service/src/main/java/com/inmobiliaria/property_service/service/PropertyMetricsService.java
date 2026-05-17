@@ -1,5 +1,13 @@
 package com.inmobiliaria.property_service.service;
 
+import com.inmobiliaria.property_service.domain.PropertyDocument;
+import com.inmobiliaria.property_service.domain.PropertyStatus;
+import com.inmobiliaria.property_service.domain.StatusHistory;
+import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse;
+import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse.OperationMetrics;
+import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse.TypeMetrics;
+import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse.ZoneMetrics;
+import com.inmobiliaria.property_service.repository.PropertyRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -9,20 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
-import com.inmobiliaria.property_service.domain.PropertyDocument;
-import com.inmobiliaria.property_service.domain.PropertyStatus;
-import com.inmobiliaria.property_service.domain.StatusHistory;
-import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse;
-import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse.OperationMetrics;
-import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse.TypeMetrics;
-import com.inmobiliaria.property_service.dto.response.InventoryMetricsResponse.ZoneMetrics;
-import com.inmobiliaria.property_service.repository.PropertyRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /** Servicio para calcular métricas de tiempo en inventario para propiedades. */
 @Slf4j
