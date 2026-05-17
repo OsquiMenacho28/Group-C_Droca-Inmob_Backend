@@ -3,8 +3,10 @@ package com.inmobiliaria.notification_service.controller;
 import com.inmobiliaria.notification_service.domain.NotificationDocument;
 import com.inmobiliaria.notification_service.domain.NotificationStatus;
 import com.inmobiliaria.notification_service.dto.request.SendCredentialsEmailRequest;
+import com.inmobiliaria.notification_service.dto.request.SendInAppNotificationRequest;
 import com.inmobiliaria.notification_service.dto.request.SendNotificationRequest;
 import com.inmobiliaria.notification_service.dto.response.ApiResponse;
+import com.inmobiliaria.notification_service.dto.response.InAppNotificationResponse;
 import com.inmobiliaria.notification_service.dto.response.NotificationHistoryResponse;
 import com.inmobiliaria.notification_service.dto.response.NotificationResponse;
 import com.inmobiliaria.notification_service.dto.response.ResponseFactory;
@@ -17,6 +19,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,7 +73,48 @@ public class NotificationController {
             "Historial de notificaciones", list, page, size, pageResult.getTotalElements()));
   }
 
+  @PostMapping("/in-app")
+  public ResponseEntity<ApiResponse<NotificationResponse>> sendInAppNotification(
+      @Valid @RequestBody SendInAppNotificationRequest request) {
+    NotificationResponse response = notificationService.sendInAppNotification(request);
+    return ResponseEntity.accepted()
+        .body(responseFactory.success("In-app notification queued", response));
+  }
+
+  @GetMapping("/in-app")
+  public ResponseEntity<ApiResponse<List<InAppNotificationResponse>>> getUserInAppNotifications(
+      @RequestParam(required = false) Boolean readStatus,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int pageSize,
+      @RequestHeader("X-Auth-User-Id") String userId) {
+
+    Page<InAppNotificationResponse> result =
+        notificationService.getUserInAppNotifications(
+            userId,
+            readStatus,
+            PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
+
+    return ResponseEntity.ok(
+        responseFactory.paginated(
+            "In-app notifications retrieved",
+            result.getContent(),
+            page,
+            pageSize,
+            result.getTotalElements()));
+  }
+
+  @PutMapping("/in-app/{id}/read")
+  public ResponseEntity<ApiResponse<Void>> markAsRead(
+      @PathVariable String id, @RequestHeader("X-Auth-User-Id") String userId) {
+    notificationService.markAsRead(id, userId);
+    return ResponseEntity.ok(responseFactory.success("Notification marked as read", null));
+  }
+
   private NotificationHistoryResponse toHistoryResponse(NotificationDocument doc) {
+    LocalDateTime sentAtLocal =
+        (doc.getSentAt() != null)
+            ? LocalDateTime.ofInstant(doc.getSentAt(), java.time.ZoneOffset.UTC)
+            : null;
     return new NotificationHistoryResponse(
         doc.getId(),
         doc.getType(),
@@ -78,7 +122,7 @@ public class NotificationController {
         doc.getContent(),
         doc.getStatus(),
         doc.getCreatedAt(),
-        doc.getSentAt(),
+        sentAtLocal,
         doc.getErrorMessage());
   }
 }

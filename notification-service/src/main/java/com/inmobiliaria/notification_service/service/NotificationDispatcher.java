@@ -4,7 +4,7 @@ import com.inmobiliaria.notification_service.config.MailPropertiesConfig;
 import com.inmobiliaria.notification_service.domain.NotificationDocument;
 import com.inmobiliaria.notification_service.domain.NotificationStatus;
 import com.inmobiliaria.notification_service.repository.NotificationRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,13 +29,22 @@ public class NotificationDispatcher {
     notif.setStatus(NotificationStatus.PENDING);
     notificationRepo.save(notif);
     try {
-      // Intento 1
-      sendByChannel(notif);
-      notif.setStatus(NotificationStatus.SENT);
-      notif.setSentAt(LocalDateTime.now());
+      if ("IN_APP".equalsIgnoreCase(notif.getChannel())) {
+        // No necesita envío externo, solo marcar como entregado
+        notif.setStatus(NotificationStatus.SENT);
+        notif.setDeliveredAt(Instant.now());
+        notif.setSentAt(Instant.now());
+      } else if ("EMAIL".equalsIgnoreCase(notif.getChannel())) {
+        sendByChannel(notif); // envía email
+        notif.setStatus(NotificationStatus.SENT);
+        notif.setSentAt(Instant.now());
+      } else {
+        throw new UnsupportedOperationException("Canal no soportado: " + notif.getChannel());
+      }
     } catch (Exception e) {
-      log.warn("Fallo envío, reintentando en 5s...", e);
+      log.warn("Fallo en envío, reintentando...", e);
       scheduler.schedule(() -> retry(notif), 5, TimeUnit.SECONDS);
+      return;
     }
     notificationRepo.save(notif);
   }
@@ -44,7 +53,7 @@ public class NotificationDispatcher {
     try {
       sendByChannel(notif);
       notif.setStatus(NotificationStatus.SENT);
-      notif.setSentAt(LocalDateTime.now());
+      notif.setSentAt(Instant.now());
     } catch (Exception e) {
       notif.setStatus(NotificationStatus.FAILED);
       notif.setErrorMessage(e.getMessage());
