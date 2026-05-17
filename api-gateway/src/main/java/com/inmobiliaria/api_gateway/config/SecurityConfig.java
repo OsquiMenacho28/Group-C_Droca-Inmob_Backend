@@ -33,7 +33,13 @@ public class SecurityConfig {
     CorsConfiguration config = new CorsConfiguration();
     // Permissive for local dev but works with credentials
     config.setAllowedOriginPatterns(
-        Arrays.asList("http://localhost:*", "http://127.0.0.1:*", "http://[::1]:*"));
+        Arrays.asList(
+            "http://localhost",
+            "http://localhost:*",
+            "http://127.0.0.1",
+            "http://127.0.0.1:*",
+            "http://[::1]",
+            "http://[::1]:*"));
     config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(
         Arrays.asList(

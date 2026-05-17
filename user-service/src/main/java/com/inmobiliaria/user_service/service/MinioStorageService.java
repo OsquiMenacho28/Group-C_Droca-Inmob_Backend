@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class MinioStorageService {
 
   private final MinioClient minioClient;
+  private final MinioClient externalMinioClient;
 
   @Value("${minio.bucket-name}")
   private String bucketName;
@@ -30,8 +32,10 @@ public class MinioStorageService {
 
   private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
 
-  public MinioStorageService(MinioClient minioClient) {
+  public MinioStorageService(
+      MinioClient minioClient, @Qualifier("externalMinioClient") MinioClient externalMinioClient) {
     this.minioClient = minioClient;
+    this.externalMinioClient = externalMinioClient;
   }
 
   public String uploadFile(MultipartFile file, String personId) {
@@ -57,7 +61,8 @@ public class MinioStorageService {
   public String generatePresignedUrl(String objectKey) {
     if (objectKey == null || objectKey.isBlank()) return null;
     try {
-      return minioClient.getPresignedObjectUrl(
+      // Signing uses external client (Silent signing)
+      return externalMinioClient.getPresignedObjectUrl(
           GetPresignedObjectUrlArgs.builder()
               .method(Method.GET)
               .bucket(bucketName)

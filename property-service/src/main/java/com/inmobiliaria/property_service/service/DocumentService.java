@@ -17,8 +17,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,10 +27,10 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DocumentService {
 
   private final MinioClient minioClient;
+  private final MinioClient externalMinioClient;
   private final PropertyRepository propertyRepository;
 
   @Value("${minio.presigned.expiry-minutes:15}")
@@ -38,6 +38,18 @@ public class DocumentService {
 
   @Value("${minio.documents.bucket:documents}")
   private String documentsBucket;
+
+  @Value("${minio.external-endpoint:http://127.0.0.1:9000}")
+  private String externalEndpoint;
+
+  public DocumentService(
+      MinioClient minioClient,
+      @Qualifier("externalMinioClient") MinioClient externalMinioClient,
+      PropertyRepository propertyRepository) {
+    this.minioClient = minioClient;
+    this.externalMinioClient = externalMinioClient;
+    this.propertyRepository = propertyRepository;
+  }
 
   // Allowed file types for exclusivity contracts
   private static final Set<String> ALLOWED_MIME_TYPES =
@@ -48,35 +60,19 @@ public class DocumentService {
 
   private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-  /**
-   * US1: Generate presigned URL for uploading a document Validates file type and size before
-   * issuing the URL
-   */
   public Map<String, String> generatePresignedUploadUrl(GenerateUploadUrlRequest request) {
-    // Validate file type (US1 AC2)
     if (!isValidFileType(request.getMimeType(), request.getFileName())) {
-      throw new ValidationException(
-          "Invalid file type. Only PDF and Word documents are allowed. "
-              + "Received: "
-              + (request.getMimeType() != null ? request.getMimeType() : "unknown"));
+      throw new ValidationException("Invalid file type. Only PDF and Word documents are allowed.");
     }
 
-    // Validate file size (US1 AC2)
     if (request.getFileSize() > MAX_FILE_SIZE) {
-      throw new ValidationException(
-          String.format(
-              "File size exceeds limit. Maximum allowed: %d MB, Your file: %.2f MB",
-              MAX_FILE_SIZE / (1024 * 1024), request.getFileSize() / (1024.0 * 1024)));
+      throw new ValidationException("File size exceeds limit.");
     }
 
-    // Verify property exists and user has permission
     PropertyDocument property =
         propertyRepository
             .findById(request.getPropertyId())
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException(
-                        "Property not found: " + request.getPropertyId()));
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found"));
 
     String currentUserId = getCurrentUserId();
     List<String> roles = getCurrentUserRoles();
@@ -86,22 +82,18 @@ public class DocumentService {
             && property.getAssignedAgentId().equals(currentUserId);
 
     if (!isAdmin && !isAssignedAgent) {
-      throw new AccessDeniedException(
-          "You don't have permission to upload documents for this property");
+      throw new AccessDeniedException("Permission denied");
     }
 
-    // Ensure bucket exists
     ensureDocumentsBucketExists();
-
-    // Generate object key
     String objectKey =
         buildDocumentObjectKey(
             request.getPropertyId(), request.getDocumentType(), request.getFileName());
 
     try {
-      // Generate presigned URL for PUT operation (US1)
+      // Signing uses external client (Silent signing)
       String uploadUrl =
-          minioClient.getPresignedObjectUrl(
+          externalMinioClient.getPresignedObjectUrl(
               GetPresignedObjectUrlArgs.builder()
                   .method(Method.PUT)
                   .bucket(documentsBucket)
@@ -127,33 +119,20 @@ public class DocumentService {
     }
   }
 
-  /**
-   * US1: Confirm successful upload and register document in MongoDB Updates property status to
-   * "Contracted" for exclusivity contracts (US1 AC3)
-   */
   public DocumentResponse confirmUpload(ConfirmUploadRequest request) {
-    // Verify property exists
     PropertyDocument property =
         propertyRepository
             .findById(request.getPropertyId())
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException(
-                        "Property not found: " + request.getPropertyId()));
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found"));
 
-    // Verify the object exists in MinIO
     try {
+      // Internal operation uses internal client
       minioClient.statObject(
           StatObjectArgs.builder().bucket(documentsBucket).object(request.getObjectKey()).build());
     } catch (Exception e) {
-      log.error("Object not found in MinIO: {}", request.getObjectKey());
-      throw new ValidationException("File upload not confirmed. Please try uploading again.");
+      throw new ValidationException("File upload not confirmed.");
     }
 
-    String currentUserId = getCurrentUserId();
-    String currentUserName = getCurrentUserName();
-
-    // Create document metadata
     DocumentMetadata document =
         DocumentMetadata.builder()
             .id(UUID.randomUUID().toString())
@@ -164,47 +143,34 @@ public class DocumentService {
             .fileSize(request.getFileSize())
             .mimeType(request.getMimeType())
             .uploadedAt(Instant.now())
-            .uploadedBy(currentUserId)
-            .uploadedByName(currentUserName)
+            .uploadedBy(getCurrentUserId())
+            .uploadedByName(getCurrentUserName())
             .status(DocumentMetadata.DocumentStatus.PENDING)
-            .accessPolicy(new HashSet<>()) // Initially empty, admin will set permissions
+            .accessPolicy(new HashSet<>())
             .build();
 
-    // Add document to property
     if (property.getDocuments() == null) {
       property.setDocuments(new ArrayList<>());
     }
     property.getDocuments().add(document);
-
     property.setUpdatedAt(Instant.now());
     PropertyDocument saved = propertyRepository.save(property);
 
-    // Find and return the saved document
     DocumentMetadata savedDoc =
         saved.getDocuments().stream()
             .filter(d -> d.getId().equals(document.getId()))
             .findFirst()
             .orElseThrow();
 
-    log.info(
-        "Document confirmed and registered: {} for property {}",
-        document.getId(),
-        request.getPropertyId());
-
     return toResponse(savedDoc, null);
   }
 
-  /**
-   * US1 & US2: Get all documents for a property with temporary download URLs Permission check
-   * before generating any presigned GET URL
-   */
   public List<DocumentResponse> getPropertyDocuments(String propertyId) {
     PropertyDocument property =
         propertyRepository
             .findById(propertyId)
-            .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + propertyId));
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found"));
 
-    // Check permission (US2)
     checkDocumentAccessPermission(property, null);
 
     List<DocumentResponse> responses = new ArrayList<>();
@@ -212,200 +178,109 @@ public class DocumentService {
       String tempUrl = generateTemporaryDownloadUrlForDocument(doc, property);
       responses.add(toResponse(doc, tempUrl));
     }
-
     return responses;
   }
 
-  /**
-   * US1 & US2: Get a specific document with temporary download URL Permission check before
-   * generating presigned GET URL
-   */
   public DocumentResponse getDocument(String documentId) {
-    // Find document across all properties
     for (PropertyDocument property : propertyRepository.findAll()) {
       if (property.getDocuments() != null) {
         Optional<DocumentMetadata> docOpt =
             property.getDocuments().stream().filter(d -> d.getId().equals(documentId)).findFirst();
-
         if (docOpt.isPresent()) {
           DocumentMetadata doc = docOpt.get();
-          // Check permission (US2)
           checkDocumentAccessPermission(property, doc);
-
           String tempUrl = generateTemporaryDownloadUrlForDocument(doc, property);
           return toResponse(doc, tempUrl);
         }
       }
     }
-
-    throw new ResourceNotFoundException("Document not found: " + documentId);
+    throw new ResourceNotFoundException("Document not found");
   }
 
-  /** US2: Update document access permissions (Admin only) */
   public DocumentResponse updateDocumentPermissions(String documentId, Set<String> accessPolicy) {
     for (PropertyDocument property : propertyRepository.findAll()) {
       if (property.getDocuments() != null) {
         Optional<DocumentMetadata> docOpt =
             property.getDocuments().stream().filter(d -> d.getId().equals(documentId)).findFirst();
-
         if (docOpt.isPresent()) {
           DocumentMetadata doc = docOpt.get();
           doc.setAccessPolicy(accessPolicy != null ? accessPolicy : new HashSet<>());
           property.setUpdatedAt(Instant.now());
           propertyRepository.save(property);
-
-          log.info("Updated permissions for document {}: {}", documentId, accessPolicy);
           return getDocument(documentId);
         }
       }
     }
-
-    throw new ResourceNotFoundException("Document not found: " + documentId);
+    throw new ResourceNotFoundException("Document not found");
   }
 
-  /**
-   * US2: Generate a new temporary download URL for an existing document AC4: When the download link
-   * expires, user must request a new one
-   */
   public String generateTemporaryDownloadUrl(String documentId) {
-    // Find document
     for (PropertyDocument property : propertyRepository.findAll()) {
       if (property.getDocuments() != null) {
         Optional<DocumentMetadata> docOpt =
             property.getDocuments().stream().filter(d -> d.getId().equals(documentId)).findFirst();
-
         if (docOpt.isPresent()) {
           DocumentMetadata doc = docOpt.get();
-          // Check permission (US2)
           checkDocumentAccessPermission(property, doc);
-
           return generateTemporaryDownloadUrlForDocument(doc, property);
         }
       }
     }
-
-    throw new ResourceNotFoundException("Document not found: " + documentId);
+    throw new ResourceNotFoundException("Document not found");
   }
 
-  /** Delete a document (Admin only) Also removes the file from MinIO */
   public void deleteDocument(String documentId) {
     for (PropertyDocument property : propertyRepository.findAll()) {
       if (property.getDocuments() != null) {
         Optional<DocumentMetadata> docOpt =
             property.getDocuments().stream().filter(d -> d.getId().equals(documentId)).findFirst();
-
         if (docOpt.isPresent()) {
           DocumentMetadata doc = docOpt.get();
-
-          // Delete from MinIO
           try {
             minioClient.removeObject(
                 io.minio.RemoveObjectArgs.builder()
                     .bucket(documentsBucket)
                     .object(doc.getObjectKey())
                     .build());
-            log.info("Deleted file from MinIO: {}", doc.getObjectKey());
           } catch (Exception e) {
-            log.error("Failed to delete file from MinIO: {}", e.getMessage());
-            // Continue to remove reference even if file deletion fails
+            log.error("Failed to delete file from MinIO");
           }
-
-          // Remove from property
           property.getDocuments().removeIf(d -> d.getId().equals(documentId));
           property.setUpdatedAt(Instant.now());
           propertyRepository.save(property);
-
-          log.info("Deleted document: {}", documentId);
           return;
         }
       }
     }
-
-    throw new ResourceNotFoundException("Document not found: " + documentId);
+    throw new ResourceNotFoundException("Document not found");
   }
 
-  /**
-   * US2: Check if current user has permission to access a document Implements role-based permission
-   * logic (Admin, Assigned Agent, General Agent) AC1: If user doesn't have permission, they receive
-   * "Access Denied"
-   */
   private void checkDocumentAccessPermission(PropertyDocument property, DocumentMetadata document) {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth == null || !auth.isAuthenticated()) {
       throw new AccessDeniedException("Authentication required");
     }
-
     String userId = getCurrentUserId();
     Set<String> roles = getCurrentUserRolesSet();
-
-    // Admin has full access (US2)
-    if (roles.contains("ROLE_ADMIN")) {
+    if (roles.contains("ROLE_ADMIN")) return;
+    if (property.getAssignedAgentId() != null && property.getAssignedAgentId().equals(userId))
       return;
-    }
-
-    // Check if user is the assigned agent for this property
-    boolean isAssignedAgent =
-        property.getAssignedAgentId() != null && property.getAssignedAgentId().equals(userId);
-
-    if (isAssignedAgent) {
-      return;
-    }
-
-    // Check document-specific access policy (if set)
-    if (document != null
-        && document.getAccessPolicy() != null
-        && !document.getAccessPolicy().isEmpty()) {
-      // Check if user's roles match any policy (ROLE_XXX)
-      for (String policy : document.getAccessPolicy()) {
-        if (policy.startsWith("ROLE_") && roles.contains(policy)) {
-          return;
-        }
-        // Check if specific user ID is in policy
-        if (policy.equals(userId)) {
-          return;
-        }
-      }
-    }
-
-    // Owner can access their own property documents
-    boolean isOwner = property.getOwnerId() != null && property.getOwnerId().equals(userId);
-    if (isOwner) {
-      return;
-    }
-
-    // General agent permission check (if property has ROLE_AGENT in access policy)
-    if (document != null
-        && document.getAccessPolicy() != null
-        && document.getAccessPolicy().contains("ROLE_AGENT")
-        && (roles.contains("ROLE_AGENT") || roles.contains("ROLE_AGENT"))) {
-      return;
-    }
-
-    // AC1: Access denied
-    throw new AccessDeniedException("You don't have permission to access this document");
+    if (property.getOwnerId() != null && property.getOwnerId().equals(userId)) return;
+    throw new AccessDeniedException("Permission denied");
   }
 
-  /**
-   * Generate a temporary download URL for a document (US1 AC1, US2 AC2) AC4: URL expires after
-   * configured time
-   */
   private String generateTemporaryDownloadUrlForDocument(
       DocumentMetadata document, PropertyDocument property) {
     try {
-      // Generate presigned GET URL with expiration (US1 AC4)
-      String url =
-          minioClient.getPresignedObjectUrl(
-              GetPresignedObjectUrlArgs.builder()
-                  .method(Method.GET)
-                  .bucket(documentsBucket)
-                  .object(document.getObjectKey())
-                  .expiry(presignedExpiryMinutes, TimeUnit.MINUTES)
-                  .build());
-
-      log.debug("Generated temporary download URL for document: {}", document.getId());
-      return url;
+      // Signing uses external client
+      return externalMinioClient.getPresignedObjectUrl(
+          GetPresignedObjectUrlArgs.builder()
+              .method(Method.GET)
+              .bucket(documentsBucket)
+              .object(document.getObjectKey())
+              .expiry(presignedExpiryMinutes, TimeUnit.MINUTES)
+              .build());
     } catch (Exception e) {
-      log.error("Error generating download URL: {}", e.getMessage());
       throw new RuntimeException("Failed to generate download URL", e);
     }
   }
@@ -414,13 +289,8 @@ public class DocumentService {
     return presignedExpiryMinutes * 60;
   }
 
-  // ==================== Helper Methods ====================
-
   private boolean isValidFileType(String mimeType, String fileName) {
-    if (mimeType != null && ALLOWED_MIME_TYPES.contains(mimeType.toLowerCase())) {
-      return true;
-    }
-    // Fallback to file extension check
+    if (mimeType != null && ALLOWED_MIME_TYPES.contains(mimeType.toLowerCase())) return true;
     String ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
     return Set.of("pdf", "doc", "docx").contains(ext);
   }
@@ -433,7 +303,7 @@ public class DocumentService {
   }
 
   private String getPublicUrl(String objectKey) {
-    return String.format("http://localhost:9000/%s/%s", documentsBucket, objectKey);
+    return String.format("%s/%s/%s", externalEndpoint, documentsBucket, objectKey);
   }
 
   private void ensureDocumentsBucketExists() {
@@ -443,22 +313,9 @@ public class DocumentService {
               io.minio.BucketExistsArgs.builder().bucket(documentsBucket).build());
       if (!found) {
         minioClient.makeBucket(io.minio.MakeBucketArgs.builder().bucket(documentsBucket).build());
-        log.info("Created documents bucket: {}", documentsBucket);
-
-        // Set private bucket policy (AC3: block direct public access)
-        String privatePolicy =
-            "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Deny\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::"
-                + documentsBucket
-                + "/*\"]}]}";
-        minioClient.setBucketPolicy(
-            io.minio.SetBucketPolicyArgs.builder()
-                .bucket(documentsBucket)
-                .config(privatePolicy)
-                .build());
-        log.info("Set private bucket policy for: {}", documentsBucket);
       }
     } catch (Exception e) {
-      log.error("Error ensuring documents bucket exists: {}", e.getMessage());
+      log.error("Error ensuring documents bucket exists");
     }
   }
 
@@ -481,12 +338,7 @@ public class DocumentService {
 
   private String getCurrentUserName() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    // Try to get name from principal details
-    Object principal = auth.getPrincipal();
-    if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
-      return ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
-    }
-    return getCurrentUserId();
+    return auth != null ? (String) auth.getPrincipal() : "unknown";
   }
 
   private DocumentResponse toResponse(DocumentMetadata document, String temporaryUrl) {

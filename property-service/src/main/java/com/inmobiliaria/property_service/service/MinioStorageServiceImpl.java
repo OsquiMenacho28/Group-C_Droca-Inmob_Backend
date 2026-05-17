@@ -5,32 +5,39 @@ import io.minio.http.Method;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class MinioStorageServiceImpl implements StorageService {
 
   private final MinioClient minioClient;
+  private final MinioClient externalMinioClient;
 
-  @org.springframework.beans.factory.annotation.Value("${minio.endpoint:http://localhost:9000}")
-  private String endpoint;
+  @Value("${minio.external-endpoint:http://127.0.0.1:9000}")
+  private String externalEndpoint;
+
+  public MinioStorageServiceImpl(
+      MinioClient minioClient, @Qualifier("externalMinioClient") MinioClient externalMinioClient) {
+    this.minioClient = minioClient;
+    this.externalMinioClient = externalMinioClient;
+  }
 
   @Override
   public Map<String, Object> generateUploadPolicy(
       String bucket, String objectKey, String contentType, long maxSizeBytes, int expiryMinutes) {
 
     try {
+      // Internal operation uses internal client (minio:9000)
       ensureBucketExists(bucket);
 
       PostPolicy policy = new PostPolicy(bucket, ZonedDateTime.now().plusMinutes(expiryMinutes));
       policy.addEqualsCondition("key", objectKey);
       policy.addContentLengthRangeCondition(1, maxSizeBytes);
 
-      // Allow matching content type (e.g. image/jpeg, image/png)
       if (contentType != null) {
         if (contentType.endsWith("/*")) {
           policy.addStartsWithCondition("Content-Type", contentType.replace("/*", ""));
@@ -39,17 +46,16 @@ public class MinioStorageServiceImpl implements StorageService {
         }
       }
 
-      Map<String, String> formData = minioClient.getPresignedPostFormData(policy);
+      // Signing uses external client (Silent signing for 127.0.0.1)
+      Map<String, String> formData = externalMinioClient.getPresignedPostFormData(policy);
 
       Map<String, Object> response = new HashMap<>();
-      // Construct the URL: endpoint/bucket
-      String url = endpoint;
+      String url = externalEndpoint;
       if (!url.endsWith("/")) url += "/";
       url += bucket;
 
       response.put("url", url);
 
-      // Extract form fields
       Map<String, String> fields = new HashMap<>(formData);
       fields.put("key", objectKey);
       if (contentType != null && !contentType.endsWith("/*")) {
@@ -93,14 +99,12 @@ public class MinioStorageServiceImpl implements StorageService {
   @Override
   public void moveObject(String bucket, String sourceKey, String destinationKey) {
     try {
-      // Copy object
       minioClient.copyObject(
           CopyObjectArgs.builder()
               .bucket(bucket)
               .object(destinationKey)
               .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
               .build());
-      // Delete source
       deleteObject(bucket, sourceKey);
       log.info("Moved object from {} to {}", sourceKey, destinationKey);
     } catch (Exception e) {
@@ -112,7 +116,8 @@ public class MinioStorageServiceImpl implements StorageService {
   @Override
   public String generateTemporaryUrl(String bucket, String objectKey, int expiryMinutes) {
     try {
-      return minioClient.getPresignedObjectUrl(
+      // Signing uses external client
+      return externalMinioClient.getPresignedObjectUrl(
           GetPresignedObjectUrlArgs.builder()
               .method(Method.GET)
               .bucket(bucket)
@@ -129,7 +134,8 @@ public class MinioStorageServiceImpl implements StorageService {
   public String generatePresignedPutUrl(String bucket, String objectKey, int expiryMinutes) {
     try {
       ensureBucketExists(bucket);
-      return minioClient.getPresignedObjectUrl(
+      // Signing uses external client
+      return externalMinioClient.getPresignedObjectUrl(
           GetPresignedObjectUrlArgs.builder()
               .method(Method.PUT)
               .bucket(bucket)
@@ -170,6 +176,7 @@ public class MinioStorageServiceImpl implements StorageService {
       }
     } catch (Exception e) {
       log.error("Error ensuring bucket {} exists: {}", bucket, e.getMessage());
+      throw new RuntimeException("Failed to connect to MinIO internally", e);
     }
   }
 }

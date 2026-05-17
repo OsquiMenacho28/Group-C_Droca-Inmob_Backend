@@ -9,10 +9,8 @@ spring:
       uri: mongodb://${MONGO_USER:admin}:${MONGO_PASS:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${IDENTITY_DB:identity_db}?authSource=${MONGO_AUTH_SOURCE:admin}
 
 app:
-  mongo:
-    database: ${ACCESS_CONTROL_DB:access_control_db}
   jwt:
-    secret: ${JWT_SECRET:12345678901234567890123456789012}
+    secret: ${JWT_SECRET:bd2b1aaf7ef4f09be9f52ce2d8d599674d81aa9d6a4421696dc4d93dd0619d682ce56b4d64a9ef097761ced99e0f67265b5f76085e5b0ee7ca4696b2ad6fe2b2}
     access-token-expiration-seconds: ${JWT_EXPIRATION:3600}
 
 management:
