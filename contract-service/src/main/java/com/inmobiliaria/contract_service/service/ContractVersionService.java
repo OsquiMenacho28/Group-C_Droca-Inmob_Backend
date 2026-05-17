@@ -1,18 +1,15 @@
 package com.inmobiliaria.contract_service.service;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
 import com.inmobiliaria.contract_service.dto.ContractVersionResponse;
 import com.inmobiliaria.contract_service.dto.CreateContractVersionRequest;
 import com.inmobiliaria.contract_service.model.ContractVersion;
 import com.inmobiliaria.contract_service.repository.ContractVersionRepository;
-
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
