@@ -1,5 +1,7 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inmobiliaria.visit_calendar_service.client.PersonClient;
 import com.inmobiliaria.visit_calendar_service.client.PropertyClient;
 import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
@@ -38,6 +40,7 @@ public class CalendarService {
   private final NotificationService notificationService;
   private final PersonClient personClient;
   private final VisitRepository visitRepository;
+  private final ObjectMapper objectMapper;
 
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
@@ -248,8 +251,18 @@ public class CalendarService {
 
   private void notifyOwnerAboutVisit(CalendarEvent event, String action) {
     try {
-      // Obtener la propiedad para saber el ownerId
-      PropertyResponse property = propertyClient.getPropertyById(event.getPropertyId());
+      String raw = propertyClient.getPropertyRaw(event.getPropertyId());
+      JsonNode root = objectMapper.readTree(raw);
+      JsonNode dataNode = root.get("data");
+      if (dataNode == null) {
+        log.warn("No data node in response for property {}", event.getPropertyId());
+        return;
+      }
+      PropertyResponse property = objectMapper.treeToValue(dataNode, PropertyResponse.class);
+      if (property == null || property.ownerId() == null) {
+        log.warn("Property {} has no owner", event.getPropertyId());
+        return;
+      }
       if (property == null || property.ownerId() == null) {
         log.debug("Property or owner not found for notification: {}", event.getPropertyId());
         return;

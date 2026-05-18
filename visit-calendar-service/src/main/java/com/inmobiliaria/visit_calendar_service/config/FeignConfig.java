@@ -40,6 +40,7 @@ public class FeignConfig {
           requestTemplate.header("X-Agent-Id", agentIdHeader);
         }
       }
+      requestTemplate.header("X-Service-Name", "visit-calendar-service");
     };
   }
 }
