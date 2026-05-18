@@ -1,7 +1,11 @@
 package com.inmobiliaria.user_service.service;
 
+import com.inmobiliaria.user_service.client.NotificationClient;
+import com.inmobiliaria.user_service.client.PropertyClient;
 import com.inmobiliaria.user_service.domain.FavoriteDocument;
 import com.inmobiliaria.user_service.domain.FavoriteHistoryDocument;
+import com.inmobiliaria.user_service.dto.request.SendInAppNotificationRequest;
+import com.inmobiliaria.user_service.dto.response.PersonResponse;
 import com.inmobiliaria.user_service.repository.FavoriteHistoryRepository;
 import com.inmobiliaria.user_service.repository.FavoriteRepository;
 import java.time.Instant;
@@ -10,6 +14,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -20,6 +25,8 @@ public class FavoriteService {
   private final FavoriteRepository favoriteRepository;
   private final FavoriteHistoryRepository favoriteHistoryRepository;
   private final PersonService personService;
+  private final PropertyClient propertyClient;
+  private final NotificationClient notificationClient;
 
   public void addFavorite(String authUserId, String propertyId) {
     personService.validarClienteActivo(authUserId);
@@ -52,6 +59,7 @@ public class FavoriteService {
               .active(true)
               .build();
       favoriteRepository.save(fav);
+      sendFavoriteNotification(authUserId, propertyId, true);
     }
 
     favoriteHistoryRepository.save(
@@ -78,6 +86,7 @@ public class FavoriteService {
       fav.setActive(false);
       fav.setLastToggledAt(now);
       favoriteRepository.save(fav);
+      sendFavoriteNotification(authUserId, propertyId, false);
 
       favoriteHistoryRepository.save(
           FavoriteHistoryDocument.builder()
@@ -123,5 +132,59 @@ public class FavoriteService {
         "propertyId", doc.getPropertyId(),
         "action", doc.getAction(),
         "timestamp", doc.getTimestamp().toString());
+  }
+
+  @Async
+  protected void sendFavoriteNotification(String authUserId, String propertyId, boolean added) {
+    try {
+      // Obtener datos de la propiedad
+      PropertyClient.PropertyResponse property = propertyClient.getProperty(propertyId);
+      if (property.ownerId() == null || property.ownerId().isBlank()) {
+        log.warn("Property {} has no owner, notification skipped", propertyId);
+        return;
+      }
+
+      // Obtener datos del cliente
+      PersonResponse client = personService.findByAuthUserId(authUserId);
+      String clientName = client.fullName() != null ? client.fullName() : authUserId;
+
+      String actionText = added ? "añadido" : "eliminado";
+      String subject = "Actualización en favoritos";
+      String content =
+          String.format(
+              "El cliente %s ha %s tu propiedad '%s' de sus favoritos.",
+              clientName, actionText, property.title());
+
+      Map<String, Object> details =
+          Map.of(
+              "clientId", authUserId,
+              "clientName", clientName,
+              "propertyId", propertyId,
+              "propertyTitle", property.title(),
+              "action", added ? "ADDED" : "REMOVED");
+
+      SendInAppNotificationRequest request =
+          new SendInAppNotificationRequest(
+              property.ownerId(),
+              added ? "FAVORITE_ADDED" : "FAVORITE_REMOVED",
+              "INTERES",
+              List.of(authUserId),
+              subject,
+              content,
+              details);
+
+      notificationClient.sendInAppNotification(request);
+      log.info(
+          "Notification sent to owner {} for property {} by client {}",
+          property.ownerId(),
+          propertyId,
+          authUserId);
+    } catch (Exception e) {
+      log.error(
+          "Failed to send notification for favorite {} by user {}: {}",
+          added ? "add" : "remove",
+          authUserId,
+          e.getMessage());
+    }
   }
 }
