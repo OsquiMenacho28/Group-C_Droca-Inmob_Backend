@@ -15,7 +15,6 @@ import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRequestRepository;
-import jakarta.validation.ValidationException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -181,35 +180,90 @@ public class VisitRequestService {
 
   @Transactional
   public Visit registrarResultado(String id, RegistrarResultadoRequest request, String agentId) {
-    Visit visit =
-        visitRepository
+    CalendarEvent event =
+        calendarEventRepository
             .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada"));
-    if (visit.getStatus() != Visit.EventStatus.SCHEDULED) {
+            .orElseThrow(() -> new ResourceNotFoundException("Visita no encontrada en calendario"));
+
+    // Permitir registro en visitas PROGRAMADAS o CONFIRMADAS
+    if (event.getStatus() != CalendarEvent.EventStatus.SCHEDULED
+        && event.getStatus() != CalendarEvent.EventStatus.CONFIRMED) {
       throw new IllegalStateException(
-          "Solo se puede registrar resultado en visitas con estado PROGRAMADA");
+          "Solo se puede registrar resultado en visitas con estado PROGRAMADA o CONFIRMADA. Estado actual: "
+              + event.getStatus());
     }
     // validar que el agente autenticado sea el asignado a la visita (seguridad)
-    if (!visit.getAgentId().equals(agentId)) {
+    if (!event.getAgentId().equals(agentId)) {
       throw new SecurityException("No tienes permiso para modificar esta visita");
     }
-    try {
-      visit.setResultado(ResultadoVisita.valueOf(request.resultado()));
-    } catch (IllegalArgumentException e) {
-      throw new ValidationException(
-          "Resultado inválido. Use: INTERESADO, NO_INTERESADO, PENDIENTE");
+
+    event.setResultado(request.resultado());
+    event.setObservaciones(request.observaciones());
+    event.setFechaRegistroResultado(Instant.now());
+    event.setStatus(CalendarEvent.EventStatus.REALIZADA);
+
+    CalendarEvent savedEvent = calendarEventRepository.save(event);
+
+    Visit visitToReturn = new Visit();
+
+    // Sincronizar en VisitRepository si existe
+    visitRepository
+        .findById(id)
+        .ifPresentOrElse(
+            visit -> {
+              visit.setResultado(ResultadoVisita.valueOf(request.resultado()));
+              visit.setObservaciones(request.observaciones());
+              visit.setFechaRegistroResultado(savedEvent.getFechaRegistroResultado());
+              visit.setStatus(Visit.EventStatus.REALIZADA);
+              visitRepository.save(visit);
+
+              // Registrar uso del vehículo si aplica, usando la visit sincronizada
+              vehicleUsageService.recordUsage(visit, request.mileage());
+            },
+            () -> {
+              // Si no existe (porque es nueva de CalendarEvent), crear mock para
+              // vehicleUsageService
+              Visit mockVisit = new Visit();
+              mockVisit.setId(savedEvent.getId());
+              mockVisit.setVehicleId(savedEvent.getVehicleId());
+              mockVisit.setStartTime(savedEvent.getStartTime());
+              mockVisit.setEndTime(savedEvent.getEndTime());
+              mockVisit.setTravelTimeGo(savedEvent.getTravelTimeGo());
+              mockVisit.setTravelTimeBack(savedEvent.getTravelTimeBack());
+              mockVisit.setStatus(Visit.EventStatus.REALIZADA);
+              mockVisit.setResultado(ResultadoVisita.valueOf(request.resultado()));
+
+              // Mapear info para retorno
+              visitToReturn.setId(savedEvent.getId());
+              visitToReturn.setPropertyId(savedEvent.getPropertyId());
+              visitToReturn.setPropertyName(savedEvent.getPropertyName());
+              visitToReturn.setAgentId(savedEvent.getAgentId());
+              visitToReturn.setAgentName(savedEvent.getAgentName());
+              visitToReturn.setStartTime(savedEvent.getStartTime());
+              visitToReturn.setEndTime(savedEvent.getEndTime());
+              visitToReturn.setStatus(mockVisit.getStatus());
+              visitToReturn.setResultado(mockVisit.getResultado());
+              visitToReturn.setObservaciones(savedEvent.getObservaciones());
+              visitToReturn.setFechaRegistroResultado(savedEvent.getFechaRegistroResultado());
+
+              vehicleUsageService.recordUsage(mockVisit, request.mileage());
+            });
+
+    if (visitToReturn.getId() == null) { // if the ifPresent executed, visitToReturn is still empty
+      visitToReturn.setId(savedEvent.getId());
+      visitToReturn.setPropertyId(savedEvent.getPropertyId());
+      visitToReturn.setPropertyName(savedEvent.getPropertyName());
+      visitToReturn.setAgentId(savedEvent.getAgentId());
+      visitToReturn.setAgentName(savedEvent.getAgentName());
+      visitToReturn.setStartTime(savedEvent.getStartTime());
+      visitToReturn.setEndTime(savedEvent.getEndTime());
+      visitToReturn.setStatus(Visit.EventStatus.REALIZADA);
+      visitToReturn.setResultado(ResultadoVisita.valueOf(savedEvent.getResultado()));
+      visitToReturn.setObservaciones(savedEvent.getObservaciones());
+      visitToReturn.setFechaRegistroResultado(savedEvent.getFechaRegistroResultado());
     }
-    visit.setObservaciones(request.observaciones());
-    visit.setFechaRegistroResultado(Instant.now());
-    visit.setStatus(Visit.EventStatus.REALIZADA);
-    Visit saved = visitRepository.save(visit);
 
-    notifyOwnerAboutVisitOutcome(saved, request.resultado());
-
-    // Registrar uso del vehículo si aplica
-    vehicleUsageService.recordUsage(saved, request.mileage());
-
-    return saved;
+    return visitToReturn;
   }
 
   // =====================================================================

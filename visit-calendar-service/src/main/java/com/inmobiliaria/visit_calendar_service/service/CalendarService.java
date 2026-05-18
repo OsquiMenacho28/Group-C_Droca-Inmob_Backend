@@ -341,6 +341,17 @@ public class CalendarService {
     visit.setCreatedAt(event.getCreatedAt());
     visit.setClientId(event.getClientId());
     visit.setClientName(event.getClientName());
+
+    if (event.getResultado() != null) {
+      try {
+        visit.setResultado(Visit.ResultadoVisita.valueOf(event.getResultado()));
+      } catch (IllegalArgumentException e) {
+        // Ignorar si el resultado no coincide con el enum
+      }
+    }
+    visit.setObservaciones(event.getObservaciones());
+    visit.setFechaRegistroResultado(event.getFechaRegistroResultado());
+
     // PA1 de HU1: marca visualmente los eventos del agente autenticado
     visit.setOwnEvent(requestingAgentId != null && requestingAgentId.equals(event.getAgentId()));
     // Inicializar históricos vacíos

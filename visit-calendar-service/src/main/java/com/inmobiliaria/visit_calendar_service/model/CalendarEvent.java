@@ -84,6 +84,10 @@ public class CalendarEvent {
   /** Nombre del cliente que solicitó la visita */
   private String clientName;
 
+  private String resultado;
+  private String observaciones;
+  private Instant fechaRegistroResultado;
+
   public enum EventType {
     VISIT, // Visita programada por un agente
     CLIENT_REQUEST // Solicitud de visita iniciada por un cliente
@@ -93,6 +97,7 @@ public class CalendarEvent {
     SCHEDULED, // Programada, pendiente de confirmación
     CONFIRMED, // Confirmada
     CANCELLED, // Cancelada
-    COMPLETED // Completada
+    COMPLETED, // Completada
+    REALIZADA // Completada (sin resultado registrado o equivalente)
   }
 }
