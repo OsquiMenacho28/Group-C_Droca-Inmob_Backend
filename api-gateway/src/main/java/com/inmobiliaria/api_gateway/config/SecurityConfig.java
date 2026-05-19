@@ -48,7 +48,10 @@ public class SecurityConfig {
             "X-Auth-User-Id",
             "X-Auth-Roles",
             "X-Agent-Id",
-            "X-Service-Name"));
+            "X-Service-Name",
+            "X-User-Id",
+            "X-User-Role",
+            "X-User-Name"));
     config.setExposedHeaders(Arrays.asList("Authorization"));
     config.setAllowCredentials(true);
     config.setMaxAge(3600L);
