@@ -70,7 +70,7 @@ spring:
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/api/v1/persons/**, /api/v1/persons, /api/v1/favoritos/**, /api/v1/favoritos
+            - Path=/api/v1/persons/**, /api/v1/persons, /api/v1/favoritos/**, /api/v1/favoritos, /api/v1/buscadores/**, /api/v1/buscadores
           filters:
             - AuthenticationFilter
             - StripPrefix=2
@@ -84,7 +84,7 @@ spring:
         - id: visit-calendar-service
           uri: lb://visit-calendar-service
           predicates:
-            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments, /api/v1/vehicles/**, /api/v1/vehicles, /api/v1/visits/*/reschedule, /api/v1/visits/*/rescheduled
+            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments, /api/v1/vehicles/**, /api/v1/vehicles, /api/v1/visits/*/reschedule, /api/v1/visits/*/rescheduled, /api/v1/reports/**, /api/v1/reports
           filters:
             - AuthenticationFilter
             - StripPrefix=2
@@ -109,6 +109,23 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: contract-service
+          uri: lb://contract-service
+          predicates:
+            - Path=/api/v1/contracts/**
+          filters:
+            - AuthenticationFilter
+            - StripPrefix=2
+        - id: contract-service-docs
+          uri: lb://contract-service
+          predicates:
+            - Path=/contract-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+app:
+  jwt:
+    secret: ${JWT_SECRET:bd2b1aaf7ef4f09be9f52ce2d8d599674d81aa9d6a4421696dc4d93dd0619d682ce56b4d64a9ef097761ced99e0f67265b5f76085e5b0ee7ca4696b2ad6fe2b2}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -127,6 +144,8 @@ springdoc:
         url: /visit-calendar-service/v3/api-docs
       - name: operation-service
         url: /operation-service/v3/api-docs
+      - name: contract-service
+        url: /contract-service/v3/api-docs
 
 eureka:
   client:

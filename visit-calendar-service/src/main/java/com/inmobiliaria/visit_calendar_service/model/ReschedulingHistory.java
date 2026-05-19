@@ -1,6 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,18 +24,18 @@ public class ReschedulingHistory {
   private String newVisitId;
 
   /** The date/time that was replaced (the old scheduled date of the cancelled visit) */
-  private LocalDateTime previousStartTime;
+  private Instant previousStartTime;
 
-  private LocalDateTime previousEndTime;
+  private Instant previousEndTime;
 
   /** The new date/time assigned to the newly created visit */
-  private LocalDateTime newStartTime;
+  private Instant newStartTime;
 
-  private LocalDateTime newEndTime;
+  private Instant newEndTime;
 
   /** ID of the agent who performed the rescheduling */
   private String rescheduledByAgentId;
 
   /** Timestamp when this rescheduling action was performed */
-  private LocalDateTime rescheduledAt;
+  private Instant rescheduledAt;
 }

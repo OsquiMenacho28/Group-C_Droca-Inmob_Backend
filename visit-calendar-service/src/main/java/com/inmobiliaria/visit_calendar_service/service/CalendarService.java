@@ -1,5 +1,10 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inmobiliaria.visit_calendar_service.client.PersonClient;
+import com.inmobiliaria.visit_calendar_service.client.PropertyClient;
+import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
 import com.inmobiliaria.visit_calendar_service.dto.response.PersonResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
@@ -9,10 +14,11 @@ import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,10 +36,11 @@ import org.springframework.stereotype.Service;
 public class CalendarService {
 
   private final CalendarEventRepository calendarEventRepository;
-  private final PropertyServiceClient propertyServiceClient;
+  private final PropertyClient propertyClient;
   private final NotificationService notificationService;
-  private final PersonServiceClient personServiceClient;
+  private final PersonClient personClient;
   private final VisitRepository visitRepository;
+  private final ObjectMapper objectMapper;
 
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
@@ -51,11 +58,7 @@ public class CalendarService {
    * @param propertyId Filtro opcional por propiedad específica
    */
   public CalendarResponse getCalendar(
-      String requestingAgentId,
-      LocalDateTime from,
-      LocalDateTime to,
-      String agentId,
-      String propertyId) {
+      String requestingAgentId, Instant from, Instant to, String agentId, String propertyId) {
 
     log.debug(
         "Obteniendo calendario: agenteFiltro={}, propiedadFiltro={}, desde={}, hasta={}",
@@ -101,8 +104,7 @@ public class CalendarService {
    * PA2: Valida si existe conflicto de horario ANTES de crear el evento. Retorna detalles del
    * conflicto y una sugerencia de horario alternativo.
    */
-  public ConflictResponse checkConflict(
-      String propertyId, LocalDateTime startTime, LocalDateTime endTime) {
+  public ConflictResponse checkConflict(String propertyId, Instant startTime, Instant endTime) {
     validateDateRange(startTime, endTime);
 
     List<CalendarEvent> conflicts =
@@ -117,15 +119,15 @@ public class CalendarService {
     }
 
     // Sugerir horario después del último evento conflictivo
-    LocalDateTime suggestedStart =
+    Instant suggestedStart =
         conflicts.stream()
             .map(CalendarEvent::getEndTime)
-            .max(LocalDateTime::compareTo)
+            .max(Instant::compareTo)
             .orElse(endTime)
-            .plusMinutes(30);
+            .plus(30, ChronoUnit.MINUTES);
 
     long durationMinutes = ChronoUnit.MINUTES.between(startTime, endTime);
-    LocalDateTime suggestedEnd = suggestedStart.plusMinutes(durationMinutes);
+    Instant suggestedEnd = suggestedStart.plus(durationMinutes, ChronoUnit.MINUTES);
 
     return ConflictResponse.builder()
         .hasConflict(true)
@@ -160,9 +162,9 @@ public class CalendarService {
               + "Por favor selecciona otro horario.");
     }
 
-    PropertyResponse property = propertyServiceClient.getPropertyById(request.getPropertyId());
+    PropertyResponse property = propertyClient.getPropertyById(request.getPropertyId());
     if (property != null && property.ownerId() != null) {
-      PersonResponse owner = personServiceClient.getPersonByAuthUserId(property.ownerId());
+      PersonResponse owner = personClient.getPersonByAuthUserId(property.ownerId());
       if (owner != null && owner.email() != null) {
         notificationService.notifyPropertyOwner(owner.email(), owner.fullName(), request);
       }
@@ -180,7 +182,7 @@ public class CalendarService {
             .type(CalendarEvent.EventType.VISIT)
             .status(CalendarEvent.EventStatus.SCHEDULED)
             .notes(request.getNotes())
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .build();
 
     CalendarEvent saved = calendarEventRepository.save(event);
@@ -191,16 +193,27 @@ public class CalendarService {
         saved.getAgentName(),
         saved.getStartTime());
 
+    notifyOwnerAboutVisit(saved, "schedule");
+
     return toResponse(saved, request.getAgentId());
   }
 
   /** PA3 de HU2: Obtiene la agenda del día para un agente específico. */
-  public List<Visit> getAgentDayAgenda(String agentId, LocalDateTime day) {
-    LocalDateTime dayStart = day.toLocalDate().atStartOfDay();
-    LocalDateTime dayEnd = dayStart.plusDays(1).minusNanos(1);
+  public List<Visit> getAgentDayAgenda(String agentId, Instant day) {
+    Instant dayStart = day.truncatedTo(ChronoUnit.DAYS);
+    Instant dayEnd = dayStart.plus(1, ChronoUnit.DAYS).minus(1, ChronoUnit.NANOS);
     List<CalendarEvent> events =
         calendarEventRepository.findByDayAndAgent(dayStart, dayEnd, agentId);
     return events.stream().map(e -> toResponse(e, agentId)).collect(Collectors.toList());
+  }
+
+  /**
+   * Obtiene todas las visitas de una propiedad específica. Usado por el frontend para mostrar el
+   * historial de visitas en el detalle del inmueble.
+   */
+  public List<Visit> getVisitsByProperty(String propertyId) {
+    log.debug("Obteniendo historial de visitas para la propiedad: {}", propertyId);
+    return visitRepository.findByPropertyId(propertyId);
   }
 
   /** Obtiene un evento por ID. */
@@ -226,6 +239,9 @@ public class CalendarService {
     event.setStatus(CalendarEvent.EventStatus.CANCELLED);
     CalendarEvent saved = calendarEventRepository.save(event);
     log.info("Visita cancelada: id={}", id);
+
+    notifyOwnerAboutVisit(saved, "cancel");
+
     return toResponse(saved, agentId);
   }
 
@@ -233,14 +249,75 @@ public class CalendarService {
   // Helpers
   // =====================================================================
 
-  private void validateDateRange(LocalDateTime start, LocalDateTime end) {
+  private void notifyOwnerAboutVisit(CalendarEvent event, String action) {
+    try {
+      String raw = propertyClient.getPropertyRaw(event.getPropertyId());
+      JsonNode root = objectMapper.readTree(raw);
+      JsonNode dataNode = root.get("data");
+      if (dataNode == null) {
+        log.warn("No data node in response for property {}", event.getPropertyId());
+        return;
+      }
+      PropertyResponse property = objectMapper.treeToValue(dataNode, PropertyResponse.class);
+      if (property == null || property.ownerId() == null) {
+        log.warn("Property {} has no owner", event.getPropertyId());
+        return;
+      }
+      if (property == null || property.ownerId() == null) {
+        log.debug("Property or owner not found for notification: {}", event.getPropertyId());
+        return;
+      }
+      String ownerId = property.ownerId();
+      // Obtener nombre del propietario
+      PersonResponse owner = personClient.getPersonByAuthUserId(ownerId);
+      String ownerName =
+          (owner != null && owner.fullName() != null) ? owner.fullName() : "Propietario";
+
+      String subject;
+      String content;
+      InteractionType type;
+      Map<String, Object> details =
+          Map.of(
+              "propertyId", event.getPropertyId(),
+              "propertyName", event.getPropertyName(),
+              "visitId", event.getId(),
+              "visitStartTime", event.getStartTime().toString(),
+              "agentName", event.getAgentName());
+
+      if ("schedule".equals(action)) {
+        subject = "Nueva visita agendada para tu propiedad";
+        content =
+            String.format(
+                "El agente %s ha agendado una visita para tu propiedad '%s' el día %s.",
+                event.getAgentName(), event.getPropertyName(), event.getStartTime());
+        type = InteractionType.PROPIEDAD_MOD;
+      } else {
+        subject = "Visita cancelada para tu propiedad";
+        content =
+            String.format(
+                "El agente %s ha cancelado la visita programada para tu propiedad '%s' el día %s.",
+                event.getAgentName(), event.getPropertyName(), event.getStartTime());
+        type = InteractionType.PROPIEDAD_MOD;
+      }
+
+      notificationService.sendInAppNotificationToOwner(
+          ownerId, ownerName, event.getPropertyName(), subject, content, type, details);
+    } catch (Exception e) {
+      log.warn(
+          "Could not send in-app notification to owner for visit {}: {}",
+          event.getId(),
+          e.getMessage());
+    }
+  }
+
+  private void validateDateRange(Instant start, Instant end) {
     if (start == null || end == null) {
       throw new IllegalArgumentException("Las fechas de inicio y fin son obligatorias");
     }
     if (!start.isBefore(end)) {
       throw new IllegalArgumentException("La fecha de inicio debe ser anterior a la fecha de fin");
     }
-    if (start.isBefore(LocalDateTime.now())) {
+    if (start.isBefore(Instant.now())) {
       throw new IllegalArgumentException("No se puede programar una visita en el pasado");
     }
   }
@@ -264,6 +341,17 @@ public class CalendarService {
     visit.setCreatedAt(event.getCreatedAt());
     visit.setClientId(event.getClientId());
     visit.setClientName(event.getClientName());
+
+    if (event.getResultado() != null) {
+      try {
+        visit.setResultado(Visit.ResultadoVisita.valueOf(event.getResultado()));
+      } catch (IllegalArgumentException e) {
+        // Ignorar si el resultado no coincide con el enum
+      }
+    }
+    visit.setObservaciones(event.getObservaciones());
+    visit.setFechaRegistroResultado(event.getFechaRegistroResultado());
+
     // PA1 de HU1: marca visualmente los eventos del agente autenticado
     visit.setOwnEvent(requestingAgentId != null && requestingAgentId.equals(event.getAgentId()));
     // Inicializar históricos vacíos

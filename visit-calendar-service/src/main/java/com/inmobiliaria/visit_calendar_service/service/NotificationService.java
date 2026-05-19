@@ -1,22 +1,24 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.client.NotificationClient;
+import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
 import com.inmobiliaria.visit_calendar_service.dto.SendNotificationRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
+import com.inmobiliaria.visit_calendar_service.dto.request.SendInAppNotificationRequest;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class NotificationService {
 
-  private final RestTemplate restTemplate; // será inyectado por el constructor
+  private final NotificationClient notificationClient;
 
   @Value("${notification.service.url:http://localhost:8083}")
   private String notificationServiceUrl;
@@ -24,7 +26,6 @@ public class NotificationService {
   // Notifica al agente por solicitud de visita (ya existente)
   public boolean notifyAgentOfVisitRequest(VisitRequest visitRequest) {
     try {
-      String endpoint = notificationServiceUrl + "/notifications/visit-request";
       Map<String, Object> payload =
           Map.of(
               "type", "VISIT_REQUEST",
@@ -39,10 +40,8 @@ public class NotificationService {
                       "clientName", visitRequest.getClientName(),
                       "clientEmail", visitRequest.getClientEmail(),
                       "preferredDate", visitRequest.getPreferredDateTime().toString()));
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-      ResponseEntity<String> response = restTemplate.postForEntity(endpoint, entity, String.class);
+
+      ResponseEntity<String> response = notificationClient.notifyVisitRequest(payload);
       if (response.getStatusCode().is2xxSuccessful()) {
         log.info(
             "Notificación enviada al agente {} para la propiedad {}",
@@ -73,7 +72,32 @@ public class NotificationService {
             "Nueva visita programada - " + visit.getPropertyName(),
             buildPropertyOwnerMessage(ownerName, visit),
             "EMAIL");
-    restTemplate.postForEntity(notificationServiceUrl + "/notifications/send", req, Void.class);
+    notificationClient.sendNotification(req);
+  }
+
+  public void sendInAppNotificationToOwner(
+      String ownerId,
+      String ownerName,
+      String propertyName,
+      String subject,
+      String content,
+      InteractionType interactionType,
+      Map<String, Object> details) {
+    try {
+      SendInAppNotificationRequest request =
+          new SendInAppNotificationRequest(
+              ownerId, // recipientId
+              "VISIT_" + interactionType.name(), // type
+              interactionType,
+              null, // involvedUserIds
+              subject,
+              content,
+              details);
+      notificationClient.sendInAppNotification(request);
+      log.info("In-app notification sent to owner {}: {}", ownerId, subject);
+    } catch (Exception e) {
+      log.warn("Failed to send in-app notification to owner {}: {}", ownerId, e.getMessage());
+    }
   }
 
   private String buildPropertyOwnerMessage(String ownerName, CreateVisitRequest visit) {

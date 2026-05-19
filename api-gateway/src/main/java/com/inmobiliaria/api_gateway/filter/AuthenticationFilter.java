@@ -47,7 +47,8 @@ public class AuthenticationFilter
           "/property-service/v3/api-docs",
           "/user-service/v3/api-docs",
           "/visit-calendar-service/v3/api-docs",
-          "/operation-service/v3/api-docs");
+          "/operation-service/v3/api-docs",
+          "/contract-service/v3/api-docs");
 
   public AuthenticationFilter() {
     super(Config.class);

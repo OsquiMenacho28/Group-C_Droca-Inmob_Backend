@@ -33,7 +33,13 @@ public class SecurityConfig {
     CorsConfiguration config = new CorsConfiguration();
     // Permissive for local dev but works with credentials
     config.setAllowedOriginPatterns(
-        Arrays.asList("http://localhost:*", "http://127.0.0.1:*", "http://[::1]:*"));
+        Arrays.asList(
+            "http://localhost",
+            "http://localhost:*",
+            "http://127.0.0.1",
+            "http://127.0.0.1:*",
+            "http://[::1]",
+            "http://[::1]:*"));
     config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(
         Arrays.asList(
@@ -42,7 +48,10 @@ public class SecurityConfig {
             "X-Auth-User-Id",
             "X-Auth-Roles",
             "X-Agent-Id",
-            "X-Service-Name"));
+            "X-Service-Name",
+            "X-User-Id",
+            "X-User-Role",
+            "X-User-Name"));
     config.setExposedHeaders(Arrays.asList("Authorization"));
     config.setAllowCredentials(true);
     config.setMaxAge(3600L);

@@ -4,7 +4,7 @@ import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,10 +43,10 @@ public class VisitCalendarDTOs {
     private String agentName;
 
     @NotNull(message = "La fecha/hora de inicio es obligatoria")
-    private LocalDateTime startTime;
+    private Instant startTime;
 
     @NotNull(message = "La fecha/hora de fin es obligatoria")
-    private LocalDateTime endTime;
+    private Instant endTime;
 
     private String notes;
   }
@@ -58,8 +58,8 @@ public class VisitCalendarDTOs {
   @AllArgsConstructor
   public static class CalendarResponse {
     private List<Visit> events;
-    private LocalDateTime from;
-    private LocalDateTime to;
+    private Instant from;
+    private Instant to;
     private int totalEvents;
     private int myEvents;
   }
@@ -75,9 +75,9 @@ public class VisitCalendarDTOs {
     private List<Visit> conflictingEvents;
 
     /** Sugerencia de horario alternativo */
-    private LocalDateTime suggestedStartTime;
+    private Instant suggestedStartTime;
 
-    private LocalDateTime suggestedEndTime;
+    private Instant suggestedEndTime;
   }
 
   // =========================================================
@@ -115,9 +115,9 @@ public class VisitCalendarDTOs {
     private String clientPhone;
 
     @NotNull(message = "El horario preferido es obligatorio")
-    private LocalDateTime preferredDateTime;
+    private Instant preferredDateTime;
 
-    private LocalDateTime alternativeDateTime;
+    private Instant alternativeDateTime;
 
     private String message;
   }
@@ -137,12 +137,12 @@ public class VisitCalendarDTOs {
     private String clientName;
     private String clientEmail;
     private String clientPhone;
-    private LocalDateTime preferredDateTime;
-    private LocalDateTime alternativeDateTime;
+    private Instant preferredDateTime;
+    private Instant alternativeDateTime;
     private String message;
     private VisitRequest.RequestStatus status;
     private String calendarEventId;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private boolean notificationSent;
   }
 

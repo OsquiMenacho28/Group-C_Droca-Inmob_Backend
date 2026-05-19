@@ -39,19 +39,16 @@ public class RoleController {
     return ResponseEntity.ok(responseFactory.success("Role retrieved successfully", role));
   }
 
+  @GetMapping("/list")
+  public ResponseEntity<ApiResponse<List<RoleResponse>>> findByIds(@RequestParam List<String> ids) {
+    List<RoleResponse> roles = roleService.findByIds(ids);
+    return ResponseEntity.ok(responseFactory.success("Roles retrieved successfully", roles));
+  }
+
   @GetMapping("/validate")
   public ResponseEntity<ApiResponse<Boolean>> validateRoleIds(@RequestParam List<String> ids) {
-    boolean allValid =
-        ids.stream()
-            .allMatch(
-                id -> {
-                  try {
-                    roleService.findById(id);
-                    return true;
-                  } catch (Exception e) {
-                    return false;
-                  }
-                });
+    List<RoleResponse> foundRoles = roleService.findByIds(ids);
+    boolean allValid = foundRoles.size() == ids.size();
     return ResponseEntity.ok(responseFactory.success("Role validation completed", allValid));
   }
 

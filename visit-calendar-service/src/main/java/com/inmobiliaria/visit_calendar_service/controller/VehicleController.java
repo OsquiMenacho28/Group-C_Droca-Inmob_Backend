@@ -5,13 +5,10 @@ import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
 import com.inmobiliaria.visit_calendar_service.model.Vehicle;
 import com.inmobiliaria.visit_calendar_service.service.VehicleService;
 import jakarta.validation.Valid;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,12 +25,9 @@ public class VehicleController {
   @GetMapping
   public ResponseEntity<ApiResponse<List<Vehicle>>> getVehicles(
       @RequestParam(required = false) Boolean available,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
-          LocalTime time) {
+      @RequestParam(required = false) Instant dateTime) {
 
-    if (Boolean.TRUE.equals(available) && date != null && time != null) {
-      LocalDateTime dateTime = LocalDateTime.of(date, time);
+    if (Boolean.TRUE.equals(available) && dateTime != null) {
       List<Vehicle> availableVehicles = vehicleService.getAvailableVehicles(dateTime);
       return ResponseEntity.ok(
           responseFactory.success(

@@ -48,6 +48,8 @@ public class PropertyService {
       OperationType operationType,
       Double minPrice,
       Double maxPrice,
+      Double minM2,
+      Double maxM2,
       String agentId,
       String currentUserId,
       List<String> roles,
@@ -106,6 +108,12 @@ public class PropertyService {
     }
     if (maxPrice != null) {
       filters.add(Criteria.where("price").lte(maxPrice));
+    }
+    if (minM2 != null) {
+      filters.add(Criteria.where("m2").gte(minM2));
+    }
+    if (maxM2 != null) {
+      filters.add(Criteria.where("m2").lte(maxM2));
     }
     if (agentId != null && !agentId.isBlank()) {
       filters.add(Criteria.where("assignedAgentId").is(agentId));
@@ -391,6 +399,16 @@ public class PropertyService {
     if (doc.getImages() != null && !doc.getImages().isEmpty()) {
       urls =
           doc.getImages().stream()
+              .sorted(
+                  (a, b) -> {
+                    if (Boolean.TRUE.equals(a.getIsPrimary())
+                        && !Boolean.TRUE.equals(b.getIsPrimary())) return -1;
+                    if (!Boolean.TRUE.equals(a.getIsPrimary())
+                        && Boolean.TRUE.equals(b.getIsPrimary())) return 1;
+                    int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 999;
+                    int orderB = b.getDisplayOrder() != null ? b.getDisplayOrder() : 999;
+                    return Integer.compare(orderA, orderB);
+                  })
               .map(img -> imageService.generateTemporaryImageUrl(img))
               .collect(Collectors.toList());
     } else if (doc.getImageUrls() != null) {
@@ -793,12 +811,15 @@ public class PropertyService {
       query.addCriteria(Criteria.where("zone").in(prefs.preferredZones()));
     }
 
-    if (prefs.minRooms() != null) {
-      query.addCriteria(Criteria.where("rooms").gte(prefs.minRooms()));
-    }
-
-    if (prefs.maxRooms() != null) {
-      query.addCriteria(Criteria.where("rooms").lte(prefs.maxRooms()));
+    if (prefs.minRooms() != null || prefs.maxRooms() != null) {
+      Criteria roomsCriteria = Criteria.where("rooms");
+      if (prefs.minRooms() != null) {
+        roomsCriteria = roomsCriteria.gte(prefs.minRooms());
+      }
+      if (prefs.maxRooms() != null) {
+        roomsCriteria = roomsCriteria.lte(prefs.maxRooms());
+      }
+      query.addCriteria(roomsCriteria);
     }
 
     if (prefs.maxPrice() != null) {
@@ -812,5 +833,106 @@ public class PropertyService {
     return mongoTemplate.find(query, PropertyDocument.class).stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Genera un reporte detallado del inventario actual con un resumen ejecutivo de totales y cálculo
+   * de días en inventario vigentes a la fecha actual para inmuebles activos.
+   */
+  public com.inmobiliaria.property_service.dto.response.InventoryReportResponse
+      generateInventoryReport(String status, OperationType operationType) {
+
+    // Obtener todos los inmuebles que no sufrieron un borrado lógico
+    List<PropertyDocument> allActiveInventory = propertyRepository.findByDeletedFalse();
+
+    // 1. Calcular totales globales para el Resumen Ejecutivo (Dashboard Indicators)
+    Map<String, Long> totalsByStatus =
+        allActiveInventory.stream()
+            .collect(
+                Collectors.groupingBy(
+                    p -> p.getStatus() != null ? p.getStatus().name() : "SIN_ESPECIFICAR",
+                    Collectors.counting()));
+
+    Map<String, Long> totalsByOperationType =
+        allActiveInventory.stream()
+            .collect(
+                Collectors.groupingBy(
+                    p ->
+                        p.getOperationType() != null
+                            ? p.getOperationType().name()
+                            : "SIN_ESPECIFICAR",
+                    Collectors.counting()));
+
+    // 2. Filtrar y transformar el listado detallado para la tabla del reporte
+    List<com.inmobiliaria.property_service.dto.response.InventoryReportResponse.PropertyReportItem>
+        reportItems =
+            allActiveInventory.stream()
+                .filter(
+                    p ->
+                        status == null
+                            || status.isBlank()
+                            || (p.getStatus() != null
+                                && p.getStatus().name().equalsIgnoreCase(status)))
+                .filter(p -> operationType == null || p.getOperationType() == operationType)
+                .map(
+                    p -> {
+                      long days = 0;
+                      String registrationDate = "N/A";
+                      String exitDate = "--";
+
+                      if (p.getCreatedAt() != null) {
+                        registrationDate =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                .withZone(java.time.ZoneId.of("UTC"))
+                                .format(p.getCreatedAt());
+
+                        Instant endDate =
+                            Instant.now(); // Por defecto: fecha actual para inmuebles activos (PA3)
+
+                        // Si el inmueble ya fue consolidado o retirado, calcular hasta su evento de
+                        // cambio
+                        if (p.getStatus() == PropertyStatus.VENDIDO
+                            || p.getStatus() == PropertyStatus.RETIRADO) {
+                          if (p.getStatusHistory() != null && !p.getStatusHistory().isEmpty()) {
+                            endDate =
+                                p.getStatusHistory().stream()
+                                    .filter(sh -> sh.getNewStatus().equals(p.getStatus().name()))
+                                    .max(Comparator.comparing(StatusHistory::getChangedAt))
+                                    .map(StatusHistory::getChangedAt)
+                                    .orElse(
+                                        p.getUpdatedAt() != null
+                                            ? p.getUpdatedAt()
+                                            : Instant.now());
+                          } else {
+                            endDate = p.getUpdatedAt() != null ? p.getUpdatedAt() : Instant.now();
+                          }
+
+                          exitDate =
+                              java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                  .withZone(java.time.ZoneId.of("UTC"))
+                                  .format(endDate);
+                        }
+
+                        days =
+                            java.time.temporal.ChronoUnit.DAYS.between(p.getCreatedAt(), endDate);
+                        if (days < 0) days = 0;
+                      }
+
+                      return new com.inmobiliaria.property_service.dto.response
+                          .InventoryReportResponse.PropertyReportItem(
+                          p.getId(),
+                          p.getTitle(),
+                          p.getStatus() != null ? p.getStatus().name() : "N/A",
+                          p.getOperationType() != null ? p.getOperationType().name() : "N/A",
+                          p.getPrice(),
+                          p.getZone() != null ? p.getZone() : "No especificada",
+                          days,
+                          registrationDate,
+                          exitDate);
+                    })
+                .collect(Collectors.toList());
+
+    return new com.inmobiliaria.property_service.dto.response.InventoryReportResponse(
+        totalsByStatus, totalsByOperationType, reportItems);
   }
 }

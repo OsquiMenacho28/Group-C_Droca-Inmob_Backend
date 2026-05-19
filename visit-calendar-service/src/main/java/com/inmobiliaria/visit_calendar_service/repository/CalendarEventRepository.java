@@ -1,7 +1,7 @@
 package com.inmobiliaria.visit_calendar_service.repository;
 
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
@@ -17,24 +17,20 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
   // --- Consultas para HU1: Visualizar calendario compartido ---
 
   /** Obtiene todos los eventos en un rango de fechas (vista semanal/mensual). */
-  @Query("{ 'startTime': { $gte: ?0 }, 'endTime': { $lte: ?1 }, 'status': { $ne: 'CANCELLED' } }")
-  List<CalendarEvent> findByDateRange(LocalDateTime from, LocalDateTime to);
+  @Query("{ 'startTime': { $gte: ?0 }, 'endTime': { $lte: ?1 } }")
+  List<CalendarEvent> findByDateRange(Instant from, Instant to);
 
   /** Obtiene eventos de un agente específico en un rango de fechas. */
-  @Query(
-      "{ 'agentId': ?0, 'startTime': { $gte: ?1 }, 'endTime': { $lte: ?2 }, 'status': { $ne: 'CANCELLED' } }")
-  List<CalendarEvent> findByAgentIdAndDateRange(
-      String agentId, LocalDateTime from, LocalDateTime to);
+  @Query("{ 'agentId': ?0, 'startTime': { $gte: ?1 }, 'endTime': { $lte: ?2 } }")
+  List<CalendarEvent> findByAgentIdAndDateRange(String agentId, Instant from, Instant to);
 
   /** Obtiene todos los eventos de una propiedad específica. */
-  @Query("{ 'propertyId': ?0, 'status': { $ne: 'CANCELLED' } }")
+  @Query("{ 'propertyId': ?0 }")
   List<CalendarEvent> findByPropertyId(String propertyId);
 
   /** Obtiene eventos de una propiedad en un rango de fechas. */
-  @Query(
-      "{ 'propertyId': ?0, 'startTime': { $gte: ?1 }, 'endTime': { $lte: ?2 }, 'status': { $ne: 'CANCELLED' } }")
-  List<CalendarEvent> findByPropertyIdAndDateRange(
-      String propertyId, LocalDateTime from, LocalDateTime to);
+  @Query("{ 'propertyId': ?0, 'startTime': { $gte: ?1 }, 'endTime': { $lte: ?2 } }")
+  List<CalendarEvent> findByPropertyIdAndDateRange(String propertyId, Instant from, Instant to);
 
   // --- Consultas para HU2: Detección de conflictos de horario ---
 
@@ -54,7 +50,7 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
           + "  ] "
           + "}")
   List<CalendarEvent> findConflictingEvents(
-      String propertyId, LocalDateTime newStart, LocalDateTime newEnd, String excludeId);
+      String propertyId, Instant newStart, Instant newEnd, String excludeId);
 
   /** Versión sin excludeId para nuevos eventos (sin ID todavía). */
   @Query(
@@ -66,15 +62,14 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
           + "  ] "
           + "}")
   List<CalendarEvent> findConflictingEventsForNew(
-      String propertyId, LocalDateTime newStart, LocalDateTime newEnd);
+      String propertyId, Instant newStart, Instant newEnd);
 
   // --- Consultas generales ---
 
   List<CalendarEvent> findByAgentId(String agentId);
 
-  @Query("{ 'startTime': { $gte: ?0, $lt: ?1 }, 'agentId': ?2, 'status': { $ne: 'CANCELLED' } }")
-  List<CalendarEvent> findByDayAndAgent(
-      LocalDateTime dayStart, LocalDateTime dayEnd, String agentId);
+  @Query("{ 'startTime': { $gte: ?0, $lt: ?1 }, 'agentId': ?2 }")
+  List<CalendarEvent> findByDayAndAgent(Instant dayStart, Instant dayEnd, String agentId);
 
   /**
    * Detecta conflictos de flota considerando la ventana de ocupación (incluyendo tránsito). Un
@@ -90,5 +85,5 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
           + "  ] "
           + "}")
   List<CalendarEvent> findConflictingVehicles(
-      String vehicleId, LocalDateTime occupancyStart, LocalDateTime occupancyEnd);
+      String vehicleId, Instant occupancyStart, Instant occupancyEnd);
 }

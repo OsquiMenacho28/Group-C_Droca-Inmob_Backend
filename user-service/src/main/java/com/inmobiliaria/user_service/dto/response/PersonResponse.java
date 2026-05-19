@@ -1,4 +1,3 @@
-// REEMPLAZAR el archivo completo:
 package com.inmobiliaria.user_service.dto.response;
 
 import com.inmobiliaria.user_service.domain.PersonType;
@@ -32,7 +31,13 @@ public record PersonResponse(
     String preferredContactMethod,
     String budget,
 
-    // Preferencias nuevas
+    // Preferencias (Campos individuales para compatibilidad)
     String preferredZone,
     String preferredPropertyType,
-    Integer preferredRooms) {}
+    Integer preferredRooms,
+
+    // Preferencias (Estructura completa)
+    List<String> preferredZones,
+    Integer minRooms,
+    Integer maxRooms,
+    Double maxPrice) {}

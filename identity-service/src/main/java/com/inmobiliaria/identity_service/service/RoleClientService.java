@@ -1,52 +1,45 @@
 package com.inmobiliaria.identity_service.service;
 
-import com.mongodb.client.MongoClient;
+import com.inmobiliaria.identity_service.client.RoleFeignClient;
+import com.inmobiliaria.identity_service.dto.response.ExternalRoleResponse;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
-import org.bson.Document;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class RoleClientService {
 
-  private final MongoClient mongoClient;
-
-  @Value("${app.mongo.database}")
-  private String databaseName;
+  private final RoleFeignClient roleFeignClient;
 
   public void validateRoleIdsExist(List<String> roleIds) {
-    long count =
-        mongoClient
-            .getDatabase(databaseName)
-            .getCollection("roles")
-            .countDocuments(
-                new Document("_id", new Document("$in", roleIds)).append("active", true));
+    if (roleIds == null || roleIds.isEmpty()) {
+      return;
+    }
 
-    if (count != roleIds.size()) {
+    Boolean isValid = roleFeignClient.validateRoleIds(roleIds);
+
+    if (!Boolean.TRUE.equals(isValid)) {
       throw new IllegalArgumentException("One or more roleIds do not exist or are inactive");
     }
   }
 
   /**
    * Converts a list of role IDs (e.g. "rol_admin") into their corresponding role codes (e.g.
-   * "ADMIN") by querying the roles collection.
+   * "ADMIN") by calling access-control-service.
    */
   public List<String> resolveRoleCodes(List<String> roleIds) {
     if (roleIds == null || roleIds.isEmpty()) {
       return List.of();
     }
-    return StreamSupport.stream(
-            mongoClient
-                .getDatabase(databaseName)
-                .getCollection("roles")
-                .find(new Document("_id", new Document("$in", roleIds)))
-                .spliterator(),
-            false)
-        .map(doc -> doc.getString("code"))
-        .collect(Collectors.toList());
+
+    List<ExternalRoleResponse> roles = roleFeignClient.findByIds(roleIds);
+
+    if (roles == null) {
+      return List.of();
+    }
+
+    return roles.stream().map(ExternalRoleResponse::code).collect(Collectors.toList());
   }
 }

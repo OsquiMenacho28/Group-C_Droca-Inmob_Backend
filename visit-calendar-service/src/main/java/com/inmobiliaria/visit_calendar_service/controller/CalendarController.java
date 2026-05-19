@@ -1,5 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.controller;
 
+import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
@@ -7,16 +8,17 @@ import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictRes
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
+import com.inmobiliaria.visit_calendar_service.dto.response.VisitResponse;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.CalendarService;
 import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
 import com.inmobiliaria.visit_calendar_service.service.VehicleService;
+import com.inmobiliaria.visit_calendar_service.service.VisitRequestService;
 import jakarta.validation.Valid;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,7 +49,34 @@ public class CalendarController {
   private final CalendarService calendarService;
   private final ResponseFactory responseFactory;
   private final RescheduleService rescheduleService;
-  private final VehicleService vehicleService; // Añadido desde tu rama
+  private final VehicleService vehicleService;
+  private final VisitRequestService visitRequestService;
+
+  @PatchMapping(value = {"/visits/{id}/resultado", "/visits/{id}/result"})
+  public ResponseEntity<ApiResponse<VisitResponse>> registrarResultado(
+      @PathVariable String id,
+      @Valid @RequestBody RegistrarResultadoRequest request,
+      @RequestHeader("X-Agent-Id") String agentId) {
+    Visit updated = visitRequestService.registrarResultado(id, request, agentId);
+    return ResponseEntity.ok(responseFactory.success("Resultado registrado", toResponse(updated)));
+  }
+
+  private VisitResponse toResponse(Visit visit) {
+    return new VisitResponse(
+        visit.getId(),
+        visit.getPropertyId(),
+        visit.getPropertyName(),
+        visit.getClientId(),
+        visit.getClientName(),
+        visit.getAgentId(),
+        visit.getAgentName(),
+        visit.getStartTime(),
+        visit.getEndTime(),
+        visit.getStatus(),
+        visit.getResultado(),
+        visit.getObservaciones(),
+        visit.getFechaRegistroResultado());
+  }
 
   // -----------------------------------------------------------------------
   // HU1: Visualizar calendario compartido del equipo
@@ -69,8 +98,8 @@ public class CalendarController {
   @GetMapping("/calendar")
   public ResponseEntity<ApiResponse<CalendarResponse>> getCalendar(
       @RequestHeader(value = "X-Agent-Id", required = false) String requestingAgentId,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+      @RequestParam Instant from,
+      @RequestParam Instant to,
       @RequestParam(required = false) String agentId,
       @RequestParam(required = false) String propertyId) {
 
@@ -123,8 +152,8 @@ public class CalendarController {
   @GetMapping("/visits/conflict-check")
   public ResponseEntity<ApiResponse<ConflictResponse>> checkConflict(
       @RequestParam String propertyId,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+      @RequestParam Instant startTime,
+      @RequestParam Instant endTime) {
 
     ConflictResponse result = calendarService.checkConflict(propertyId, startTime, endTime);
 
@@ -141,8 +170,7 @@ public class CalendarController {
    */
   @GetMapping("/visits/agenda")
   public ResponseEntity<ApiResponse<List<Visit>>> getDayAgenda(
-      @RequestParam String agentId,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime day) {
+      @RequestParam String agentId, @RequestParam Instant day) {
 
     List<Visit> agenda = calendarService.getAgentDayAgenda(agentId, day);
 
@@ -157,6 +185,14 @@ public class CalendarController {
 
     Visit event = calendarService.getById(id, agentId);
     return ResponseEntity.ok(responseFactory.success("Evento encontrado", event));
+  }
+
+  /** GET /visits/property/{propertyId} Devuelve el historial de visitas de un inmueble. */
+  @GetMapping("/visits/property/{propertyId}")
+  public ResponseEntity<ApiResponse<List<Visit>>> getVisitsByProperty(
+      @PathVariable String propertyId) {
+    List<Visit> visits = calendarService.getVisitsByProperty(propertyId);
+    return ResponseEntity.ok(responseFactory.success("Historial de visitas obtenido", visits));
   }
 
   /** PATCH /visits/{id}/cancel Cancela una visita (solo el agente dueño). */

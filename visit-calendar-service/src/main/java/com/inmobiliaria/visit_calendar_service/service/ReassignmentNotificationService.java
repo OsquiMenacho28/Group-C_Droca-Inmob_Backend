@@ -1,61 +1,32 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.client.NotificationClient;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.ReassignmentRequest;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 /**
  * Notification service for appointment reassignment events.
  *
- * <p>Makes real HTTP calls to the team's existing notification-service (port 8083), following the
- * same pattern used by NotificationService for visit requests.
- *
- * <p>Two notifications are sent during the reassignment flow: 1. notifyReassignmentRequest → target
- * agent receives the incoming request. 2. notifyReassignmentDecision → requesting agent receives
- * the accept/reject decision.
- *
- * <p>If the notification-service is unreachable, the error is logged but the main business flow is
- * never interrupted (fail-silent pattern).
+ * <p>Makes real HTTP calls to the team's existing notification-service (port 8083) using OpenFeign.
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReassignmentNotificationService {
 
-  private final RestTemplate restTemplate;
-
-  @Value("${notification.service.url:http://localhost:8083}")
-  private String notificationServiceUrl;
-
-  public ReassignmentNotificationService() {
-    this.restTemplate = new RestTemplate();
-  }
+  private final NotificationClient notificationClient;
 
   // ─────────────────────────────────────────────────────────────────────────
   // NOTIFY TARGET AGENT — incoming reassignment request
   // ─────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Notifies the target agent that they have received a reassignment request. Called right after
-   * the requesting agent submits the solicitation.
-   *
-   * @param request The newly created reassignment request
-   * @param event The appointment being reassigned (CalendarEvent)
-   * @return true if the notification-service responded with 2xx, false otherwise
-   */
-  public boolean notifyReassignmentRequest(
-      ReassignmentRequest request,
-      CalendarEvent event) { // ← CAMBIADO: segundo parámetro ahora es CalendarEvent
+  public boolean notifyReassignmentRequest(ReassignmentRequest request, CalendarEvent event) {
     try {
-      String endpoint = notificationServiceUrl + "/notifications/reassignment-request";
-
       Map<String, Object> payload =
           Map.of(
               "type",
@@ -74,7 +45,7 @@ public class ReassignmentNotificationService {
                   "destinationAgentId", request.getDestinationAgentId(),
                   "reason", request.getReason()));
 
-      ResponseEntity<String> response = postToNotificationService(endpoint, payload);
+      ResponseEntity<String> response = notificationClient.notifyReassignmentRequest(payload);
 
       if (response.getStatusCode().is2xxSuccessful()) {
         log.info(
@@ -83,27 +54,15 @@ public class ReassignmentNotificationService {
             request.getVisitId());
         return true;
       }
-
-      log.warn(
-          "[REASSIGNMENT] Notification-service returned non-2xx status: {}",
-          response.getStatusCode());
-
     } catch (Exception e) {
-      // Never fail the main business flow if the notification call fails
-      log.warn(
-          "[REASSIGNMENT] Could not reach notification-service. "
-              + "The request was saved successfully. Error: {}",
-          e.getMessage());
+      log.warn("[REASSIGNMENT] Could not reach notification-service. Error: {}", e.getMessage());
     }
 
-    // Fallback: structured console log for development environments
     log.info(
-        "[REASSIGNMENT - INTERNAL] Agent '{}' received a reassignment request "
-            + "from agent '{}' for visit '{}'. Reason: {}",
+        "[REASSIGNMENT - INTERNAL] Agent '{}' received a reassignment request from agent '{}' for visit '{}'.",
         request.getDestinationAgentId(),
         request.getRequestingAgentId(),
-        request.getVisitId(),
-        request.getReason());
+        request.getVisitId());
 
     return false;
   }
@@ -112,17 +71,8 @@ public class ReassignmentNotificationService {
   // NOTIFY REQUESTING AGENT — accept / reject decision
   // ─────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Notifies the requesting agent of the decision made by the target agent. Called right after the
-   * target agent accepts or rejects the request.
-   *
-   * @param request The reassignment request with its decision already applied
-   * @return true if the notification-service responded with 2xx, false otherwise
-   */
   public boolean notifyReassignmentDecision(ReassignmentRequest request) {
     try {
-      String endpoint = notificationServiceUrl + "/notifications/reassignment-decision";
-
       Map<String, Object> payload =
           Map.of(
               "type",
@@ -149,7 +99,7 @@ public class ReassignmentNotificationService {
                   "responseComment",
                   request.getCommentReply() != null ? request.getCommentReply() : ""));
 
-      ResponseEntity<String> response = postToNotificationService(endpoint, payload);
+      ResponseEntity<String> response = notificationClient.notifyReassignmentDecision(payload);
 
       if (response.getStatusCode().is2xxSuccessful()) {
         log.info(
@@ -158,50 +108,19 @@ public class ReassignmentNotificationService {
             request.getRequestingAgentId());
         return true;
       }
-
-      log.warn(
-          "[REASSIGNMENT] Notification-service returned non-2xx status: {}",
-          response.getStatusCode());
-
     } catch (Exception e) {
-      log.warn(
-          "[REASSIGNMENT] Could not reach notification-service. "
-              + "The decision was saved successfully. Error: {}",
-          e.getMessage());
+      log.warn("[REASSIGNMENT] Could not reach notification-service. Error: {}", e.getMessage());
     }
 
-    // Fallback: structured console log for development environments
     log.info(
-        "[REASSIGNMENT - INTERNAL] Agent '{}' — your reassignment request for visit '{}' "
-            + "was {}. Comment: {}",
+        "[REASSIGNMENT - INTERNAL] Agent '{}' — your reassignment request for visit '{}' was {}.",
         request.getRequestingAgentId(),
         request.getVisitId(),
-        request.getStatus().name(),
-        request.getCommentReply() != null ? request.getCommentReply() : "(none)");
+        request.getStatus().name());
 
     return false;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Private helpers
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Shared HTTP call to the notification-service endpoint. Extracted to avoid duplication between
-   * the two public methods.
-   */
-  private ResponseEntity<String> postToNotificationService(
-      String endpoint, Map<String, Object> payload) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-    return restTemplate.postForEntity(endpoint, entity, String.class);
-  }
-
-  /**
-   * Builds the human-readable message body for a new reassignment request, sent to the target
-   * agent. Ahora usa CalendarEvent.
-   */
   private String buildRequestMessage(ReassignmentRequest request, CalendarEvent event) {
     return String.format(
         "Agent '%s' has requested that you take over the following appointment:\n\n"
@@ -217,10 +136,6 @@ public class ReassignmentNotificationService {
         request.getReason());
   }
 
-  /**
-   * Builds the human-readable message body for an accept/reject decision, sent back to the
-   * requesting agent.
-   */
   private String buildDecisionMessage(ReassignmentRequest request) {
     String decisionLabel =
         "ACCEPTED".equals(request.getStatus().name()) ? "accepted ✓" : "rejected ✗";

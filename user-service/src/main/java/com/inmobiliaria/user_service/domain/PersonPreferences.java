@@ -8,9 +8,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PersonPreferences {
-  private List<String> zones;
+  private List<String> preferredZones;
   private Integer minRooms;
   private Integer maxRooms;
   private Double maxPrice;
-  private String propertyType;
+  private String preferredPropertyType;
 }

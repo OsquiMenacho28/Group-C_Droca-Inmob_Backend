@@ -7,24 +7,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
-/**
- * MinIO configuration.
- *
- * <p>Creates the {@link MinioClient} bean and ensures the receipts bucket exists on application
- * startup. If the bucket is missing it is created automatically — no manual MinIO setup required
- * beyond having the server running.
- *
- * <p>Properties are read from application.yml: minio.endpoint — e.g. http://localhost:9000
- * minio.access-key — MinIO root user minio.secret-key — MinIO root password minio.bucket-name —
- * target bucket (default: operations-payment-receipts)
- */
 @Slf4j
 @Configuration
 public class MinioConfig {
 
   @Value("${minio.endpoint}")
   private String endpoint;
+
+  @Value("${minio.external-endpoint:http://127.0.0.1:9000}")
+  private String externalEndpoint;
 
   @Value("${minio.access-key}")
   private String accessKey;
@@ -36,6 +29,7 @@ public class MinioConfig {
   private String bucketName;
 
   @Bean
+  @Primary
   public MinioClient minioClient() {
     MinioClient client =
         MinioClient.builder().endpoint(endpoint).credentials(accessKey, secretKey).build();
@@ -44,10 +38,15 @@ public class MinioConfig {
     return client;
   }
 
-  /**
-   * Creates the receipts bucket if it does not already exist. Called once at startup — safe to run
-   * on every boot.
-   */
+  @Bean(name = "externalMinioClient")
+  public MinioClient externalMinioClient() {
+    return MinioClient.builder()
+        .endpoint(externalEndpoint)
+        .region("us-east-1")
+        .credentials(accessKey, secretKey)
+        .build();
+  }
+
   private void ensureBucketExists(MinioClient client) {
     try {
       boolean exists = client.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
@@ -59,8 +58,6 @@ public class MinioConfig {
         log.info("[MinIO] Bucket '{}' already exists.", bucketName);
       }
     } catch (Exception e) {
-      // Log but do not crash startup — service can still run if MinIO is temporarily
-      // unavailable
       log.error("[MinIO] Failed to verify/create bucket '{}': {}", bucketName, e.getMessage());
     }
   }

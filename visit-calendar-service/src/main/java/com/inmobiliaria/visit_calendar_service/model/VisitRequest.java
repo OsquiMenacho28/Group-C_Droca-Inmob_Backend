@@ -1,6 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -47,10 +47,10 @@ public class VisitRequest {
   private String clientPhone;
 
   /** Horario preferido propuesto por el cliente */
-  private LocalDateTime preferredDateTime;
+  private Instant preferredDateTime;
 
   /** Horario alternativo propuesto por el cliente (opcional) */
-  private LocalDateTime alternativeDateTime;
+  private Instant alternativeDateTime;
 
   /** Mensaje o comentario adicional del cliente */
   private String message;
@@ -65,10 +65,10 @@ public class VisitRequest {
   private String calendarEventId;
 
   /** Fecha en que se creó la solicitud */
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   /** Fecha de la última actualización */
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 
   /** Indica si la notificación al agente fue enviada */
   private boolean notificationSent;

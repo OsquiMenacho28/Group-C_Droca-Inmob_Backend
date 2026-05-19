@@ -35,6 +35,10 @@ public class RoleService {
     return toResponse(findDocumentById(id));
   }
 
+  public List<RoleResponse> findByIds(List<String> ids) {
+    return roleRepository.findByIdInAndActiveTrue(ids).stream().map(this::toResponse).toList();
+  }
+
   @CacheEvict(value = "roles", allEntries = true)
   public RoleResponse create(CreateRoleRequest request) {
     if (roleRepository.existsByCode(request.code())) {

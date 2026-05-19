@@ -1,6 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -58,10 +58,10 @@ public class CalendarEvent {
   private Integer travelTimeBack;
 
   /** Fecha y hora de inicio del evento */
-  private LocalDateTime startTime;
+  private Instant startTime;
 
   /** Fecha y hora de fin del evento */
-  private LocalDateTime endTime;
+  private Instant endTime;
 
   /**
    * Tipo de evento. Valores posibles: VISIT (visita de agente), CLIENT_REQUEST (solicitud de
@@ -76,13 +76,17 @@ public class CalendarEvent {
   private String notes;
 
   /** Fecha de creación del registro */
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   /** ID del cliente que solicitó la visita (opcional, solo para CLIENT_REQUEST) */
   private String clientId;
 
   /** Nombre del cliente que solicitó la visita */
   private String clientName;
+
+  private String resultado;
+  private String observaciones;
+  private Instant fechaRegistroResultado;
 
   public enum EventType {
     VISIT, // Visita programada por un agente
@@ -93,6 +97,7 @@ public class CalendarEvent {
     SCHEDULED, // Programada, pendiente de confirmación
     CONFIRMED, // Confirmada
     CANCELLED, // Cancelada
-    COMPLETED // Completada
+    COMPLETED, // Completada
+    REALIZADA // Completada (sin resultado registrado o equivalente)
   }
 }

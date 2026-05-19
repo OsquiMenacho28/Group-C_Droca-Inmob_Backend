@@ -2,7 +2,7 @@ package com.inmobiliaria.visit_calendar_service.dto;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.Data;
 
 /**
@@ -22,9 +22,9 @@ public class RescheduleRequest {
    */
   @NotNull(message = "The new date and time are required.")
   @Future(message = "The new date and time must be in the future.")
-  private LocalDateTime newStartTime;
+  private Instant newStartTime;
 
-  private LocalDateTime newEndTime;
+  private Instant newEndTime;
 
   /**
    * Optional notes for the new visit. If not provided, the original visit's notes are copied over.
