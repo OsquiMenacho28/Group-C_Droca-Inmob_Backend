@@ -811,12 +811,15 @@ public class PropertyService {
       query.addCriteria(Criteria.where("zone").in(prefs.preferredZones()));
     }
 
-    if (prefs.minRooms() != null) {
-      query.addCriteria(Criteria.where("rooms").gte(prefs.minRooms()));
-    }
-
-    if (prefs.maxRooms() != null) {
-      query.addCriteria(Criteria.where("rooms").lte(prefs.maxRooms()));
+    if (prefs.minRooms() != null || prefs.maxRooms() != null) {
+      Criteria roomsCriteria = Criteria.where("rooms");
+      if (prefs.minRooms() != null) {
+        roomsCriteria = roomsCriteria.gte(prefs.minRooms());
+      }
+      if (prefs.maxRooms() != null) {
+        roomsCriteria = roomsCriteria.lte(prefs.maxRooms());
+      }
+      query.addCriteria(roomsCriteria);
     }
 
     if (prefs.maxPrice() != null) {
