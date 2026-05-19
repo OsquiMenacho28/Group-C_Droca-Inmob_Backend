@@ -67,7 +67,10 @@ public class PropertyMetricsService {
       Double daysInInventory = calculateDaysInInventory(property);
       if (daysInInventory != null && daysInInventory >= 0) {
         daysInInventoryMap.put(property, daysInInventory);
-        allDaysInInventory.add(daysInInventory);
+        // Sólo incluir en el promedio de tiempo si el inmueble fue VENDIDO
+        if (property.getStatus() == PropertyStatus.VENDIDO) {
+          allDaysInInventory.add(daysInInventory);
+        }
       }
     }
 
@@ -240,7 +243,7 @@ public class PropertyMetricsService {
       int retiredCount = 0;
 
       for (PropertyDocument prop : typeProperties) {
-        if (daysInInventoryMap.containsKey(prop)) {
+        if (daysInInventoryMap.containsKey(prop) && prop.getStatus() == PropertyStatus.VENDIDO) {
           daysForType.add(daysInInventoryMap.get(prop));
         }
         if (prop.getStatus() == PropertyStatus.VENDIDO) soldCount++;
@@ -291,7 +294,7 @@ public class PropertyMetricsService {
       int retiredCount = 0;
 
       for (PropertyDocument prop : operationProperties) {
-        if (daysInInventoryMap.containsKey(prop)) {
+        if (daysInInventoryMap.containsKey(prop) && prop.getStatus() == PropertyStatus.VENDIDO) {
           daysForOperation.add(daysInInventoryMap.get(prop));
         }
         if (prop.getStatus() == PropertyStatus.VENDIDO) soldCount++;
@@ -338,7 +341,7 @@ public class PropertyMetricsService {
       int retiredCount = 0;
 
       for (PropertyDocument prop : zoneProperties) {
-        if (daysInInventoryMap.containsKey(prop)) {
+        if (daysInInventoryMap.containsKey(prop) && prop.getStatus() == PropertyStatus.VENDIDO) {
           daysForZone.add(daysInInventoryMap.get(prop));
         }
         if (prop.getStatus() == PropertyStatus.VENDIDO) soldCount++;
