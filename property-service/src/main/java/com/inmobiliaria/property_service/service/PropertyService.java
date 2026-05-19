@@ -874,7 +874,15 @@ public class PropertyService {
                 .map(
                     p -> {
                       long days = 0;
+                      String registrationDate = "N/A";
+                      String exitDate = "--";
+
                       if (p.getCreatedAt() != null) {
+                        registrationDate =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                .withZone(java.time.ZoneId.of("UTC"))
+                                .format(p.getCreatedAt());
+
                         Instant endDate =
                             Instant.now(); // Por defecto: fecha actual para inmuebles activos (PA3)
 
@@ -895,7 +903,13 @@ public class PropertyService {
                           } else {
                             endDate = p.getUpdatedAt() != null ? p.getUpdatedAt() : Instant.now();
                           }
+
+                          exitDate =
+                              java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                  .withZone(java.time.ZoneId.of("UTC"))
+                                  .format(endDate);
                         }
+
                         days =
                             java.time.temporal.ChronoUnit.DAYS.between(p.getCreatedAt(), endDate);
                         if (days < 0) days = 0;
@@ -909,7 +923,9 @@ public class PropertyService {
                           p.getOperationType() != null ? p.getOperationType().name() : "N/A",
                           p.getPrice(),
                           p.getZone() != null ? p.getZone() : "No especificada",
-                          days);
+                          days,
+                          registrationDate,
+                          exitDate);
                     })
                 .collect(Collectors.toList());
 

@@ -14,5 +14,7 @@ public record InventoryReportResponse(
       String operationType,
       Double price,
       String zone,
-      long daysInInventory) {}
+      long daysInInventory,
+      String registrationDate,
+      String exitDate) {}
 }
