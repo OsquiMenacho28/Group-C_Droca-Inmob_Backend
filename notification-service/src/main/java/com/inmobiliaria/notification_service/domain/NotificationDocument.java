@@ -40,6 +40,6 @@ public class NotificationDocument {
   private List<String> involvedUserIds; // IDs de usuarios afectados
   private Instant deliveredAt; // momento en que se entregó al cliente (in-app)
   private Instant readAt; // cuando el usuario marcó como leído
-  private boolean readStatus = false; // conveniencia
+  @Builder.Default private boolean readStatus = false; // conveniencia
   private Map<String, Object> details; // datos extra (ej. resultado visita, precio anterior, etc.)
 }

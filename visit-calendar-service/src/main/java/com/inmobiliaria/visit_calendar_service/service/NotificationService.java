@@ -9,7 +9,6 @@ import com.inmobiliaria.visit_calendar_service.model.VisitRequest;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +18,6 @@ import org.springframework.stereotype.Service;
 public class NotificationService {
 
   private final NotificationClient notificationClient;
-
-  @Value("${notification.service.url:http://localhost:8083}")
-  private String notificationServiceUrl;
 
   // Notifica al agente por solicitud de visita (ya existente)
   public boolean notifyAgentOfVisitRequest(VisitRequest visitRequest) {
