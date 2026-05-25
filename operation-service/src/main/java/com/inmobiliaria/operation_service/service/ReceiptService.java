@@ -1,5 +1,6 @@
 package com.inmobiliaria.operation_service.service;
 
+import com.inmobiliaria.operation_service.config.ReceiptProperties;
 import com.inmobiliaria.operation_service.domain.OperationDocument;
 import com.inmobiliaria.operation_service.domain.ReceiptDocument;
 import com.inmobiliaria.operation_service.dto.ReceiptResponse;
@@ -26,6 +27,7 @@ public class ReceiptService {
   private final ReceiptRepository receiptRepository;
   private final OperationRepository operationRepository;
   private final MinioStorageService minioStorageService;
+  private final ReceiptProperties receiptProperties;
 
   public ReceiptResponse attachReceipt(
       String operationId,
@@ -33,6 +35,8 @@ public class ReceiptService {
       String rolesHeader,
       MultipartFile file,
       ReceiptUploadRequest request) {
+
+    validateFile(file);
 
     OperationDocument operation =
         operationRepository
@@ -105,6 +109,30 @@ public class ReceiptService {
 
     // Delete from Mongo
     receiptRepository.delete(doc);
+  }
+
+  private void validateFile(MultipartFile file) {
+    if (file == null || file.isEmpty()) {
+      throw new com.inmobiliaria.operation_service.exception.ValidationException(
+          "No file provided.");
+    }
+
+    if (receiptProperties.upload() != null) {
+      // 1. Check size
+      if (file.getSize() > receiptProperties.upload().maxSizeBytes()) {
+        throw new com.inmobiliaria.operation_service.exception.ValidationException(
+            "File size exceeds the limit of "
+                + (receiptProperties.upload().maxSizeBytes() / (1024 * 1024))
+                + " MB");
+      }
+
+      // 2. Check type
+      String contentType = file.getContentType();
+      if (contentType == null || !receiptProperties.upload().allowedTypes().contains(contentType)) {
+        throw new com.inmobiliaria.operation_service.exception.ValidationException(
+            "File type '" + contentType + "' is not allowed.");
+      }
+    }
   }
 
   private boolean isRelatedUser(OperationDocument operation, String userId, String rolesHeader) {

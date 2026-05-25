@@ -221,9 +221,7 @@ public class PropertyController {
       @PathVariable String id,
       @Valid @RequestBody UpdateStatusRequest request,
       @RequestHeader("X-Auth-User-Id") String userId,
-      @RequestHeader(value = "X-Internal-Call", defaultValue = "false")
-          @org.springframework.security.access.method.P("isInternal")
-          boolean isInternal) {
+      @RequestHeader(value = "X-Internal-Call", defaultValue = "false") boolean isInternal) {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     List<String> roles =

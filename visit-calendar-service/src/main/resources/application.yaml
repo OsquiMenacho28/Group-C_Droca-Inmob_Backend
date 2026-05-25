@@ -22,9 +22,15 @@ eureka:
   client:
     service-url:
       defaultZone: http://${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
+    eureka-server-read-timeout-seconds: 30
+    eureka-server-connect-timeout-seconds: 10
+    registry-fetch-interval-seconds: 30
+    initial-instance-info-replication-interval-seconds: 40
   instance:
     hostname: ${EUREKA_HOST:localhost}
     prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
 
 user:
   service:

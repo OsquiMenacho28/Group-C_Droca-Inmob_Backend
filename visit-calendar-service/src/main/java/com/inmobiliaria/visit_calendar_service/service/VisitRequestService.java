@@ -1,12 +1,7 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
-import com.inmobiliaria.visit_calendar_service.client.PersonClient;
-import com.inmobiliaria.visit_calendar_service.client.PropertyClient;
-import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
 import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
-import com.inmobiliaria.visit_calendar_service.dto.response.PersonResponse;
-import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
@@ -17,7 +12,6 @@ import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRequestRepository;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,8 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class VisitRequestService {
 
-  private final PropertyClient propertyClient;
-  private final PersonClient personClient;
   private final VisitRequestRepository visitRequestRepository;
   private final CalendarEventRepository calendarEventRepository;
   private final NotificationService notificationService;
@@ -264,48 +256,6 @@ public class VisitRequestService {
     }
 
     return visitToReturn;
-  }
-
-  // =====================================================================
-  // Helper
-  // =====================================================================
-
-  private void notifyOwnerAboutVisitOutcome(Visit visit, String resultado) {
-    try {
-      PropertyResponse property = propertyClient.getPropertyById(visit.getPropertyId());
-      if (property == null || property.ownerId() == null) return;
-      String ownerId = property.ownerId();
-      PersonResponse owner = personClient.getPersonByAuthUserId(ownerId);
-      String ownerName =
-          (owner != null && owner.fullName() != null) ? owner.fullName() : "Propietario";
-
-      String subject = "Resultado de visita registrado para tu propiedad";
-      String content =
-          String.format(
-              "La visita a tu propiedad '%s' del día %s ha finalizado con resultado: %s. Observaciones: %s",
-              visit.getPropertyName(),
-              visit.getStartTime(),
-              resultado,
-              visit.getObservaciones() != null ? visit.getObservaciones() : "Ninguna");
-      Map<String, Object> details =
-          Map.of(
-              "propertyId", visit.getPropertyId(),
-              "propertyName", visit.getPropertyName(),
-              "visitId", visit.getId(),
-              "resultado", resultado,
-              "observaciones", visit.getObservaciones());
-
-      notificationService.sendInAppNotificationToOwner(
-          ownerId,
-          ownerName,
-          visit.getPropertyName(),
-          subject,
-          content,
-          InteractionType.VISITA,
-          details);
-    } catch (Exception e) {
-      log.warn("Could not send in-app notification for visit outcome: {}", e.getMessage());
-    }
   }
 
   private VisitRequestResponse toResponse(VisitRequest r) {

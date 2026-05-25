@@ -3,7 +3,6 @@ package com.inmobiliaria.property_service.service;
 import com.inmobiliaria.property_service.client.IdentityClient;
 import com.inmobiliaria.property_service.client.OperationClient;
 import com.inmobiliaria.property_service.client.UserClient;
-import com.inmobiliaria.property_service.client.UserPreferencesClient;
 import com.inmobiliaria.property_service.domain.*;
 import com.inmobiliaria.property_service.dto.request.*;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
@@ -35,8 +34,6 @@ public class PropertyService {
   private final OperationClient operationClient;
   private final MongoTemplate mongoTemplate;
   private final ImageService imageService;
-
-  private final UserPreferencesClient userPreferencesClient;
   private final UserClient userClient;
 
   /** Búsqueda avanzada con filtros dinámicos y seguridad por rol. */
