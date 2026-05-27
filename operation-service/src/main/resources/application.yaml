@@ -40,6 +40,7 @@ eureka:
 # MinIO configuration
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  external-endpoint: ${MINIO_EXTERNAL_ENDPOINT:http://127.0.0.1:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin} # Change in production
   secret-key: ${MINIO_SECRET_KEY:minioadmin} # Change in production
   bucket-name: operations-payment-receipts # Bucket is auto-created on startup if it does not exist
