@@ -24,4 +24,6 @@ public interface OperationRepository extends MongoRepository<OperationDocument, 
 
   java.util.Optional<OperationDocument> findFirstByPropertyIdOrderByCreatedAtDesc(
       String propertyId);
+
+  long countByStatusIn(List<String> statuses);
 }

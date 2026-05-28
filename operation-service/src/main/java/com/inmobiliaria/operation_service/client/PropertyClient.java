@@ -25,4 +25,9 @@ public interface PropertyClient {
   record UpdateStatusRequest(String status) {}
 
   record PropertyResponse(String id, String status, String title) {}
+
+  @GetMapping("/properties/reporte-gerencial")
+  ApiResponse<InventoryReportResponse> getInventoryReport();
+
+  record InventoryReportResponse(java.util.Map<String, Long> totalsByStatus) {}
 }
