@@ -1,24 +1,8 @@
 package com.inmobiliaria.visit_calendar_service.controller;
 
-import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
-import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
-import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
-import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
-import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
-import com.inmobiliaria.visit_calendar_service.dto.response.VisitResponse;
-import com.inmobiliaria.visit_calendar_service.model.Visit;
-import com.inmobiliaria.visit_calendar_service.service.CalendarService;
-import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
-import com.inmobiliaria.visit_calendar_service.service.VehicleService;
-import com.inmobiliaria.visit_calendar_service.service.VisitRequestService;
-import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +15,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
+import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
+import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
+import com.inmobiliaria.visit_calendar_service.dto.response.ApiResponse;
+import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
+import com.inmobiliaria.visit_calendar_service.dto.response.VisitHistoryResponse;
+import com.inmobiliaria.visit_calendar_service.dto.response.VisitResponse;
+import com.inmobiliaria.visit_calendar_service.model.Visit;
+import com.inmobiliaria.visit_calendar_service.service.CalendarService;
+import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
+import com.inmobiliaria.visit_calendar_service.service.VehicleService;
+import com.inmobiliaria.visit_calendar_service.service.VisitRequestService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Controlador REST para el calendario compartido y la programación de visitas.
@@ -193,6 +197,58 @@ public class CalendarController {
       @PathVariable String propertyId) {
     List<Visit> visits = calendarService.getVisitsByProperty(propertyId);
     return ResponseEntity.ok(responseFactory.success("Historial de visitas obtenido", visits));
+  }
+
+  /**
+   * GET /properties/{id}/visits/history Devuelve el historial de visitas completadas de una
+   * propiedad con estadísticas (conteo y porcentaje de visitas interesadas).
+   *
+   * <p>Parámetros opcionales: - date_since: Filtrar desde esta fecha (ISO Instant) - date_until:
+   * Filtrar hasta esta fecha (ISO Instant) - page: Número de página (0-based, default: 0) -
+   * page_size: Tamaño de página (10, 20 o 30, default: 10)
+   *
+   * <p>Response incluye: - Lista paginada de visitas realizadas - Conteo de visitas interesadas -
+   * Porcentaje de visitas interesadas - Información de paginación - Mensaje descriptivo si no hay
+   * visitas
+   */
+  @GetMapping("/properties/{id}/visits/history")
+  public ResponseEntity<ApiResponse<VisitHistoryResponse>> getVisitHistory(
+      @PathVariable String id,
+      @RequestParam(required = false) Instant date_since,
+      @RequestParam(required = false) Instant date_until,
+      @RequestParam(name = "page", defaultValue = "0") Integer pageNumber,
+      @RequestParam(name = "page_size", defaultValue = "10") Integer pageSize) {
+
+    log.debug(
+        "GET /properties/{}/visits/history: desde={}, hasta={}, página={}, tamaño={}",
+        id,
+        date_since,
+        date_until,
+        pageNumber,
+        pageSize);
+
+    // Validar que pageSize sea uno de los valores permitidos
+    if (pageSize != 10 && pageSize != 20 && pageSize != 30) {
+      return ResponseEntity.badRequest()
+          .body(
+              responseFactory.validationError(
+                  "Parámetro inválido: page_size debe ser 10, 20 o 30",
+                  "page_size",
+                  "INVALID_PAGE_SIZE",
+                  "El tamaño de página debe ser 10, 20 o 30 elementos"));
+    }
+
+    VisitHistoryResponse history =
+        calendarService.getVisitHistory(id, date_since, date_until, pageNumber, pageSize);
+
+    String successMessage =
+        history.getVisits().isEmpty()
+            ? history.getMessage()
+            : String.format(
+                "Historial de visitas obtenido correctamente (página %d de %d)",
+                pageNumber + 1, history.getTotalPages());
+
+    return ResponseEntity.ok(responseFactory.success(successMessage, history));
   }
 
   /** PATCH /visits/{id}/cancel Cancela una visita (solo el agente dueño). */
