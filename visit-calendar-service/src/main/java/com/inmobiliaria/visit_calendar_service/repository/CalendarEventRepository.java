@@ -86,4 +86,36 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
           + "}")
   List<CalendarEvent> findConflictingVehicles(
       String vehicleId, Instant occupancyStart, Instant occupancyEnd);
+
+  // --- Consultas para HU de historial de visitas (realizada) ---
+
+  /**
+   * Obtiene todas las visitas completadas de una propiedad, ordenadas por fecha descendente (más
+   * recientes primero).
+   */
+  @Query("{ 'propertyId': ?0, 'status': 'COMPLETED' }")
+  List<CalendarEvent> findCompletedVisitsByProperty(String propertyId);
+
+  /**
+   * Obtiene todas las visitas completadas de una propiedad dentro de un rango de fechas, ordenadas
+   * por fecha descendente.
+   */
+  @Query("{ 'propertyId': ?0, 'status': 'COMPLETED', 'startTime': { $gte: ?1, $lte: ?2 } }")
+  List<CalendarEvent> findCompletedVisitsByPropertyAndDateRange(
+      String propertyId, Instant dateSince, Instant dateUntil);
+
+  /** Cuenta el total de visitas completadas de una propiedad. */
+  long countByPropertyIdAndStatus(String propertyId, CalendarEvent.EventStatus status);
+
+  /** Cuenta visitas completadas de una propiedad con resultado "INTERESADO". */
+  @Query("{ 'propertyId': ?0, 'status': 'COMPLETED', 'resultado': 'INTERESADO' }")
+  long countCompletedInterestedByProperty(String propertyId);
+
+  /**
+   * Cuenta visitas completadas de una propiedad con resultado "INTERESADO" en un rango de fechas.
+   */
+  @Query(
+      "{ 'propertyId': ?0, 'status': 'COMPLETED', 'resultado': 'INTERESADO', 'startTime': { $gte: ?1, $lte: ?2 } }")
+  long countCompletedInterestedByPropertyAndDateRange(
+      String propertyId, Instant dateSince, Instant dateUntil);
 }

@@ -5,9 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inmobiliaria.visit_calendar_service.client.PersonClient;
 import com.inmobiliaria.visit_calendar_service.client.PropertyClient;
 import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
-import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CalendarResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.ConflictResponse;
+import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.CreateVisitRequest;
 import com.inmobiliaria.visit_calendar_service.dto.response.PersonResponse;
 import com.inmobiliaria.visit_calendar_service.dto.response.PropertyResponse;
+import com.inmobiliaria.visit_calendar_service.dto.response.VisitHistoryResponse;
+import com.inmobiliaria.visit_calendar_service.dto.response.VisitResponse;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictException;
 import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
@@ -216,6 +220,131 @@ public class CalendarService {
     return visitRepository.findByPropertyId(propertyId);
   }
 
+  /**
+   * HU de historial de visitas: Obtiene el historial de visitas completadas de una propiedad con
+   * estadísticas (conteo y porcentaje de "INTERESADO").
+   *
+   * <p>PA1: Retorna lista cronológica (más recientes primero) con fecha, hora y resultado. PA2:
+   * Mensaje descriptivo si no hay visitas. PA3: Paginación de 10, 20 o 30 elementos.
+   *
+   * @param propertyId ID de la propiedad
+   * @param dateSince Fecha desde (opcional)
+   * @param dateUntil Fecha hasta (opcional)
+   * @param pageNumber Número de página (0-based)
+   * @param pageSize Tamaño de página (10, 20 o 30)
+   * @return VisitHistoryResponse con visitas completadas y estadísticas
+   */
+  public VisitHistoryResponse getVisitHistory(
+      String propertyId,
+      Instant dateSince,
+      Instant dateUntil,
+      Integer pageNumber,
+      Integer pageSize) {
+
+    log.debug(
+        "Obteniendo historial de visitas para propiedad: {}, desde: {}, hasta: {}, "
+            + "página: {}, tamaño: {}",
+        propertyId,
+        dateSince,
+        dateUntil,
+        pageNumber,
+        pageSize);
+
+    // Validar parámetros de paginación
+    if (pageNumber == null || pageNumber < 0) {
+      pageNumber = 0;
+    }
+    if (pageSize == null || (pageSize != 10 && pageSize != 20 && pageSize != 30)) {
+      pageSize = 10; // Default
+    }
+
+    // Obtener todas las visitas completadas con filtro de fechas si es necesario
+    List<CalendarEvent> allCompletedVisits;
+    long totalInterestedCount;
+    long totalVisitCount;
+
+    if (dateSince != null && dateUntil != null) {
+      allCompletedVisits =
+          calendarEventRepository.findCompletedVisitsByPropertyAndDateRange(
+              propertyId, dateSince, dateUntil);
+      totalInterestedCount =
+          calendarEventRepository.countCompletedInterestedByPropertyAndDateRange(
+              propertyId, dateSince, dateUntil);
+      totalVisitCount =
+          calendarEventRepository.countByPropertyIdAndStatus(
+              propertyId, CalendarEvent.EventStatus.COMPLETED);
+    } else {
+      allCompletedVisits = calendarEventRepository.findCompletedVisitsByProperty(propertyId);
+      totalInterestedCount = calendarEventRepository.countCompletedInterestedByProperty(propertyId);
+      totalVisitCount =
+          calendarEventRepository.countByPropertyIdAndStatus(
+              propertyId, CalendarEvent.EventStatus.COMPLETED);
+    }
+
+    // Ordenar por fecha descendente (más recientes primero)
+    allCompletedVisits.sort((a, b) -> b.getStartTime().compareTo(a.getStartTime()));
+
+    // Si no hay visitas, retornar respuesta con mensaje descriptivo
+    if (allCompletedVisits.isEmpty()) {
+      VisitHistoryResponse response =
+          VisitHistoryResponse.builder()
+              .visits(List.of())
+              .totalVisits(0L)
+              .interestedCount(0L)
+              .interestedPercentage(
+                  java.math.BigDecimal.ZERO) // Usar BigDecimal para mantener precisión
+              .pageNumber(pageNumber)
+              .pageSize(pageSize)
+              .totalPages(0)
+              .message("Aún no se ha agendado ninguna visita para esta propiedad")
+              .build();
+      return response;
+    }
+
+    // Calcular porcentaje de visitas interesadas
+    java.math.BigDecimal interestedPercentage =
+        totalVisitCount > 0
+            ? java.math.BigDecimal.valueOf(totalInterestedCount)
+                .divide(
+                    java.math.BigDecimal.valueOf(totalVisitCount),
+                    2,
+                    java.math.RoundingMode.HALF_UP)
+                .multiply(java.math.BigDecimal.valueOf(100))
+            : java.math.BigDecimal.ZERO;
+
+    // Aplicar paginación
+    int totalPages = (int) Math.ceil((double) allCompletedVisits.size() / pageSize);
+    int startIndex = pageNumber * pageSize;
+    int endIndex = Math.min(startIndex + pageSize, allCompletedVisits.size());
+
+    List<VisitResponse> pagedVisits;
+    if (startIndex >= allCompletedVisits.size()) {
+      pagedVisits = List.of();
+    } else {
+      pagedVisits =
+          allCompletedVisits.subList(startIndex, endIndex).stream()
+              .map(this::toVisitResponse)
+              .collect(Collectors.toList());
+    }
+
+    VisitHistoryResponse response =
+        VisitHistoryResponse.builder()
+            .visits(pagedVisits)
+            .totalVisits(totalVisitCount)
+            .interestedCount(totalInterestedCount)
+            .interestedPercentage(interestedPercentage)
+            .pageNumber(pageNumber)
+            .pageSize(pageSize)
+            .totalPages(totalPages)
+            .message(
+                String.format(
+                    "Historial de %d visitas realizadas obtenido correctamente",
+                    allCompletedVisits.size()))
+            .build();
+
+    return response;
+  }
+
   /** Obtiene un evento por ID. */
   public Visit getById(String id, String requestingAgentId) {
     CalendarEvent event =
@@ -320,6 +449,33 @@ public class CalendarService {
     if (start.isBefore(Instant.now())) {
       throw new IllegalArgumentException("No se puede programar una visita en el pasado");
     }
+  }
+
+  /** Convierte un Visit a VisitResponse (record DTO). */
+  private VisitResponse toVisitResponse(CalendarEvent event) {
+    Visit.ResultadoVisita resultado = null;
+    if (event.getResultado() != null) {
+      try {
+        resultado = Visit.ResultadoVisita.valueOf(event.getResultado());
+      } catch (IllegalArgumentException e) {
+        // Ignorar si el resultado no coincide con el enum
+      }
+    }
+
+    return new VisitResponse(
+        event.getId(),
+        event.getPropertyId(),
+        event.getPropertyName(),
+        event.getClientId(),
+        event.getClientName(),
+        event.getAgentId(),
+        event.getAgentName(),
+        event.getStartTime(),
+        event.getEndTime(),
+        Visit.EventStatus.valueOf(event.getStatus().name()),
+        resultado,
+        event.getObservaciones(),
+        event.getFechaRegistroResultado());
   }
 
   private Visit toResponse(CalendarEvent event, String requestingAgentId) {
