@@ -1,21 +1,5 @@
 package com.inmobiliaria.visit_calendar_service.controller;
 
-import java.time.Instant;
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
 import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleRequest;
 import com.inmobiliaria.visit_calendar_service.dto.RescheduleResponse;
@@ -31,10 +15,23 @@ import com.inmobiliaria.visit_calendar_service.service.CalendarService;
 import com.inmobiliaria.visit_calendar_service.service.RescheduleService;
 import com.inmobiliaria.visit_calendar_service.service.VehicleService;
 import com.inmobiliaria.visit_calendar_service.service.VisitRequestService;
-
 import jakarta.validation.Valid;
+import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Controlador REST para el calendario compartido y la programación de visitas.

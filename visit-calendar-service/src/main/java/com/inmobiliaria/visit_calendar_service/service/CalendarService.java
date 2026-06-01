@@ -1,14 +1,5 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inmobiliaria.visit_calendar_service.client.PersonClient;
@@ -27,9 +18,15 @@ import com.inmobiliaria.visit_calendar_service.model.CalendarEvent;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.CalendarEventRepository;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
-
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
  * Servicio de lógica de negocio para el calendario de visitas.
