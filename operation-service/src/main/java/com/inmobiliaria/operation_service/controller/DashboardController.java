@@ -1,5 +1,6 @@
 package com.inmobiliaria.operation_service.controller;
 
+import com.inmobiliaria.operation_service.dto.dashboard.DashboardResumenDto;
 import com.inmobiliaria.operation_service.dto.response.ApiResponse;
 import com.inmobiliaria.operation_service.dto.response.ResponseFactory;
 import com.inmobiliaria.operation_service.service.DashboardService;
@@ -12,25 +13,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/operations/dashboard")
+@RequestMapping("/dashboard")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class DashboardController {
 
   private final DashboardService dashboardService;
   private final ResponseFactory responseFactory;
 
   @GetMapping("/resumen")
-  @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<ApiResponse<DashboardService.DashboardSummaryResponse>> getResumen() {
-    return ResponseEntity.ok(
-        responseFactory.success("Resumen obtenido exitosamente", dashboardService.getResumen()));
+  public ResponseEntity<ApiResponse<DashboardResumenDto>> getResumen() {
+    DashboardResumenDto resumen = dashboardService.obtenerResumenGlobal();
+    return ResponseEntity.ok(responseFactory.success("Resumen obtenido exitosamente", resumen));
   }
 
   @GetMapping("/distribucion-estados")
-  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<Map<String, Long>>> getDistribucionEstados() {
+    Map<String, Long> distribucion = dashboardService.obtenerDistribucionEstados();
     return ResponseEntity.ok(
-        responseFactory.success(
-            "Distribución obtenida exitosamente", dashboardService.getDistribucionEstados()));
+        responseFactory.success("Distribución de estados obtenida", distribucion));
   }
 }

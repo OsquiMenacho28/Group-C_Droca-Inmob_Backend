@@ -98,7 +98,7 @@ spring:
         - id: operation-service
           uri: lb://operation-service
           predicates:
-            - Path=/api/v1/operations/**, /api/v1/operations
+            - Path=/api/v1/operations/**, /api/v1/operations, /api/v1/dashboard/**
           filters:
             - AuthenticationFilter
             - StripPrefix=2
