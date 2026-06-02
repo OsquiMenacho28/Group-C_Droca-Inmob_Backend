@@ -2,6 +2,7 @@ package com.inmobiliaria.operation_service.service;
 
 import com.inmobiliaria.operation_service.client.PropertyClient;
 import com.inmobiliaria.operation_service.client.VisitClient;
+import com.inmobiliaria.operation_service.dto.dashboard.DashboardResumenDto;
 import com.inmobiliaria.operation_service.repository.OperationRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -20,79 +22,53 @@ public class DashboardService {
   private final VisitClient visitClient;
   private final OperationRepository operationRepository;
 
-  // Variables para Caché en memoria (TTL: 2 minutos)
-  private DashboardSummaryResponse cachedSummary;
-  private Instant summaryCacheTime = Instant.MIN;
-  private Map<String, Long> cachedDistribution;
-  private Instant distributionCacheTime = Instant.MIN;
+  @Cacheable(value = "dashboardCache", key = "'resumen'")
+  public DashboardResumenDto obtenerResumenGlobal() {
+    log.info("Calculando resumen global del dashboard (Sin Caché)");
 
-  public DashboardSummaryResponse getResumen() {
-    if (Instant.now().isBefore(summaryCacheTime.plus(2, ChronoUnit.MINUTES))
-        && cachedSummary != null) {
-      return cachedSummary;
+    // 1. Total de Inmuebles Activos (Excluyendo VENDIDO, ELIMINADO, RETIRADO)
+    var propertyReport = propertyClient.getInventoryReport();
+    long inmueblesActivos = 0;
+    if (propertyReport != null && propertyReport.getData() != null) {
+      Map<String, Long> totals = propertyReport.getData().totalsByStatus();
+      if (totals != null) {
+        inmueblesActivos =
+            totals.getOrDefault("DISPONIBLE", 0L)
+                + totals.getOrDefault("RESERVADO", 0L)
+                + totals.getOrDefault("EN_NEGOCIACION", 0L);
+      }
     }
 
-    long activeProperties = 0;
+    // 2. Visitas programadas para el resto de la semana
+    Instant now = Instant.now();
+    Instant endOfWeek = now.plus(7, ChronoUnit.DAYS); // Aproximación a 7 días
+    int totalVisitas = 0;
     try {
-      var reportResponse = propertyClient.getInventoryReport();
-      if (reportResponse != null && reportResponse.getData() != null) {
-        var totals = reportResponse.getData().totalsByStatus();
-        if (totals != null) {
-          activeProperties =
-              totals.entrySet().stream()
-                  .filter(
-                      e ->
-                          List.of("DISPONIBLE", "EN_NEGOCIACION", "RESERVADO").contains(e.getKey()))
-                  .mapToLong(Map.Entry::getValue)
-                  .sum();
-        }
+      var visitResponse = visitClient.getCalendar(now, endOfWeek);
+      if (visitResponse != null && visitResponse.getData() != null) {
+        totalVisitas = visitResponse.getData().totalEvents();
       }
     } catch (Exception e) {
-      log.warn("No se pudo obtener el reporte de inventario: {}", e.getMessage());
+      log.error("Error obteniendo visitas del calendario: {}", e.getMessage());
     }
 
-    long pendingVisits = 0;
-    try {
-      Instant now = Instant.now();
-      Instant endOfWeek = now.plus(7, ChronoUnit.DAYS);
-      var calendarResponse = visitClient.getCalendar(now, endOfWeek);
-      if (calendarResponse != null && calendarResponse.getData() != null) {
-        pendingVisits = calendarResponse.getData().totalEvents();
-      }
-    } catch (Exception e) {
-      log.warn("No se pudo obtener el calendario de visitas: {}", e.getMessage());
-    }
+    // 3. Operaciones en curso (PENDING, ACTIVE)
+    long operacionesEnCurso = operationRepository.countByStatusIn(List.of("PENDING", "ACTIVE"));
 
-    long activeOperations = operationRepository.countByStatusIn(List.of("PENDING", "ACTIVE"));
-
-    cachedSummary = new DashboardSummaryResponse(activeProperties, pendingVisits, activeOperations);
-    summaryCacheTime = Instant.now();
-    return cachedSummary;
+    return DashboardResumenDto.builder()
+        .totalInmueblesActivos(inmueblesActivos)
+        .visitasProgramadasSemana(totalVisitas)
+        .operacionesEnCurso(operacionesEnCurso)
+        .build();
   }
 
-  public Map<String, Long> getDistribucionEstados() {
-    if (Instant.now().isBefore(distributionCacheTime.plus(2, ChronoUnit.MINUTES))
-        && cachedDistribution != null) {
-      return cachedDistribution;
+  @Cacheable(value = "dashboardCache", key = "'distribucion'")
+  public Map<String, Long> obtenerDistribucionEstados() {
+    log.info("Calculando distribución de estados (Sin Caché)");
+    var propertyReport = propertyClient.getInventoryReport();
+    if (propertyReport != null && propertyReport.getData() != null) {
+      return propertyReport.getData().totalsByStatus();
     }
-
-    Map<String, Long> distribution = Map.of();
-    try {
-      var reportResponse = propertyClient.getInventoryReport();
-      if (reportResponse != null
-          && reportResponse.getData() != null
-          && reportResponse.getData().totalsByStatus() != null) {
-        distribution = reportResponse.getData().totalsByStatus();
-      }
-    } catch (Exception e) {
-      log.warn("No se pudo obtener la distribución de estados: {}", e.getMessage());
-    }
-
-    cachedDistribution = distribution;
-    distributionCacheTime = Instant.now();
-    return cachedDistribution;
+    return Map.of();
   }
-
-  public record DashboardSummaryResponse(
-      long activeProperties, long weeklyVisits, long activeOperations) {}
 }
