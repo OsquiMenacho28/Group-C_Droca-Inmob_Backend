@@ -30,26 +30,24 @@ public class UpcomingVisitsNotifier {
   @Transactional
   public void processUpcomingVisits() {
     AlertConfig config = alertConfigService.getConfig();
-    if (!config.isEnabled()) {
-      log.debug("Alertas deshabilitadas, scheduler salta.");
+    if (!config.isEnableIndividualReminders()) {
+      log.debug("Recordatorios individuales deshabilitados.");
       return;
     }
 
     Instant now = Instant.now();
-    Instant limit = now.plus(config.getAnticipationHours(), ChronoUnit.HOURS);
+    int minutes = config.getAnticipationMinutes();
+    Instant limit = now.plus(minutes, ChronoUnit.MINUTES);
 
     List<Visit> upcomingVisits =
         visitRepository.findByStartTimeBetweenAndStatus(now, limit, Visit.EventStatus.SCHEDULED);
 
     for (Visit visit : upcomingVisits) {
-      if (visit.isUpcomingNotificationSent()) {
-        continue;
-      }
+      if (visit.isUpcomingNotificationSent()) continue;
 
       // Enviar notificación al agente responsable
       sendNotificationToUser(visit.getAgentId(), visit, "agente");
-      // Opcional: también al propietario (requiere obtener ownerId)
-      // sendNotificationToOwner(visit.getPropertyId(), visit);
+      // (Opcional: también al propietario)
 
       visit.setUpcomingNotificationSent(true);
       visitRepository.save(visit);

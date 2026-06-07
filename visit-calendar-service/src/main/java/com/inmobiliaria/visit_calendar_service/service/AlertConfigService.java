@@ -1,32 +1,48 @@
-// backend/visit-calendar-service/src/main/java/.../service/AlertConfigService.java
 package com.inmobiliaria.visit_calendar_service.service;
 
 import com.inmobiliaria.visit_calendar_service.model.AlertConfig;
 import com.inmobiliaria.visit_calendar_service.repository.AlertConfigRepository;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class AlertConfigService {
-  private final AlertConfigRepository repository;
 
-  private static final String CONFIG_ID = "DEFAULT";
+  private final AlertConfigRepository repository;
 
   public AlertConfig getConfig() {
     return repository
-        .findById(CONFIG_ID)
+        .findById("DEFAULT")
         .orElseGet(
             () -> {
-              AlertConfig defaultConfig = new AlertConfig(CONFIG_ID, 2, "IN_APP", true);
+              AlertConfig defaultConfig = new AlertConfig();
+              defaultConfig.setId("DEFAULT");
+              defaultConfig.setEnableIndividualReminders(true);
+              defaultConfig.setAnticipationMinutes(60);
+              defaultConfig.setEnableDailySummary(true);
+              defaultConfig.setChannel("IN_APP");
               return repository.save(defaultConfig);
             });
   }
 
-  public AlertConfig updateConfig(int anticipationHours, String channel) {
+  public AlertConfig updateConfig(
+      boolean enableDailySummary,
+      boolean enableIndividualReminders,
+      int anticipationMinutes,
+      String channel) {
     AlertConfig config = getConfig();
-    config.setAnticipationHours(anticipationHours);
-    config.setChannel(channel);
+    config.setEnableDailySummary(enableDailySummary);
+    config.setEnableIndividualReminders(enableIndividualReminders);
+    config.setAnticipationMinutes(anticipationMinutes);
+    if (channel != null) config.setChannel(channel);
     return repository.save(config);
+  }
+
+  public void markDailyNotificationSent() {
+    AlertConfig config = getConfig();
+    config.setLastDailyNotificationDate(LocalDate.now());
+    repository.save(config);
   }
 }

@@ -82,4 +82,6 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
 
   List<Visit> findByAgentIdAndStartTimeBetweenAndStatus(
       String agentId, Instant start, Instant end, EventStatus status);
+
+  List<Visit> findByStartTimeBetween(Instant start, Instant end);
 }

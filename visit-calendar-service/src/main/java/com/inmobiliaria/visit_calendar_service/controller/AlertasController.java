@@ -5,6 +5,7 @@ import com.inmobiliaria.visit_calendar_service.dto.response.ResponseFactory;
 import com.inmobiliaria.visit_calendar_service.model.AlertConfig;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.service.AlertConfigService;
+import com.inmobiliaria.visit_calendar_service.service.DailySummaryService;
 import com.inmobiliaria.visit_calendar_service.service.UpcomingVisitsService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.*;
 public class AlertasController {
 
   private final UpcomingVisitsService upcomingVisitsService;
-  private final AlertConfigService alertConfigService; // ← Agregado
+  private final AlertConfigService alertConfigService;
+  private final DailySummaryService dailySummaryService;
   private final ResponseFactory responseFactory;
 
+  // Endpoint para obtener visitas próximas (recordatorios individuales)
   @GetMapping("/visitas-proximas")
   public ResponseEntity<ApiResponse<List<Visit>>> getUpcomingVisits(
       @RequestHeader("X-Auth-User-Id") String userId,
@@ -29,11 +32,38 @@ public class AlertasController {
     return ResponseEntity.ok(responseFactory.success("Próximas visitas obtenidas", visits));
   }
 
+  // Endpoint para obtener el resumen de visitas del día actual
+  @GetMapping("/visitas-del-dia")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<List<Visit>>> getTodayVisits() {
+    List<Visit> visits = dailySummaryService.getTodayVisits();
+    return ResponseEntity.ok(responseFactory.success("Visitas del día obtenidas", visits));
+  }
+
+  // Endpoint para actualizar la configuración de alertas
   @PutMapping("/admin/configuracion-alertas")
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<AlertConfig>> updateAlertConfig(
-      @RequestParam int anticipationHours, @RequestParam String channel) {
-    AlertConfig updated = alertConfigService.updateConfig(anticipationHours, channel);
+      @RequestParam boolean enableDailySummary,
+      @RequestParam boolean enableIndividualReminders,
+      @RequestParam int anticipationMinutes,
+      @RequestParam(required = false) String channel) {
+
+    // Validar que anticipationMinutes sea 30, 60 o 90
+    if (anticipationMinutes != 30 && anticipationMinutes != 60 && anticipationMinutes != 90) {
+      throw new IllegalArgumentException("El tiempo de anticipación debe ser 30, 60 o 90 minutos");
+    }
+
+    AlertConfig updated =
+        alertConfigService.updateConfig(
+            enableDailySummary, enableIndividualReminders, anticipationMinutes, channel);
+
+    // Si se habilitó el resumen diario después de las 08:00 y aún no se envió hoy, enviarlo
+    // inmediatamente
+    if (enableDailySummary) {
+      dailySummaryService.sendImmediateSummaryIfNeeded();
+    }
+
     return ResponseEntity.ok(responseFactory.success("Configuración actualizada", updated));
   }
 }
