@@ -49,7 +49,6 @@ public class AlertasController {
       @RequestParam int anticipationMinutes,
       @RequestParam(required = false) String channel) {
 
-    // Validar que anticipationMinutes sea 30, 60 o 90
     if (anticipationMinutes != 30 && anticipationMinutes != 60 && anticipationMinutes != 90) {
       throw new IllegalArgumentException("El tiempo de anticipación debe ser 30, 60 o 90 minutos");
     }
@@ -58,12 +57,18 @@ public class AlertasController {
         alertConfigService.updateConfig(
             enableDailySummary, enableIndividualReminders, anticipationMinutes, channel);
 
-    // Si se habilitó el resumen diario después de las 08:00 y aún no se envió hoy, enviarlo
-    // inmediatamente
+    // Si se habilitó el resumen diario y aún no se envió hoy, enviarlo inmediatamente
     if (enableDailySummary) {
       dailySummaryService.sendImmediateSummaryIfNeeded();
     }
 
     return ResponseEntity.ok(responseFactory.success("Configuración actualizada", updated));
+  }
+
+  @GetMapping("/admin/configuracion-alertas")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<AlertConfig>> getAlertConfig() {
+    AlertConfig config = alertConfigService.getConfig();
+    return ResponseEntity.ok(responseFactory.success("Configuración obtenida", config));
   }
 }
