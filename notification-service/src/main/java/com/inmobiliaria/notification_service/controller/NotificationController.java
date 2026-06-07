@@ -2,6 +2,7 @@ package com.inmobiliaria.notification_service.controller;
 
 import com.inmobiliaria.notification_service.domain.NotificationDocument;
 import com.inmobiliaria.notification_service.domain.NotificationStatus;
+import com.inmobiliaria.notification_service.dto.request.SendAttachmentEmailRequest;
 import com.inmobiliaria.notification_service.dto.request.SendCredentialsEmailRequest;
 import com.inmobiliaria.notification_service.dto.request.SendInAppNotificationRequest;
 import com.inmobiliaria.notification_service.dto.request.SendNotificationRequest;
@@ -39,6 +40,13 @@ public class NotificationController {
     NotificationResponse response = notificationService.sendCredentialsEmail(request);
     return ResponseEntity.ok(
         responseFactory.success("Credentials email sent successfully", response));
+  }
+
+  @PostMapping("/send-attachment")
+  public ResponseEntity<ApiResponse<Void>> sendNotificationWithAttachment(
+      @Valid @RequestBody SendAttachmentEmailRequest req) {
+    notificationService.sendEmailWithAttachment(req);
+    return ResponseEntity.ok(responseFactory.success("Email with attachment sent successfully"));
   }
 
   // controller/NotificationController.java
