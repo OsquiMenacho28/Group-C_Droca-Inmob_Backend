@@ -93,6 +93,28 @@
 			<version>8.6.0</version>
 			<scope>compile</scope>
 		</dependency>
+		<!-- Thymeleaf Template Engine -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<!-- iText 7 HTML to PDF -->
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>html2pdf</artifactId>
+			<version>5.0.3</version>
+		</dependency>
+		<!-- Google ZXing QR Code -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.5.3</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
