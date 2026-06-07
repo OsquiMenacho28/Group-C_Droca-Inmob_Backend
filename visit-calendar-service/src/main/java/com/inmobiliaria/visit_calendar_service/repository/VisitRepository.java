@@ -77,4 +77,9 @@ public interface VisitRepository extends MongoRepository<Visit, String> {
   // Encuentra una visita por ID solo si tiene un estado específico (valida que solo se puedan
   // registrar en visitas COMPLETED)
   Optional<Visit> findByIdAndStatus(String id, EventStatus status);
+
+  List<Visit> findByStartTimeBetweenAndStatus(Instant start, Instant end, EventStatus status);
+
+  List<Visit> findByAgentIdAndStartTimeBetweenAndStatus(
+      String agentId, Instant start, Instant end, EventStatus status);
 }
