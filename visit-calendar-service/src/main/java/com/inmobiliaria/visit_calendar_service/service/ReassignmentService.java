@@ -32,6 +32,7 @@ public class ReassignmentService {
   private final ReassignmentNotificationService reassignmentNotificationService;
   private final UserClient userClient;
   private final PersonClient personClient;
+  private final AgentAvailabilityService agentAvailabilityService;
 
   public ReassignmentRequestResponseDTO requestReassignment(
       String visitId, String requestingAgentId, ReassignmentRequestRequestDTO dto) {
@@ -55,6 +56,10 @@ public class ReassignmentService {
     if (requestingAgentId.equals(dto.getDestinationAgentId())) {
       throw new RuntimeException("No puedes reasignar la cita a ti mismo.");
     }
+
+    // Validar disponibilidad del agente destino (Sprint 5)
+    agentAvailabilityService.checkAgentAvailability(
+        dto.getDestinationAgentId(), event.getStartTime(), event.getEndTime());
 
     ReassignmentRequest request =
         new ReassignmentRequest(
@@ -90,6 +95,14 @@ public class ReassignmentService {
     request.setCommentReply(dto.getComment());
 
     if (dto.getDecision() == ReassignmentRequest.RequestStatus.ACCEPTED) {
+      // Validar disponibilidad al aceptar la reasignación (Sprint 5)
+      CalendarEvent event =
+          calendarEventRepository
+              .findById(request.getVisitId())
+              .orElseThrow(
+                  () -> new RuntimeException("Cita no encontrada al verificar disponibilidad."));
+      agentAvailabilityService.checkAgentAvailability(
+          request.getDestinationAgentId(), event.getStartTime(), event.getEndTime());
       applyReassignment(request);
     }
 
