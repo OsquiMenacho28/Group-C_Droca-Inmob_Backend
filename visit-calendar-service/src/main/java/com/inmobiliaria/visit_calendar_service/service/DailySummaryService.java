@@ -13,6 +13,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -105,14 +106,12 @@ public class DailySummaryService {
 
   private List<String> fetchAdminUserIds() {
     try {
-      // Llamada a user-service para obtener usuarios con rol ADMIN
-      // Asumimos que el endpoint /users devuelve una paginación con campo "data"
-      var response = userAdminClient.getUsers(0, 1000, "ADMIN");
+      var response = userAdminClient.getAdmins();
       var data = (List<Map<String, Object>>) response.get("data");
       if (data == null) return List.of();
-      return data.stream().map(user -> (String) user.get("id")).filter(id -> id != null).toList();
+      return data.stream().map(user -> (String) user.get("id")).filter(Objects::nonNull).toList();
     } catch (Exception e) {
-      log.error("Error al obtener administradores desde user-service: {}", e.getMessage());
+      log.error("Error al obtener administradores desde identity-service: {}", e.getMessage());
       return List.of();
     }
   }

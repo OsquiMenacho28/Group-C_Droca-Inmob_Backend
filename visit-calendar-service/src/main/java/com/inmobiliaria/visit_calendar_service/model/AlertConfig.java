@@ -15,7 +15,7 @@ public class AlertConfig {
   @Id private String id = "DEFAULT";
 
   // Configuración para recordatorios individuales
-  private boolean enableIndividualReminders = true;
+  private boolean enableIndividualReminders = false;
   private int anticipationMinutes = 60; // 30, 60 o 90 minutos
 
   // Configuración para resumen diario

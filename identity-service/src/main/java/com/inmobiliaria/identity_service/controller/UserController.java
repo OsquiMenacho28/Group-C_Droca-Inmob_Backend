@@ -1,5 +1,6 @@
 package com.inmobiliaria.identity_service.controller;
 
+import com.inmobiliaria.identity_service.domain.UserType;
 import com.inmobiliaria.identity_service.dto.request.AssignRoleRequest;
 import com.inmobiliaria.identity_service.dto.request.CreateUserRequest;
 import com.inmobiliaria.identity_service.dto.request.UpdateUserRequest;
@@ -88,5 +89,12 @@ public class UserController {
   public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
     userService.delete(id);
     return ResponseEntity.ok(responseFactory.deleted("User deleted successfully"));
+  }
+
+  @GetMapping("/admins")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<List<UserResponse>>> getAdmins() {
+    List<UserResponse> admins = userService.findAllByUserType(UserType.ADMIN);
+    return ResponseEntity.ok(responseFactory.success("Admins retrieved successfully", admins));
   }
 }

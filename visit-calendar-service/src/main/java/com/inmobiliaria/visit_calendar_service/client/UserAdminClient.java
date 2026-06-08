@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
-    name = "user-service",
+    name = "identity-service",
     contextId = "userAdminClient",
     configuration = FeignConfig.class)
 public interface UserAdminClient {
@@ -17,4 +17,7 @@ public interface UserAdminClient {
       @RequestParam("page") int page,
       @RequestParam("pageSize") int pageSize,
       @RequestParam(value = "role", required = false) String role);
+
+  @GetMapping("/users/admins")
+  Map<String, Object> getAdmins();
 }

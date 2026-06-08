@@ -1,7 +1,7 @@
-// backend/visit-calendar-service/src/main/java/.../service/UpcomingVisitsNotifier.java
 package com.inmobiliaria.visit_calendar_service.service;
 
 import com.inmobiliaria.visit_calendar_service.client.NotificationClient;
+import com.inmobiliaria.visit_calendar_service.client.UserAdminClient;
 import com.inmobiliaria.visit_calendar_service.domain.InteractionType;
 import com.inmobiliaria.visit_calendar_service.dto.request.SendInAppNotificationRequest;
 import com.inmobiliaria.visit_calendar_service.model.AlertConfig;
@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,13 +26,14 @@ public class UpcomingVisitsNotifier {
   private final VisitRepository visitRepository;
   private final AlertConfigService alertConfigService;
   private final NotificationClient notificationClient;
+  private final UserAdminClient userAdminClient; // Inyectar el cliente Feign
 
   @Scheduled(fixedDelay = 15 * 60 * 1000) // cada 15 minutos
   @Transactional
   public void processUpcomingVisits() {
     AlertConfig config = alertConfigService.getConfig();
     if (!config.isEnableIndividualReminders()) {
-      log.debug("Recordatorios individuales deshabilitados.");
+      log.debug("Recordatorios de visitas próximas deshabilitados (para administradores).");
       return;
     }
 
@@ -41,41 +43,73 @@ public class UpcomingVisitsNotifier {
 
     List<Visit> upcomingVisits =
         visitRepository.findByStartTimeBetweenAndStatus(now, limit, Visit.EventStatus.SCHEDULED);
+    if (upcomingVisits.isEmpty()) {
+      return;
+    }
 
+    // Obtener lista de administradores
+    List<String> adminIds = fetchAdminUserIds();
+    if (adminIds.isEmpty()) {
+      log.warn("No se encontraron administradores para enviar recordatorios de visitas próximas.");
+      return;
+    }
+
+    // Para cada visita próxima, notificar a todos los administradores
     for (Visit visit : upcomingVisits) {
       if (visit.isUpcomingNotificationSent()) continue;
 
-      // Enviar notificación al agente responsable
-      sendNotificationToUser(visit.getAgentId(), visit, "agente");
-      // (Opcional: también al propietario)
+      for (String adminId : adminIds) {
+        sendNotificationToAdmin(adminId, visit);
+      }
 
       visit.setUpcomingNotificationSent(true);
       visitRepository.save(visit);
+      log.info(
+          "Notificación de visita próxima enviada a {} administradores para la visita ID {}",
+          adminIds.size(),
+          visit.getId());
     }
   }
 
-  private void sendNotificationToUser(String userId, Visit visit, String role) {
+  private void sendNotificationToAdmin(String adminId, Visit visit) {
     try {
-      String subject = "📅 Visita próxima";
+      String subject = "📅 Visita próxima a realizarse";
       String content =
           String.format(
-              "Tienes una visita programada para la propiedad '%s' el día %s.",
-              visit.getPropertyName(), visit.getStartTime());
+              "La visita programada para la propiedad '%s' con el agente '%s' está próxima a comenzar a las %s.",
+              visit.getPropertyName(), visit.getAgentName(), visit.getStartTime());
 
       SendInAppNotificationRequest request =
           new SendInAppNotificationRequest(
-              userId,
+              adminId,
               "UPCOMING_VISIT",
-              InteractionType.VISITA,
-              List.of(),
+              InteractionType.ADMIN_OP,
+              List.of(visit.getAgentId(), visit.getClientId()),
               subject,
               content,
-              Map.of("visitId", visit.getId(), "propertyId", visit.getPropertyId()));
+              Map.of(
+                  "visitId", visit.getId(),
+                  "propertyId", visit.getPropertyId(),
+                  "agentId", visit.getAgentId(),
+                  "clientId", visit.getClientId(),
+                  "startTime", visit.getStartTime().toString()));
 
       notificationClient.sendInAppNotification(request);
-      log.info("Notificación de visita próxima enviada a {} {}", role, userId);
     } catch (Exception e) {
-      log.error("Error enviando notificación de visita próxima a {}: {}", userId, e.getMessage());
+      log.error(
+          "Error enviando notificación de visita próxima al admin {}: {}", adminId, e.getMessage());
+    }
+  }
+
+  private List<String> fetchAdminUserIds() {
+    try {
+      var response = userAdminClient.getAdmins(); // Usar el nuevo endpoint
+      var data = (List<Map<String, Object>>) response.get("data");
+      if (data == null) return List.of();
+      return data.stream().map(user -> (String) user.get("id")).filter(Objects::nonNull).toList();
+    } catch (Exception e) {
+      log.error("Error al obtener administradores desde identity-service: {}", e.getMessage());
+      return List.of();
     }
   }
 }

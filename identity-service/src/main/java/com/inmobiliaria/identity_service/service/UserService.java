@@ -22,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -320,6 +321,12 @@ public class UserService {
         .findById(id)
         .map(this::toResponse)
         .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+  }
+
+  public List<UserResponse> findAllByUserType(UserType userType) {
+    return userRepository.findByUserType(userType).stream()
+        .map(this::toResponse)
+        .collect(Collectors.toList());
   }
 
   public UserDocument findByEmailNormalized(String emailNormalized) {
