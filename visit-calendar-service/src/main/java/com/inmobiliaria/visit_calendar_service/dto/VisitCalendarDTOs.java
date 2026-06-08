@@ -144,6 +144,17 @@ public class VisitCalendarDTOs {
     private String calendarEventId;
     private Instant createdAt;
     private boolean notificationSent;
+    private Instant acceptedDateTime;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class AcceptVisitRequestDTO {
+    private Instant customStartTime;
+    private Instant customEndTime;
+    private String vehicleId;
   }
 
   // =========================================================
