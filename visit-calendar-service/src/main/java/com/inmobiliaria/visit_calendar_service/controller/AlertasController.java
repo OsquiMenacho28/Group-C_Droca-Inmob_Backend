@@ -40,6 +40,13 @@ public class AlertasController {
     return ResponseEntity.ok(responseFactory.success("Visitas del día obtenidas", visits));
   }
 
+  @GetMapping("/admin/configuracion-alertas")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<AlertConfig>> getAlertConfig() {
+    AlertConfig config = alertConfigService.getConfig();
+    return ResponseEntity.ok(responseFactory.success("Configuración obtenida", config));
+  }
+
   // Endpoint para actualizar la configuración de alertas
   @PutMapping("/admin/configuracion-alertas")
   @PreAuthorize("hasRole('ADMIN')")
@@ -63,12 +70,5 @@ public class AlertasController {
     }
 
     return ResponseEntity.ok(responseFactory.success("Configuración actualizada", updated));
-  }
-
-  @GetMapping("/admin/configuracion-alertas")
-  @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<ApiResponse<AlertConfig>> getAlertConfig() {
-    AlertConfig config = alertConfigService.getConfig();
-    return ResponseEntity.ok(responseFactory.success("Configuración obtenida", config));
   }
 }

@@ -47,8 +47,3 @@ property:
 notification:
   service:
     url: http://localhost:8083  # Puerto del notification-service
-
-app:
-  alert:
-    default-antecipation-hours: 2
-    default-channel: IN_APP
