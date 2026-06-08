@@ -16,6 +16,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -92,9 +94,24 @@ public class UserController {
   }
 
   @GetMapping("/admins")
-  @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<ApiResponse<List<UserResponse>>> getAdmins() {
-    List<UserResponse> admins = userService.findAllByUserType(UserType.ADMIN);
-    return ResponseEntity.ok(responseFactory.success("Admins retrieved successfully", admins));
+  public ResponseEntity<ApiResponse<List<UserResponse>>> getAdmins(
+      @RequestHeader(value = "X-Service-Name", required = false) String serviceName) {
+
+    // Permitir acceso interno desde visit-calendar-service
+    if ("visit-calendar-service".equals(serviceName)) {
+      List<UserResponse> admins = userService.findAllByUserType(UserType.ADMIN);
+      return ResponseEntity.ok(responseFactory.success("Admins retrieved successfully", admins));
+    }
+
+    // Para cualquier otra llamada, exigir rol ADMIN
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth != null
+        && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+      List<UserResponse> admins = userService.findAllByUserType(UserType.ADMIN);
+      return ResponseEntity.ok(responseFactory.success("Admins retrieved successfully", admins));
+    }
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(responseFactory.forbidden("Access denied: ADMIN role required"));
   }
 }

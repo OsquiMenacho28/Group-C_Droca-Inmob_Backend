@@ -8,7 +8,11 @@ import com.inmobiliaria.visit_calendar_service.model.AlertConfig;
 import com.inmobiliaria.visit_calendar_service.model.Visit;
 import com.inmobiliaria.visit_calendar_service.repository.VisitRepository;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,7 +32,7 @@ public class UpcomingVisitsNotifier {
   private final NotificationClient notificationClient;
   private final UserAdminClient userAdminClient; // Inyectar el cliente Feign
 
-  @Scheduled(fixedDelay = 15 * 60 * 1000) // cada 15 minutos
+  @Scheduled(fixedDelay = 30 * 1000) // cada 30 segundos
   @Transactional
   public void processUpcomingVisits() {
     AlertConfig config = alertConfigService.getConfig();
@@ -73,31 +77,40 @@ public class UpcomingVisitsNotifier {
 
   private void sendNotificationToAdmin(String adminId, Visit visit) {
     try {
+      String formattedStart = formatLocalDateTime(visit.getStartTime());
       String subject = "📅 Visita próxima a realizarse";
       String content =
           String.format(
               "La visita programada para la propiedad '%s' con el agente '%s' está próxima a comenzar a las %s.",
-              visit.getPropertyName(), visit.getAgentName(), visit.getStartTime());
+              visit.getPropertyName(), visit.getAgentName(), formattedStart);
+
+      // Construir lista de involucrados sin elementos nulos
+      List<String> involvedUserIds = new ArrayList<>();
+      if (visit.getAgentId() != null) involvedUserIds.add(visit.getAgentId());
+      if (visit.getClientId() != null) involvedUserIds.add(visit.getClientId());
 
       SendInAppNotificationRequest request =
           new SendInAppNotificationRequest(
               adminId,
               "UPCOMING_VISIT",
               InteractionType.ADMIN_OP,
-              List.of(visit.getAgentId(), visit.getClientId()),
+              involvedUserIds,
               subject,
               content,
               Map.of(
                   "visitId", visit.getId(),
                   "propertyId", visit.getPropertyId(),
                   "agentId", visit.getAgentId(),
-                  "clientId", visit.getClientId(),
+                  "clientId", visit.getClientId() != null ? visit.getClientId() : "",
                   "startTime", visit.getStartTime().toString()));
 
       notificationClient.sendInAppNotification(request);
     } catch (Exception e) {
       log.error(
-          "Error enviando notificación de visita próxima al admin {}: {}", adminId, e.getMessage());
+          "Error enviando notificación de visita próxima al admin {}: {}",
+          adminId,
+          e.getMessage(),
+          e);
     }
   }
 
@@ -111,5 +124,13 @@ public class UpcomingVisitsNotifier {
       log.error("Error al obtener administradores desde identity-service: {}", e.getMessage());
       return List.of();
     }
+  }
+
+  private String formatLocalDateTime(Instant instant) {
+    if (instant == null) return "";
+    ZoneId boliviaZone = ZoneId.of("America/La_Paz");
+    ZonedDateTime zdt = instant.atZone(boliviaZone);
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    return zdt.format(formatter);
   }
 }
