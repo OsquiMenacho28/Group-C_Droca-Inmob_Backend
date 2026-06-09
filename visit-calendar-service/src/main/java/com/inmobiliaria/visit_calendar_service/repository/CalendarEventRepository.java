@@ -64,6 +64,18 @@ public interface CalendarEventRepository extends MongoRepository<CalendarEvent, 
   List<CalendarEvent> findConflictingEventsForNew(
       String propertyId, Instant newStart, Instant newEnd);
 
+  /** Detecta si existe un conflicto de horario para un agente específico. */
+  @Query(
+      "{ "
+          + "  'agentId': ?0, "
+          + "  'status': { $nin: ['CANCELLED'] }, "
+          + "  '$or': [ "
+          + "    { 'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } "
+          + "  ] "
+          + "}")
+  List<CalendarEvent> findConflictingEventsForAgent(
+      String agentId, Instant newStart, Instant newEnd);
+
   // --- Consultas generales ---
 
   List<CalendarEvent> findByAgentId(String agentId);

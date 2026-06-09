@@ -153,10 +153,12 @@ public class CalendarController {
   @GetMapping("/visits/conflict-check")
   public ResponseEntity<ApiResponse<ConflictResponse>> checkConflict(
       @RequestParam String propertyId,
+      @RequestParam(required = false) String agentId,
       @RequestParam Instant startTime,
       @RequestParam Instant endTime) {
 
-    ConflictResponse result = calendarService.checkConflict(propertyId, startTime, endTime);
+    ConflictResponse result =
+        calendarService.checkConflict(propertyId, agentId, startTime, endTime);
 
     return ResponseEntity.ok(
         responseFactory.success(

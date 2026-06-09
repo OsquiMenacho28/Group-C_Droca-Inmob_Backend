@@ -7,6 +7,7 @@ import com.inmobiliaria.property_service.dto.request.AssignAgentRequest;
 import com.inmobiliaria.property_service.dto.request.AssignOwnerRequest;
 import com.inmobiliaria.property_service.dto.request.PropertyRequest;
 import com.inmobiliaria.property_service.dto.request.RetirePropertyRequest;
+import com.inmobiliaria.property_service.dto.request.SendPdfEmailRequest;
 import com.inmobiliaria.property_service.dto.request.UpdateLocationRequest;
 import com.inmobiliaria.property_service.dto.request.UpdateOperationTypeRequest;
 import com.inmobiliaria.property_service.dto.request.UpdatePriceRequest;
@@ -26,7 +27,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -414,5 +417,29 @@ public class PropertyController {
     InventoryMetricsResponse metrics =
         propertyMetricsService.calculateInventoryMetrics(operationType, zone, propertyType);
     return ResponseEntity.ok(responseFactory.success("Inventory metrics calculated", metrics));
+  }
+
+  @PostMapping("/{id}/generate-pdf")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<byte[]> generatePdf(
+      @PathVariable String id, @RequestHeader("X-Auth-User-Id") String adminId) throws Exception {
+    byte[] pdfBytes = propertyService.generatePdf(id, adminId);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_PDF);
+    headers.setContentDispositionFormData("attachment", "property_sheet_" + id + ".pdf");
+    return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+  }
+
+  @PostMapping("/{id}/send-pdf")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<Void>> sendPdf(
+      @PathVariable String id,
+      @Valid @RequestBody SendPdfEmailRequest request,
+      @RequestHeader("X-Auth-User-Id") String adminId)
+      throws Exception {
+    propertyService.sendPdfByEmail(id, request, adminId);
+    return ResponseEntity.ok(
+        responseFactory.success(
+            "Property sheet email sent successfully to " + request.destinationEmail()));
   }
 }

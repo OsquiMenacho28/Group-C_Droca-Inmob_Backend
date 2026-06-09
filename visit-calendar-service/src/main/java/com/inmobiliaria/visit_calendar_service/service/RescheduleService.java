@@ -39,11 +39,15 @@ public class RescheduleService {
 
   private final VisitRepository visitRepository;
   private final CalendarEventRepository calendarEventRepository;
+  private final AgentAvailabilityService agentAvailabilityService;
 
   public RescheduleService(
-      VisitRepository visitRepository, CalendarEventRepository calendarEventRepository) {
+      VisitRepository visitRepository,
+      CalendarEventRepository calendarEventRepository,
+      AgentAvailabilityService agentAvailabilityService) {
     this.visitRepository = visitRepository;
     this.calendarEventRepository = calendarEventRepository;
+    this.agentAvailabilityService = agentAvailabilityService;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -83,7 +87,21 @@ public class RescheduleService {
               + original.getStatus().name());
     }
 
-    // 3. Availability check — agent
+    Instant newEndTime =
+        request.getNewEndTime() != null
+            ? request.getNewEndTime()
+            : request
+                .getNewStartTime()
+                .plus(
+                    ChronoUnit.MINUTES.between(original.getStartTime(), original.getEndTime()),
+                    ChronoUnit.MINUTES);
+    request.setNewEndTime(newEndTime);
+
+    // 3. Availability check — agent working hours (Sprint 5)
+    agentAvailabilityService.checkAgentAvailability(
+        original.getAgentId(), request.getNewStartTime(), newEndTime);
+
+    // 3b. Availability check — agent visit overlaps
     validateAgentAvailability(original.getAgentId(), request.getNewStartTime(), null);
 
     // 4. Availability check — property

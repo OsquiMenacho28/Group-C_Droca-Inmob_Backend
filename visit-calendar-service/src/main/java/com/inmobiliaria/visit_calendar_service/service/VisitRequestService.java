@@ -36,6 +36,8 @@ public class VisitRequestService {
   private final NotificationService notificationService;
   private final VisitRepository visitRepository;
   private final VehicleUsageService vehicleUsageService;
+  private final AgentAvailabilityService agentAvailabilityService;
+  private final VehicleService vehicleService;
 
   /**
    * PA1 + PA2 de HU3: El cliente solicita una cita para un inmueble. Se persiste la solicitud y se
@@ -87,8 +89,40 @@ public class VisitRequestService {
     return toResponse(saved);
   }
 
+  private boolean hasConflict(
+      String propertyId, String agentId, Instant startTime, Instant endTime) {
+    if (startTime == null || endTime == null) {
+      return true;
+    }
+    // 1. Check agent availability (working hours)
+    try {
+      agentAvailabilityService.checkAgentAvailability(agentId, startTime, endTime);
+    } catch (Exception e) {
+      log.debug(
+          "Agent {} has availability conflict for slot {} - {}: {}",
+          agentId,
+          startTime,
+          endTime,
+          e.getMessage());
+      return true;
+    }
+    // 2. Check if agent is busy
+    List<CalendarEvent> agentConflicts =
+        calendarEventRepository.findConflictingEventsForAgent(agentId, startTime, endTime);
+    if (!agentConflicts.isEmpty()) {
+      log.debug(
+          "Agent {} has scheduling conflict (busy) for slot {} - {}", agentId, startTime, endTime);
+      return true;
+    }
+    // 3. Check property conflicts
+    List<CalendarEvent> conflicts =
+        calendarEventRepository.findConflictingEventsForNew(propertyId, startTime, endTime);
+    return !conflicts.isEmpty();
+  }
+
   /** El agente acepta la solicitud de visita y crea el evento en el calendario. */
-  public VisitRequestResponse acceptVisitRequest(String requestId, String agentId) {
+  public VisitRequestResponse acceptVisitRequest(
+      String requestId, String agentId, AcceptVisitRequestDTO customTime) {
     VisitRequest request =
         visitRequestRepository
             .findById(requestId)
@@ -97,6 +131,64 @@ public class VisitRequestService {
 
     if (!request.getAgentId().equals(agentId)) {
       throw new IllegalArgumentException("Solo el agente responsable puede aceptar esta solicitud");
+    }
+
+    Instant startTime = null;
+    Instant endTime = null;
+    String vehicleId = null;
+
+    if (customTime != null && customTime.getCustomStartTime() != null) {
+      startTime = customTime.getCustomStartTime();
+      endTime = customTime.getCustomEndTime();
+      vehicleId = customTime.getVehicleId();
+      if (endTime == null) {
+        endTime = startTime.plus(1, java.time.temporal.ChronoUnit.HOURS);
+      }
+      // Validate this custom slot
+      if (hasConflict(request.getPropertyId(), request.getAgentId(), startTime, endTime)) {
+        throw new com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictException(
+            "El horario seleccionado está fuera de las horas laborables o tiene conflictos.");
+      }
+      // Validate vehicle availability if specified
+      if (vehicleId != null && !vehicleId.isBlank()) {
+        try {
+          vehicleService.checkVehicleAvailability(vehicleId, startTime, endTime, null);
+        } catch (Exception e) {
+          throw new com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictException(
+              "El vehículo seleccionado no está disponible en este horario: " + e.getMessage());
+        }
+      }
+    } else {
+      // Automatic pick: preferred first, then alternative
+      Instant preferredStart = request.getPreferredDateTime();
+      Instant preferredEnd =
+          preferredStart != null
+              ? preferredStart.plus(1, java.time.temporal.ChronoUnit.HOURS)
+              : null;
+
+      Instant alternativeStart = request.getAlternativeDateTime();
+      Instant alternativeEnd =
+          alternativeStart != null
+              ? alternativeStart.plus(1, java.time.temporal.ChronoUnit.HOURS)
+              : null;
+
+      if (preferredStart != null
+          && !hasConflict(
+              request.getPropertyId(), request.getAgentId(), preferredStart, preferredEnd)) {
+        startTime = preferredStart;
+        endTime = preferredEnd;
+      } else if (alternativeStart != null
+          && !hasConflict(
+              request.getPropertyId(), request.getAgentId(), alternativeStart, alternativeEnd)) {
+        startTime = alternativeStart;
+        endTime = alternativeEnd;
+        log.info("Preferred time slot has conflicts, using alternative slot: {}", alternativeStart);
+      }
+
+      if (startTime == null) {
+        throw new com.inmobiliaria.visit_calendar_service.exception.ScheduleConflictException(
+            "El agente o la propiedad tienen conflictos tanto en el horario principal como en el alternativo.");
+      }
     }
 
     // Crear evento en el calendario
@@ -108,13 +200,19 @@ public class VisitRequestService {
             .agentName(request.getAgentName())
             .clientId(request.getClientId())
             .clientName(request.getClientName())
-            .startTime(request.getPreferredDateTime())
-            .endTime(request.getPreferredDateTime().plus(1, java.time.temporal.ChronoUnit.HOURS))
+            .startTime(startTime)
+            .endTime(endTime)
             .type(CalendarEvent.EventType.CLIENT_REQUEST)
             .status(CalendarEvent.EventStatus.CONFIRMED)
             .notes("Visita solicitada por el cliente: " + request.getClientName())
             .createdAt(Instant.now())
             .build();
+
+    if (vehicleId != null && !vehicleId.isBlank()) {
+      event.setVehicleId(vehicleId);
+      event.setTravelTimeGo(0);
+      event.setTravelTimeBack(0);
+    }
 
     CalendarEvent savedEvent = calendarEventRepository.save(event);
 
@@ -125,7 +223,9 @@ public class VisitRequestService {
     VisitRequest updated = visitRequestRepository.save(request);
 
     log.info("Solicitud aceptada: requestId={}, calendarEventId={}", requestId, savedEvent.getId());
-    return toResponse(updated);
+    VisitRequestResponse resp = toResponse(updated);
+    resp.setAcceptedDateTime(startTime);
+    return resp;
   }
 
   /** El agente rechaza la solicitud de visita. */
