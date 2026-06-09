@@ -71,6 +71,9 @@ class PropertyServiceTest {
             null);
   }
 
+  // Note: These tests primarily check the logic within PropertyService methods, including validation and interaction with the repository.
+  // They do not cover the actual integration with MongoDB or the full security context, which would require more complex setup or integration tests.
+
   @Test
   @DisplayName("findById should return property when it exists")
   void testFindByIdSuccess() {

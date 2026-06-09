@@ -49,6 +49,9 @@ class PropertyRepositoryTest {
             .build();
   }
 
+  // Note: These tests interact with an actual MongoDB instance (embedded or test container).
+  // They verify that the repository methods correctly persist and query data.
+
   @Test
   @DisplayName("save should persist property")
   void testSaveProperty() {

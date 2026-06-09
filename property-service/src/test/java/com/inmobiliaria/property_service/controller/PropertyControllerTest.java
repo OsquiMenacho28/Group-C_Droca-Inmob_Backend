@@ -44,6 +44,9 @@ class PropertyControllerTest {
             null);
   }
 
+  // Note: These tests primarily check for authentication and endpoint accessibility.
+  // More comprehensive tests would require mocking the service layer and testing responses.
+
   @Test
   @DisplayName("GET /properties should return list of properties")
   void testFindAllProperties() throws Exception {

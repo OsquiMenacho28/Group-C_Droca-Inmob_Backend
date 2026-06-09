@@ -83,6 +83,9 @@ class ImageServiceTest {
     ReflectionTestUtils.setField(imageService, "imagesBucket", "property-images");
   }
 
+  // Note: These tests primarily check the logic within ImageService methods, including validation and interaction with the StorageService.
+  // They do not cover the actual integration with MinIO or the full security context, which would require more complex setup or integration tests.
+
   @Test
   @DisplayName("generatePresignedUploadUrl should return upload URL for valid request")
   void testGeneratePresignedUploadUrl() {
