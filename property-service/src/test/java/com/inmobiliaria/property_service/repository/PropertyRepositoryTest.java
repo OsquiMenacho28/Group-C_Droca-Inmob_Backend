@@ -1,21 +1,20 @@
 package com.inmobiliaria.property_service.repository;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.inmobiliaria.property_service.domain.OperationType;
+import com.inmobiliaria.property_service.domain.PropertyDocument;
+import com.inmobiliaria.property_service.domain.PropertyStatus;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.ActiveProfiles;
-
-import com.inmobiliaria.property_service.domain.OperationType;
-import com.inmobiliaria.property_service.domain.PropertyDocument;
-import com.inmobiliaria.property_service.domain.PropertyStatus;
 
 @DataMongoTest
 @ActiveProfiles("test")
@@ -83,20 +82,21 @@ class PropertyRepositoryTest {
   void testFindByDeletedFalse() {
     // Arrange
     propertyRepository.save(testProperty);
-    PropertyDocument deletedProperty = PropertyDocument.builder()
-        .title("Deleted Property")
-        .address("456 Delete St")
-        .zone("Oldtown")
-        .price(50000.0)
-        .type("House")
-        .operationType(OperationType.VENTA)
-        .m2(150.0)
-        .rooms(5)
-        .status(PropertyStatus.RETIRADO)
-        .assignedAgentId("agent-456")
-        .ownerId("owner-456")
-        .deleted(true)
-        .build();
+    PropertyDocument deletedProperty =
+        PropertyDocument.builder()
+            .title("Deleted Property")
+            .address("456 Delete St")
+            .zone("Oldtown")
+            .price(50000.0)
+            .type("House")
+            .operationType(OperationType.VENTA)
+            .m2(150.0)
+            .rooms(5)
+            .status(PropertyStatus.RETIRADO)
+            .assignedAgentId("agent-456")
+            .ownerId("owner-456")
+            .deleted(true)
+            .build();
     propertyRepository.save(deletedProperty);
 
     // Act
@@ -143,20 +143,21 @@ class PropertyRepositoryTest {
   void testFindByAssignedAgentId() {
     // Arrange
     propertyRepository.save(testProperty);
-    PropertyDocument deletedByAgent = PropertyDocument.builder()
-        .title("Deleted by Agent")
-        .address("789 Delete Ave")
-        .zone("Oldtown")
-        .price(75000.0)
-        .type("Condo")
-        .operationType(OperationType.ALQUILER)
-        .m2(80.0)
-        .rooms(2)
-        .status(PropertyStatus.RETIRADO)
-        .assignedAgentId("agent-123")
-        .ownerId("owner-789")
-        .deleted(true)
-        .build();
+    PropertyDocument deletedByAgent =
+        PropertyDocument.builder()
+            .title("Deleted by Agent")
+            .address("789 Delete Ave")
+            .zone("Oldtown")
+            .price(75000.0)
+            .type("Condo")
+            .operationType(OperationType.ALQUILER)
+            .m2(80.0)
+            .rooms(2)
+            .status(PropertyStatus.RETIRADO)
+            .assignedAgentId("agent-123")
+            .ownerId("owner-789")
+            .deleted(true)
+            .build();
     propertyRepository.save(deletedByAgent);
 
     // Act

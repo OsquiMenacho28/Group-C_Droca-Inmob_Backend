@@ -1,30 +1,17 @@
 package com.inmobiliaria.property_service.service;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.PropertyDocument;
@@ -32,6 +19,18 @@ import com.inmobiliaria.property_service.domain.PropertyStatus;
 import com.inmobiliaria.property_service.dto.request.GenerateImageUploadUrlRequest;
 import com.inmobiliaria.property_service.exception.ValidationException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ImageService Unit Tests")
@@ -83,16 +82,17 @@ class ImageServiceTest {
     ReflectionTestUtils.setField(imageService, "imagesBucket", "property-images");
   }
 
-  // Note: These tests primarily check the logic within ImageService methods, including validation and interaction with the StorageService.
-  // They do not cover the actual integration with MinIO or the full security context, which would require more complex setup or integration tests.
+  // Note: These tests primarily check the logic within ImageService methods, including validation
+  // and interaction with the StorageService.
+  // They do not cover the actual integration with MinIO or the full security context, which would
+  // require more complex setup or integration tests.
 
   @Test
   @DisplayName("generatePresignedUploadUrl should return upload URL for valid request")
   void testGeneratePresignedUploadUrl() {
     // Arrange
     when(propertyRepository.findById("property-123")).thenReturn(Optional.of(testProperty));
-    when(storageService.generatePresignedPutUrl(
-            anyString(), anyString(), anyInt()))
+    when(storageService.generatePresignedPutUrl(anyString(), anyString(), anyInt()))
         .thenReturn("https://minio.example.com/presigned-url");
 
     // Act
@@ -112,7 +112,10 @@ class ImageServiceTest {
     uploadRequest.setMimeType("application/pdf");
 
     // Act & Assert
-    ValidationException exception = assertThrows(ValidationException.class, () -> imageService.generatePresignedUploadUrl(uploadRequest));
+    ValidationException exception =
+        assertThrows(
+            ValidationException.class,
+            () -> imageService.generatePresignedUploadUrl(uploadRequest));
     assertNotNull(exception);
   }
 
@@ -123,7 +126,10 @@ class ImageServiceTest {
     uploadRequest.setFileSize(15 * 1024 * 1024L); // 15MB
 
     // Act & Assert
-    ValidationException exception = assertThrows(ValidationException.class, () -> imageService.generatePresignedUploadUrl(uploadRequest));
+    ValidationException exception =
+        assertThrows(
+            ValidationException.class,
+            () -> imageService.generatePresignedUploadUrl(uploadRequest));
     assertNotNull(exception);
   }
 
@@ -136,10 +142,7 @@ class ImageServiceTest {
             anyString(), anyString(), anyString(), anyLong(), anyInt()))
         .thenReturn(
             java.util.Map.of(
-                "url",
-                "https://minio.example.com",
-                "formData",
-                java.util.Map.of("key", "value")));
+                "url", "https://minio.example.com", "formData", java.util.Map.of("key", "value")));
 
     // Act
     var result = imageService.generateUploadPolicy(uploadRequest);
@@ -147,8 +150,8 @@ class ImageServiceTest {
     // Assert
     assertNotNull(result);
     assertEquals("https://minio.example.com", result.getUrl());
-    verify(storageService).generateUploadPolicy(anyString(), anyString(), anyString(),
-        anyLong(), anyInt());
+    verify(storageService)
+        .generateUploadPolicy(anyString(), anyString(), anyString(), anyLong(), anyInt());
   }
 
   @Test
@@ -160,15 +163,15 @@ class ImageServiceTest {
             "file", "test.jpg", "image/jpeg", "test content".getBytes());
 
     // Mock the void method
-    doNothing().when(storageService).uploadObject(
-            anyString(), anyString(), any(), anyLong(), anyString());
+    doNothing()
+        .when(storageService)
+        .uploadObject(anyString(), anyString(), any(), anyLong(), anyString());
 
     // Act
     String result = imageService.uploadImageDirectly("property-123", file);
 
     // Assert
     assertNotNull(result);
-    verify(storageService).uploadObject(anyString(), anyString(), any(), anyLong(),
-        anyString());
+    verify(storageService).uploadObject(anyString(), anyString(), any(), anyLong(), anyString());
   }
 }

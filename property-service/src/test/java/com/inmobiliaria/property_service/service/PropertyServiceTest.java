@@ -1,22 +1,11 @@
 package com.inmobiliaria.property_service.service;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.PropertyDocument;
@@ -25,6 +14,16 @@ import com.inmobiliaria.property_service.dto.request.PropertyRequest;
 import com.inmobiliaria.property_service.dto.response.PropertyResponse;
 import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PropertyService Unit Tests")
@@ -71,8 +70,10 @@ class PropertyServiceTest {
             null);
   }
 
-  // Note: These tests primarily check the logic within PropertyService methods, including validation and interaction with the repository.
-  // They do not cover the actual integration with MongoDB or the full security context, which would require more complex setup or integration tests.
+  // Note: These tests primarily check the logic within PropertyService methods, including
+  // validation and interaction with the repository.
+  // They do not cover the actual integration with MongoDB or the full security context, which would
+  // require more complex setup or integration tests.
 
   @Test
   @DisplayName("findById should return property when it exists")
@@ -96,7 +97,8 @@ class PropertyServiceTest {
     when(propertyRepository.findById("invalid-id")).thenReturn(Optional.empty());
 
     // Act & Assert
-    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> propertyService.findById("invalid-id"));
+    ResourceNotFoundException exception =
+        assertThrows(ResourceNotFoundException.class, () -> propertyService.findById("invalid-id"));
     assertNotNull(exception);
     verify(propertyRepository).findById("invalid-id");
   }
@@ -193,11 +195,7 @@ class PropertyServiceTest {
     // Act
     PropertyResponse result =
         propertyService.updateStatus(
-            "test-property-id",
-            "RESERVADO",
-            "admin",
-            Arrays.asList("ROLE_ADMIN"),
-            false);
+            "test-property-id", "RESERVADO", "admin", Arrays.asList("ROLE_ADMIN"), false);
 
     // Assert
     assertNotNull(result);
