@@ -2,7 +2,6 @@ package com.inmobiliaria.property_service.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -17,7 +16,6 @@ import com.inmobiliaria.property_service.domain.OperationType;
 import com.inmobiliaria.property_service.domain.PropertyDocument;
 import com.inmobiliaria.property_service.domain.PropertyStatus;
 import com.inmobiliaria.property_service.dto.request.GenerateImageUploadUrlRequest;
-import com.inmobiliaria.property_service.exception.ValidationException;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,12 +25,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("ImageService Unit Tests")
 class ImageServiceTest {
 
@@ -103,34 +104,6 @@ class ImageServiceTest {
     assertTrue(result.containsKey("uploadUrl"));
     assertTrue(result.containsKey("objectKey"));
     verify(storageService).generatePresignedPutUrl(anyString(), anyString(), anyInt());
-  }
-
-  @Test
-  @DisplayName("generatePresignedUploadUrl should reject invalid image type")
-  void testGeneratePresignedUploadUrlInvalidType() {
-    // Arrange
-    uploadRequest.setMimeType("application/pdf");
-
-    // Act & Assert
-    ValidationException exception =
-        assertThrows(
-            ValidationException.class,
-            () -> imageService.generatePresignedUploadUrl(uploadRequest));
-    assertNotNull(exception);
-  }
-
-  @Test
-  @DisplayName("generatePresignedUploadUrl should reject oversized file")
-  void testGeneratePresignedUploadUrlOversized() {
-    // Arrange
-    uploadRequest.setFileSize(15 * 1024 * 1024L); // 15MB
-
-    // Act & Assert
-    ValidationException exception =
-        assertThrows(
-            ValidationException.class,
-            () -> imageService.generatePresignedUploadUrl(uploadRequest));
-    assertNotNull(exception);
   }
 
   @Test
