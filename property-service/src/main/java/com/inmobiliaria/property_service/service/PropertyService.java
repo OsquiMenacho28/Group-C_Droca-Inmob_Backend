@@ -1,6 +1,7 @@
 package com.inmobiliaria.property_service.service;
 
 import com.inmobiliaria.property_service.client.IdentityClient;
+import com.inmobiliaria.property_service.client.NotificationClient;
 import com.inmobiliaria.property_service.client.OperationClient;
 import com.inmobiliaria.property_service.client.UserClient;
 import com.inmobiliaria.property_service.domain.*;
@@ -11,8 +12,12 @@ import com.inmobiliaria.property_service.exception.AccessDeniedException;
 import com.inmobiliaria.property_service.exception.ConflictException;
 import com.inmobiliaria.property_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.property_service.exception.ValidationException;
+import com.inmobiliaria.property_service.repository.AuditLogRepository;
 import com.inmobiliaria.property_service.repository.PropertyRepository;
 import com.inmobiliaria.property_service.security.Auditable;
+import com.inmobiliaria.property_service.util.QRCodeGenerator;
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,6 +40,10 @@ public class PropertyService {
   private final MongoTemplate mongoTemplate;
   private final ImageService imageService;
   private final UserClient userClient;
+  private final PdfGenerationService pdfGenerationService;
+  private final NotificationClient notificationClient;
+  private final AuditLogRepository auditLogRepository;
+  private final MinioClient minioClient;
 
   /** Búsqueda avanzada con filtros dinámicos y seguridad por rol. */
   public Map<String, Object> findWithFilters(
@@ -931,5 +940,203 @@ public class PropertyService {
 
     return new com.inmobiliaria.property_service.dto.response.InventoryReportResponse(
         totalsByStatus, totalsByOperationType, reportItems);
+  }
+
+  private byte[] downloadFileBytes(String urlString) {
+    if (urlString == null) return null;
+
+    // Check if the URL is pointing to MinIO and try direct download first
+    if (urlString.contains("localhost:9000")
+        || urlString.contains("127.0.0.1:9000")
+        || urlString.contains("minio:9000")) {
+      try {
+        java.net.URI uri = java.net.URI.create(urlString);
+        String path = uri.getPath();
+        if (path != null) {
+          if (path.startsWith("/")) {
+            path = path.substring(1);
+          }
+          String[] parts = path.split("/", 2);
+          if (parts.length == 2) {
+            String bucket = parts[0];
+            String objectKey = parts[1];
+            log.info(
+                "Attempting to download file directly from MinIO: bucket={}, key={}",
+                bucket,
+                objectKey);
+            try (java.io.InputStream in =
+                minioClient.getObject(
+                    GetObjectArgs.builder().bucket(bucket).object(objectKey).build())) {
+              byte[] bytes = in.readAllBytes();
+              log.info("Successfully downloaded file directly from MinIO ({} bytes)", bytes.length);
+              return bytes;
+            }
+          }
+        }
+      } catch (Exception e) {
+        log.warn(
+            "Failed to download directly from MinIO: {}. Falling back to HTTP.", e.getMessage());
+      }
+    }
+
+    List<String> urlsToTry = new ArrayList<>();
+    urlsToTry.add(urlString); // Try original URL first
+
+    if (urlString.contains("localhost:9000")) {
+      urlsToTry.add(urlString.replace("localhost:9000", "minio:9000"));
+      urlsToTry.add(urlString.replace("localhost:9000", "127.0.0.1:9000"));
+    } else if (urlString.contains("127.0.0.1:9000")) {
+      urlsToTry.add(urlString.replace("127.0.0.1:9000", "minio:9000"));
+      urlsToTry.add(urlString.replace("127.0.0.1:9000", "localhost:9000"));
+    } else if (urlString.contains("minio:9000")) {
+      urlsToTry.add(urlString.replace("minio:9000", "localhost:9000"));
+      urlsToTry.add(urlString.replace("minio:9000", "127.0.0.1:9000"));
+    }
+
+    for (String targetUrl : urlsToTry) {
+      try {
+        log.info("Attempting to download file from: {}", targetUrl);
+        java.net.URL url = java.net.URI.create(targetUrl).toURL();
+        try (java.io.InputStream in = url.openStream();
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+          byte[] buffer = new byte[4096];
+          int n;
+          while ((n = in.read(buffer)) != -1) {
+            out.write(buffer, 0, n);
+          }
+          log.info("Successfully downloaded file from: {}", targetUrl);
+          return out.toByteArray();
+        }
+      } catch (Exception e) {
+        log.warn("Failed to download file from: {}. Error: {}", targetUrl, e.getMessage());
+      }
+    }
+
+    log.error("Failed to download file from all attempted URLs for: {}", urlString);
+    return null;
+  }
+
+  private byte[] generatePdfBytes(PropertyDocument property) throws Exception {
+    String publicUrl = "http://localhost:5173/properties?selectedId=" + property.getId();
+    String qrBase64 = QRCodeGenerator.generateQRCodeBase64(publicUrl, 200, 200);
+
+    String mainImageUrl =
+        property.getImages().stream()
+            .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+            .map(img -> img.getPublicUrl())
+            .findFirst()
+            .orElse(
+                property.getImageUrls() != null && !property.getImageUrls().isEmpty()
+                    ? property.getImageUrls().get(0)
+                    : null);
+
+    String mainImageBase64 = null;
+    if (mainImageUrl != null) {
+      byte[] imgBytes = downloadFileBytes(mainImageUrl);
+      if (imgBytes != null) {
+        String mimeType = "image/jpeg";
+        if (mainImageUrl.endsWith(".png")) mimeType = "image/png";
+        else if (mainImageUrl.endsWith(".gif")) mimeType = "image/gif";
+        mainImageBase64 =
+            "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(imgBytes);
+      }
+    }
+
+    String agentName = "Support Team";
+    String agentEmail = "support@drocainmob.com";
+    String agentPhone = "N/A";
+
+    if (property.getAssignedAgentId() != null && !property.getAssignedAgentId().isBlank()) {
+      try {
+        IdentityClient.UserResponse agent = identityClient.findById(property.getAssignedAgentId());
+        if (agent != null) {
+          agentName =
+              agent.fullName() != null
+                  ? agent.fullName()
+                  : (agent.firstName() + " " + agent.lastName());
+          agentEmail = agent.email() != null ? agent.email() : agentEmail;
+          agentPhone = agent.phone() != null ? agent.phone() : agentPhone;
+        }
+      } catch (Exception e) {
+        log.error("Failed to fetch agent details for id {}", property.getAssignedAgentId(), e);
+      }
+    }
+
+    // Explicit currency format: e.g. $500,000.00
+    String formattedPrice = "N/A";
+    if (property.getPrice() != null) {
+      java.text.DecimalFormat formatter =
+          new java.text.DecimalFormat(
+              "$#,##0.00", new java.text.DecimalFormatSymbols(java.util.Locale.US));
+      formattedPrice = formatter.format(property.getPrice());
+    }
+
+    return pdfGenerationService.generatePropertyPdf(
+        property, qrBase64, mainImageBase64, agentName, agentEmail, agentPhone, formattedPrice);
+  }
+
+  public byte[] generatePdf(String id, String adminId) throws Exception {
+    PropertyDocument property =
+        propertyRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
+
+    byte[] pdfBytes = generatePdfBytes(property);
+
+    AuditLog audit =
+        AuditLog.builder()
+            .userId(adminId)
+            .action("PDF_GENERATED")
+            .propertyId(id)
+            .previousValue("N/A")
+            .newValue("DOWNLOADED")
+            .changes(new ArrayList<>())
+            .timestamp(Instant.now())
+            .build();
+    auditLogRepository.save(audit);
+
+    return pdfBytes;
+  }
+
+  public void sendPdfByEmail(
+      String id,
+      com.inmobiliaria.property_service.dto.request.SendPdfEmailRequest request,
+      String adminId)
+      throws Exception {
+    PropertyDocument property =
+        propertyRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
+
+    byte[] pdfBytes = generatePdfBytes(property);
+    String pdfBase64 = Base64.getEncoder().encodeToString(pdfBytes);
+
+    String messageContent =
+        request.message() != null && !request.message().isBlank()
+            ? request.message()
+            : "Hello, please find attached the details sheet for the property: "
+                + property.getTitle();
+
+    com.inmobiliaria.property_service.dto.request.SendAttachmentEmailRequest feignRequest =
+        new com.inmobiliaria.property_service.dto.request.SendAttachmentEmailRequest(
+            request.destinationEmail(),
+            "Property Information: " + property.getTitle(),
+            messageContent,
+            pdfBase64,
+            "property_sheet_" + id + ".pdf");
+
+    notificationClient.sendEmailWithAttachment(feignRequest);
+
+    AuditLog audit =
+        AuditLog.builder()
+            .userId(adminId)
+            .action("PDF_SENT_EMAIL")
+            .propertyId(id)
+            .previousValue("N/A")
+            .newValue(request.destinationEmail())
+            .changes(new ArrayList<>())
+            .timestamp(Instant.now())
+            .build();
+    auditLogRepository.save(audit);
   }
 }

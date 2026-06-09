@@ -84,7 +84,7 @@ spring:
         - id: visit-calendar-service
           uri: lb://visit-calendar-service
           predicates:
-            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments, /api/v1/vehicles/**, /api/v1/vehicles, /api/v1/visits/*/reschedule, /api/v1/visits/*/rescheduled, /api/v1/reports/**, /api/v1/reports
+            - Path=/api/v1/calendar/**, /api/v1/calendar, /api/v1/visits/**, /api/v1/visits, /api/v1/visit-requests/**, /api/v1/visit-requests, /api/v1/reassignments/**, /api/v1/reassignments, /api/v1/vehicles/**, /api/v1/vehicles, /api/v1/visits/*/reschedule, /api/v1/visits/*/rescheduled, /api/v1/reports/**, /api/v1/reports, /api/v1/agents/**, /api/v1/availability-templates/**
           filters:
             - AuthenticationFilter
             - StripPrefix=2
@@ -94,6 +94,13 @@ spring:
             - Path=/visit-calendar-service/v3/api-docs
           filters:
             - StripPrefix=1
+        - id: visit-calendar-service-alertas
+          uri: lb://visit-calendar-service
+          predicates:
+            - Path=/api/v1/alertas/**
+          filters:
+            - AuthenticationFilter
+            - StripPrefix=2
 
         - id: operation-service
           uri: lb://operation-service
@@ -141,6 +148,8 @@ springdoc:
       - name: user-service
         url: /user-service/v3/api-docs
       - name: visit-calendar-service
+        url: /visit-calendar-service/v3/api-docs
+      - name: visit-calendar-service-alertas
         url: /visit-calendar-service/v3/api-docs
       - name: operation-service
         url: /operation-service/v3/api-docs

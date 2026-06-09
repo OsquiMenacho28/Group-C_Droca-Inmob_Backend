@@ -75,6 +75,9 @@ public class Visit {
   /** Historial de reprogramaciones */
   private List<ReschedulingHistory> reschedulingHistory;
 
+  /** Indica si se ha enviado una notificación sobre la visita próxima */
+  private Boolean upcomingNotificationSent = false;
+
   /**
    * Tipo de evento. Valores posibles: VISIT (visita de agente), CLIENT_REQUEST (solicitud de
    * cliente)
@@ -114,6 +117,7 @@ public class Visit {
     this.travelTimeBack = 0;
     this.ownEvent = false;
     this.reschedulingHistory = new ArrayList<>();
+    this.upcomingNotificationSent = false;
   }
 
   // ── Getters & Setters ─────────────────────────────────────────────────────
@@ -309,5 +313,13 @@ public class Visit {
 
   public void setFechaRegistroResultado(Instant fechaRegistroResultado) {
     this.fechaRegistroResultado = fechaRegistroResultado;
+  }
+
+  public Boolean isUpcomingNotificationSent() {
+    return upcomingNotificationSent != null && upcomingNotificationSent;
+  }
+
+  public void setUpcomingNotificationSent(Boolean upcomingNotificationSent) {
+    this.upcomingNotificationSent = upcomingNotificationSent;
   }
 }

@@ -105,9 +105,13 @@ public class VisitRequestController {
    */
   @PatchMapping("/{id}/accept")
   public ResponseEntity<ApiResponse<VisitRequestResponse>> acceptRequest(
-      @PathVariable String id, @RequestHeader("X-Agent-Id") String agentId) {
+      @PathVariable String id,
+      @RequestHeader("X-Agent-Id") String agentId,
+      @RequestBody(required = false)
+          com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.AcceptVisitRequestDTO
+              customTime) {
 
-    VisitRequestResponse response = visitRequestService.acceptVisitRequest(id, agentId);
+    VisitRequestResponse response = visitRequestService.acceptVisitRequest(id, agentId, customTime);
 
     return ResponseEntity.ok(
         responseFactory.success(

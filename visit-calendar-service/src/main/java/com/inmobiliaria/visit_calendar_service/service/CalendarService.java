@@ -45,6 +45,7 @@ public class CalendarService {
   private final PersonClient personClient;
   private final VisitRepository visitRepository;
   private final ObjectMapper objectMapper;
+  private final AgentAvailabilityService agentAvailabilityService;
 
   // =====================================================================
   // HU1: GET /calendar — Visualizar calendario compartido del equipo
@@ -108,9 +109,36 @@ public class CalendarService {
    * PA2: Valida si existe conflicto de horario ANTES de crear el evento. Retorna detalles del
    * conflicto y una sugerencia de horario alternativo.
    */
-  public ConflictResponse checkConflict(String propertyId, Instant startTime, Instant endTime) {
+  public ConflictResponse checkConflict(
+      String propertyId, String agentId, Instant startTime, Instant endTime) {
     validateDateRange(startTime, endTime);
 
+    // 1. Verificar disponibilidad del agente primero (Sprint 5)
+    if (agentId != null && !agentId.isBlank()) {
+      try {
+        agentAvailabilityService.checkAgentAvailability(agentId, startTime, endTime);
+      } catch (ScheduleConflictException ex) {
+        return ConflictResponse.builder()
+            .hasConflict(true)
+            .message(ex.getMessage())
+            .conflictingEvents(List.of())
+            .build();
+      }
+
+      // 1b. Check if agent is busy (has conflicting scheduled visits)
+      List<CalendarEvent> agentConflicts =
+          calendarEventRepository.findConflictingEventsForAgent(agentId, startTime, endTime);
+      if (!agentConflicts.isEmpty()) {
+        return ConflictResponse.builder()
+            .hasConflict(true)
+            .message("El agente ya tiene otra visita programada en este horario.")
+            .conflictingEvents(
+                agentConflicts.stream().map(e -> toResponse(e, null)).collect(Collectors.toList()))
+            .build();
+      }
+    }
+
+    // 2. Verificar conflictos del inmueble
     List<CalendarEvent> conflicts =
         calendarEventRepository.findConflictingEventsForNew(propertyId, startTime, endTime);
 
@@ -152,6 +180,23 @@ public class CalendarService {
    */
   public Visit createVisit(CreateVisitRequest request) {
     validateDateRange(request.getStartTime(), request.getEndTime());
+
+    // 1. Validar disponibilidad del agente (Sprint 5)
+    if (request.getAgentId() != null && !request.getAgentId().isBlank()) {
+      agentAvailabilityService.checkAgentAvailability(
+          request.getAgentId(), request.getStartTime(), request.getEndTime());
+
+      // Check if agent is busy
+      List<CalendarEvent> agentConflicts =
+          calendarEventRepository.findConflictingEventsForAgent(
+              request.getAgentId(), request.getStartTime(), request.getEndTime());
+      if (!agentConflicts.isEmpty()) {
+        throw new ScheduleConflictException(
+            "El agente "
+                + request.getAgentName()
+                + " ya tiene otra visita programada en ese horario.");
+      }
+    }
 
     // Verificar conflictos de horario (PA2)
     List<CalendarEvent> conflicts =

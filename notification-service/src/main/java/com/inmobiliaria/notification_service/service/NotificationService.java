@@ -4,6 +4,7 @@ import com.inmobiliaria.notification_service.config.MailPropertiesConfig;
 import com.inmobiliaria.notification_service.domain.EmailLogDocument;
 import com.inmobiliaria.notification_service.domain.NotificationDocument;
 import com.inmobiliaria.notification_service.domain.NotificationStatus;
+import com.inmobiliaria.notification_service.dto.request.SendAttachmentEmailRequest;
 import com.inmobiliaria.notification_service.dto.request.SendCredentialsEmailRequest;
 import com.inmobiliaria.notification_service.dto.request.SendInAppNotificationRequest;
 import com.inmobiliaria.notification_service.dto.response.InAppNotificationResponse;
@@ -13,13 +14,17 @@ import com.inmobiliaria.notification_service.exception.EmailSendException;
 import com.inmobiliaria.notification_service.exception.ResourceNotFoundException;
 import com.inmobiliaria.notification_service.repository.EmailLogRepository;
 import com.inmobiliaria.notification_service.repository.NotificationRepository;
+import jakarta.mail.internet.MimeMessage;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -70,6 +75,45 @@ public class NotificationService {
               .build());
 
       throw new EmailSendException("Failed to send email to " + request.to(), ex);
+    }
+  }
+
+  public void sendEmailWithAttachment(SendAttachmentEmailRequest req) {
+    try {
+      MimeMessage mimeMessage = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+      helper.setFrom(mailPropertiesConfig.getFrom());
+      helper.setTo(req.recipientId());
+      helper.setSubject(req.subject());
+      helper.setText(req.content(), false); // plain text body
+
+      byte[] attachmentBytes = Base64.getDecoder().decode(req.attachmentBase64());
+      ByteArrayResource resource = new ByteArrayResource(attachmentBytes);
+      helper.addAttachment(req.attachmentFilename(), resource, "application/pdf");
+
+      mailSender.send(mimeMessage);
+
+      emailLogRepository.save(
+          EmailLogDocument.builder()
+              .to(req.recipientId())
+              .subject(req.subject())
+              .body(req.content())
+              .status(NotificationStatus.SENT)
+              .createdAt(Instant.now())
+              .build());
+    } catch (Exception ex) {
+      emailLogRepository.save(
+          EmailLogDocument.builder()
+              .to(req.recipientId())
+              .subject(req.subject())
+              .body(req.content())
+              .status(NotificationStatus.FAILED)
+              .errorMessage(ex.getMessage())
+              .createdAt(Instant.now())
+              .build());
+      throw new EmailSendException(
+          "Failed to send email with attachment to " + req.recipientId(), ex);
     }
   }
 
