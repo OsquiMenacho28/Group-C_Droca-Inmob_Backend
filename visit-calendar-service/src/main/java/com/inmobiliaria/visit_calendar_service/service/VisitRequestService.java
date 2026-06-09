@@ -1,5 +1,6 @@
 package com.inmobiliaria.visit_calendar_service.service;
 
+import com.inmobiliaria.visit_calendar_service.client.ClientInteractionClient;
 import com.inmobiliaria.visit_calendar_service.dto.RegistrarResultadoRequest;
 import com.inmobiliaria.visit_calendar_service.dto.VisitCalendarDTOs.*;
 import com.inmobiliaria.visit_calendar_service.exception.ResourceNotFoundException;
@@ -36,6 +37,7 @@ public class VisitRequestService {
   private final NotificationService notificationService;
   private final VisitRepository visitRepository;
   private final VehicleUsageService vehicleUsageService;
+  private final ClientInteractionClient clientInteractionClient;
 
   /**
    * PA1 + PA2 de HU3: El cliente solicita una cita para un inmueble. Se persiste la solicitud y se
@@ -84,7 +86,31 @@ public class VisitRequestService {
           saved.getId());
     }
 
+    recordClientInteraction(saved);
+
     return toResponse(saved);
+  }
+
+  private void recordClientInteraction(VisitRequest request) {
+    try {
+      clientInteractionClient.recordInteraction(
+          new ClientInteractionClient.RecordClientInteractionRequest(
+              request.getClientId(),
+              request.getAgentId(),
+              request.getPropertyId(),
+              request.getPropertyName(),
+              request.getAgentName(),
+              "VISITA",
+              request.getCreatedAt(),
+              request.getMessage(),
+              request.getStatus() != null ? request.getStatus().name() : null,
+              "visit-request-" + request.getId()));
+    } catch (Exception e) {
+      log.warn(
+          "Failed to record client interaction for visit request {}: {}",
+          request.getId(),
+          e.getMessage());
+    }
   }
 
   /** El agente acepta la solicitud de visita y crea el evento en el calendario. */
