@@ -1,0 +1,1 @@
+{"success":false,"message":"Missing Authorization header","errors":[{"field":null,"message":"Missing Authorization header","code":"UNAUTHORIZED"}],"meta":{"timestamp":"2026-06-08T15:26:14.421830300Z","version":"v1"}}

@@ -27,6 +27,7 @@ public class FavoriteService {
   private final PersonService personService;
   private final PropertyClient propertyClient;
   private final NotificationClient notificationClient;
+  private final ClientInteractionService clientInteractionService;
 
   public void addFavorite(String authUserId, String propertyId) {
     personService.validarClienteActivo(authUserId);
@@ -69,6 +70,16 @@ public class FavoriteService {
             .action("ADDED")
             .timestamp(now)
             .build());
+
+    try {
+      clientInteractionService.recordFavoriteInteraction(authUserId, propertyId, now);
+    } catch (Exception e) {
+      log.warn(
+          "Failed to record favorite interaction for user {} property {}: {}",
+          authUserId,
+          propertyId,
+          e.getMessage());
+    }
 
     log.info("Favorite ADDED for user {} property {}", authUserId, propertyId);
   }
